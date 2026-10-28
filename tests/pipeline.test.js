@@ -36,6 +36,21 @@ test('upcoming anime with no episodes does not request an episode range', async 
   assert.equal(requests.length, 2);
 });
 
+test('planned episode on a completed anime is not treated as available', async () => {
+  const requests = [];
+  const item = {id: 6234, slug: 'panda-go-panda-rainy-day-circus', path: '/anime/6234-panda-go-panda-rainy-day-circus'};
+  const raw = await fetchAnime(item, 'https://www.animeunity.co', async (_method, url) => {
+    requests.push(url);
+    if (url.endsWith('/info_api/6234/')) return {data: {id: 6234, status: 'Terminato', episodes_count: 0}};
+    return {data: '<video-player anime="{&quot;id&quot;:6234,&quot;episodes_count&quot;:1}" episodes="[]"></video-player>'};
+  });
+  assert.deepEqual(raw.episodes, []);
+  assert.equal(raw.embeddedAnime.episodes_count, 1);
+  assert.equal(requests.length, 2);
+  const twoDaysAgo = new Date(Date.now() - 2 * 86400000).toISOString();
+  assert.equal(due({...raw, checkedAt: twoDaysAgo}, false), true);
+});
+
 test('info API remains usable when an anime page temporarily fails', async () => {
   const item = {id: 9, slug: 'upcoming', path: '/anime/9-upcoming'};
   const raw = await fetchAnime(item, 'https://www.animeunity.co', async (_method, url) => {

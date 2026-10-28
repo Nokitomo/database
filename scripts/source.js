@@ -124,7 +124,10 @@ async function fetchAnime(item, baseUrl, fetch = request) {
   const append = episode => { if (episode?.id != null) byId.set(String(episode.id), episode); };
   embedded.episodes.forEach(append);
   const bounds = embedded.episodes.map(e => episodeBounds(e.number)).filter(Boolean);
-  const count = Math.max(Number(info.episodes_count) || 0, Number(embedded.anime?.episodes_count) || 0, embedded.episodes.length);
+  // The embedded count can describe planned episodes even when none are available yet.
+  const availableCount = Number(info.episodes_count);
+  const count = availableCount === 0 && embedded.episodes.length === 0 ? 0 :
+    Math.max(availableCount || 0, Number(embedded.anime?.episodes_count) || 0, embedded.episodes.length);
   const minimum = Math.min(...bounds.map(value => value.start));
   const maximum = Math.max(...bounds.map(value => value.end));
   const absolute = Number.isFinite(minimum) && (count ? minimum > count * 1.5 : minimum > 1);

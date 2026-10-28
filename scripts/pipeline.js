@@ -9,7 +9,10 @@ const {enrichAnime, mapAnime} = require('./vega');
 
 function stageIndex(stage) { return path.join(DATA, stage, 'index.json'); }
 function providerRef() { return fs.readFileSync(path.join(__dirname, '..', 'vega-providers.ref'), 'utf8').trim(); }
-function isDynamic(raw) { return /in corso|ongoing|in uscita|upcoming|prossimamente/i.test(raw.info?.status || raw.embeddedAnime?.status || ''); }
+function isDynamic(raw) {
+  return Number(raw.info?.episodes_count) === 0 && raw.episodes?.length === 0 ||
+    /in corso|ongoing|in uscita|upcoming|prossimamente/i.test(raw.info?.status || raw.embeddedAnime?.status || '');
+}
 function due(raw, full, fullSince = null) {
   if (!raw) return true;
   if (full && (!fullSince || Date.parse(raw.checkedAt || 0) < fullSince)) return true;
