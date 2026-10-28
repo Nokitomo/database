@@ -1,0 +1,221 @@
+'use strict';
+
+const fs = require('node:fs');
+const path = require('node:path');
+const axios = require('axios');
+const cheerio = require('cheerio');
+const {ROOT, hash, readJson, writeJson} = require('./lib');
+const {episodeBounds} = require('./source');
+
+function requireProvider(providerRoot, modulePath) {
+  const absolute = path.resolve(providerRoot, 'dist', 'animeunity', modulePath);
+  if (!fs.existsSync(absolute)) throw new Error(`Vega provider build missing: ${absolute}`);
+  return require(absolute);
+}
+
+function createContext(providerRoot, baseUrl, raw = null) {
+  const cacheDir = path.join(ROOT, '.cache', 'vega');
+  const memory = new Map();
+  const cachePath = key => path.join(cacheDir, `${hash(key)}.json`);
+  const client = {
+    ...axios,
+    get: (url, options) => {
+      if (raw && new URL(url).origin === baseUrl) {
+        const parsed = new URL(url);
+        if (parsed.pathname === `/info_api/${raw.id}/`) return Promise.resolve({data: raw.info});
+        if (parsed.pathname === `/anime/${raw.id}-${raw.slug}` || parsed.pathname === `/anime/${raw.id}-${raw.slug}/`) {
+          const content = JSON.stringify(raw.embeddedAnime || {}).replaceAll('&', '&amp;').replaceAll('"', '&quot;');
+          return Promise.resolve({data: `<video-player anime="${content}"></video-player>`});
+        }
+        if (parsed.pathname === `/info_api/${raw.id}/1`) {
+          const start = Number(parsed.searchParams.get('start_range') || 0);
+          const end = Number(parsed.searchParams.get('end_range') || Infinity);
+          const episodes = raw.episodes.filter(value => {
+            const number = Number.parseFloat(String(value.number));
+            return Number.isFinite(number) && number >= start && number <= end;
+          });
+          return Promise.resolve({data: {episodes}});
+        }
+      }
+      return axios.get(url, options);
+    },
+    post: (...args) => axios.post(...args),
+  };
+  return {
+    axios: client, cheerio, Aes: {}, commonHeaders: {}, getBaseUrl: async () => baseUrl,
+    cache: {
+      getString: key => memory.get(key) ?? readJson(cachePath(key))?.value,
+      setString: (key, value) => {memory.set(key, value); writeJson(cachePath(key), {value});},
+      delete: key => {memory.delete(key);},
+    },
+    fileCache: {
+      read: async key => readJson(cachePath(`file:${key}`)),
+      write: async (key, value) => writeJson(cachePath(`file:${key}`), {value, updatedAt: Date.now()}),
+    },
+    kvStore: {
+      get: async key => key === 'tmdbApiKey' ? process.env.TMDB_API_KEY || undefined : undefined,
+      set: async () => {}, delete: async () => false, keys: async () => [], clear: async () => {},
+    },
+    extractors: {},
+  };
+}
+
+async function mapAnime(providerRoot, baseUrl, raw) {
+  const {resolveAnimeMappings, buildAniBridgeExtra} = requireProvider(providerRoot, 'mappings/index.js');
+  const context = createContext(providerRoot, baseUrl, raw);
+  const anilistId = Number(raw.info.anilist_id || raw.embeddedAnime?.anilist_id) || undefined;
+  const malId = Number(raw.info.mal_id || raw.embeddedAnime?.mal_id) || undefined;
+  const resolution = await resolveAnimeMappings({providerContext: context,
+    anilistId, malId,
+    isMovie: /movie/i.test(raw.info.type || raw.embeddedAnime?.type || '')});
+  if ((anilistId || malId) && !resolution.schemaVersion)
+    throw new Error(`AniBridge index unavailable for ${raw.id}`);
+  return {id: raw.id, sourceIds: {anilistId: anilistId || null, malId: malId || null},
+    ...buildAniBridgeExtra(resolution), metadataTargets: resolution.metadataTargets || [],
+    imdbId: resolution.imdbId || null, lookupSource: resolution.lookupSource || null};
+}
+
+async function enrichAnime(providerRoot, baseUrl, raw, mapped) {
+  const {getMeta} = requireProvider(providerRoot, 'meta.js');
+  const {getEpisodes} = requireProvider(providerRoot, 'episodes.js');
+  const context = createContext(providerRoot, baseUrl, raw);
+  const link = new URL(raw.path, baseUrl).href;
+  const info = await getMeta({link, providerContext: context});
+  if (!info?.title || !Array.isArray(info.linkList)) throw new Error(`Vega metadata incomplete for ${raw.id}`);
+  const byId = new Map();
+  for (const group of info.linkList) {
+    if (!group.episodesLink) continue;
+    const episodes = await getEpisodes({url: group.episodesLink, providerContext: context});
+    for (const episode of episodes) byId.set(String(episode.link), episode);
+  }
+  mergeSourceEpisodes(byId, raw.episodes);
+  for (const sourceEpisode of raw.episodes) {
+    const episode = byId.get(String(sourceEpisode.id));
+    if (!episode) continue;
+    if ((!episode.title || /^Episodes? \d/i.test(episode.title)) && (sourceEpisode.title || sourceEpisode.name)) {
+      episode.title = sourceEpisode.title || sourceEpisode.name;
+      delete episode.titleKey;
+      delete episode.titleParams;
+    }
+    episode.synopsis ||= sourceEpisode.plot || sourceEpisode.description || undefined;
+    episode.thumbnail ||= sourceEpisode.imageurl || sourceEpisode.image || undefined;
+  }
+  await fillTvdbEpisodeGaps(providerRoot, context, byId, raw);
+  const artworkCandidates = await collectArtwork(providerRoot, context, raw, mapped, info);
+  info.extra ||= {};
+  info.extra.artworkCandidates = Object.fromEntries(Object.entries(artworkCandidates).map(
+    ([field, candidates]) => [field, candidates.filter(value => value.source !== 'anilist')]));
+  return {id: raw.id, path: raw.path, updatedAt: new Date().toISOString(), info,
+    episodes: [...byId.values()], sourceIds: mapped.sourceIds, mappings: mapped.mappings,
+    sourceMetadata: {info: raw.info, embedded: raw.embeddedAnime, archive: raw.archiveRecord},
+    sourceEpisodes: raw.episodes, artworkInventory: artworkCandidates};
+}
+
+function mergeSourceEpisodes(byId, sourceEpisodes) {
+  for (const source of sourceEpisodes) {
+    const link = String(source.id || '').trim();
+    if (!link || byId.has(link)) continue;
+    const number = String(source.number ?? '').trim();
+    const span = episodeBounds(number);
+    const isRange = span && span.end > span.start;
+    const title = source.title || source.name || (isRange
+      ? `Episodes ${span.start}-${span.end}` : number ? `Episode ${number}` : 'Episode');
+    byId.set(link, {
+      link, title,
+      ...(source.title || source.name ? {} : {
+        titleKey: isRange ? 'Episodes {{start}}-{{end}}' : number ? 'Episode {{number}}' : 'Episode',
+        titleParams: isRange ? {start: span.start, end: span.end} : number ? {number} : undefined,
+      }),
+      episodeNumber: span?.start,
+      sourceEpisodeNumber: span?.start,
+      sourceEpisodeEndNumber: isRange ? span.end : undefined,
+      synopsis: source.plot || source.description || undefined,
+      thumbnail: source.imageurl || source.image || undefined,
+    });
+  }
+}
+
+async function fillTvdbEpisodeGaps(providerRoot, context, byId, raw) {
+  const {resolveTvdbEpisodeFallbacks} = requireProvider(providerRoot, 'tvdb/index.js');
+  const groups = new Map();
+  for (const episode of byId.values()) {
+    if (episode.synopsis && episode.thumbnail && episode.title && !/^Episodes? \d/i.test(episode.title)) continue;
+    const mapping = episode.externalMappings?.find(value => value.provider === 'tvdb_show' && value.seasonNumber != null && value.episodeNumbers?.length);
+    if (!mapping) continue;
+    const key = `${mapping.id}:${mapping.seasonNumber}`;
+    const group = groups.get(key) || {id: Number(mapping.id), season: mapping.seasonNumber, numbers: new Set(), episodes: []};
+    mapping.episodeNumbers.forEach(number => group.numbers.add(number));
+    group.episodes.push({episode, mapping});
+    groups.set(key, group);
+  }
+  for (const group of groups.values()) {
+    try {
+      const fallbacks = await resolveTvdbEpisodeFallbacks({providerContext: context,
+        tvdbShowId: group.id, seasonNumber: group.season, episodeNumbers: [...group.numbers],
+        sourceRevision: String(raw.info.episodes_count || '')});
+      const byNumber = new Map(fallbacks.map(value => [value.episodeNumber, value]));
+      for (const {episode, mapping} of group.episodes) {
+        const fallback = mapping.episodeNumbers.map(number => byNumber.get(number)).find(Boolean);
+        if (!fallback) continue;
+        if ((!episode.title || /^Episodes? \d/i.test(episode.title)) && fallback.title) {
+          episode.title = fallback.title;
+          delete episode.titleKey;
+          delete episode.titleParams;
+        }
+        episode.synopsis ||= fallback.synopsis;
+        episode.thumbnail ||= fallback.thumbnail;
+      }
+    } catch { /* TVDB is an optional final fallback. */ }
+  }
+}
+
+async function collectArtwork(providerRoot, context, raw, mapped, info) {
+  const {resolveAnimeTmdbMetadata} = requireProvider(providerRoot, 'tmdb/index.js');
+  const {resolveTvdbArtworkMetadata} = requireProvider(providerRoot, 'tvdb/index.js');
+  const {resolveAniZipArtwork} = requireProvider(providerRoot, 'anizip/index.js');
+  const {resolveAnimeUnityCinemetaMetadata} = requireProvider(providerRoot, 'cinemeta.js');
+  const {verifyArtworkTargets} = requireProvider(providerRoot, 'artworkTargetValidation.js');
+  const isMovie = /movie/i.test(raw.info.type || '');
+  const resolution = {targets: mapped.mappings?.targets || [], metadataTargets: mapped.metadataTargets || [],
+    ids: mapped.ids || {}, imdbId: mapped.imdbId || undefined};
+  const verified = await verifyArtworkTargets({providerContext: context, mappingResolution: resolution,
+    isMovie, titles: [raw.info.title_eng, raw.info.title, raw.info.title_it, info.title]});
+  const tvdbKind = isMovie ? 'tvdb_movie' : 'tvdb_show';
+  const tvdbTarget = verified.metadataTargets.find(target => target.provider === tvdbKind);
+  const tvdbId = Number(tvdbTarget?.id);
+  const season = tvdbTarget?.scope?.match(/season:(\d+)/i)?.[1];
+  const jobs = {
+    tmdb: () => resolveAnimeTmdbMetadata({providerContext: context, mappingResolution: verified, isMovie}),
+    tvdb: () => Number.isFinite(tvdbId) && tvdbId > 0
+      ? resolveTvdbArtworkMetadata({providerContext: context, tvdbId, mediaType: isMovie ? 'movie' : 'series', seasonNumber: season ? Number(season) : undefined,
+        fields: ['logo', 'poster', 'background']}) : null,
+    cinemeta: () => resolveAnimeUnityCinemetaMetadata({providerContext: context, imdbId: mapped.imdbId || info.imdbId, isMovie}),
+    anizip: () => resolveAniZipArtwork({providerContext: context,
+      anilistId: Number(raw.info.anilist_id) || undefined, malId: Number(raw.info.mal_id) || undefined}),
+    anilist: async () => {
+      const anilistId = Number(raw.info.anilist_id) || undefined;
+      const malId = Number(raw.info.mal_id) || undefined;
+      if (!anilistId && !malId) return {};
+      const key = anilistId ? 'id' : 'idMal';
+      const response = await context.axios.post('https://graphql.anilist.co', {
+        query: `query ($${key}: Int) { Media(${key}: $${key}, type: ANIME) { bannerImage coverImage { extraLarge large } } }`,
+        variables: {[key]: anilistId || malId},
+      }, {timeout: 10000});
+      return {background: response.data?.data?.Media?.bannerImage,
+        poster: response.data?.data?.Media?.coverImage?.extraLarge || response.data?.data?.Media?.coverImage?.large};
+    },
+  };
+  const results = Object.fromEntries(await Promise.all(Object.entries(jobs).map(async ([source, run]) => {
+    try { return [source, await run() || {}]; } catch { return [source, {}]; }
+  })));
+  results.provider = {poster: raw.info.imageurl || raw.info.cover, background: raw.info.imageurl_cover};
+  const add = (sources, field) => [...new Map(sources.map(source => ({source, url: results[source]?.[field] || (source === 'anizip' && field === 'background' ? results.anizip?.fanart || results.anizip?.banner : '')}))
+    .filter(value => /^https:\/\//i.test(value.url || '')).map(value => [value.url, value])).values()];
+  return {
+    logo: add(['tmdb', 'cinemeta', 'tvdb', 'anizip', 'provider'], 'logo'),
+    poster: add(['tmdb', 'tvdb', 'provider', 'cinemeta', 'anizip', 'anilist'], 'poster'),
+    background: add(['tmdb', 'cinemeta', 'tvdb', 'anizip', 'provider', 'anilist'], 'background'),
+  };
+}
+
+module.exports = {collectArtwork, createContext, enrichAnime, mapAnime, mergeSourceEpisodes, requireProvider};

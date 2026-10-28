@@ -1,0 +1,59 @@
+# AnimeUnity database for Vega
+
+This repository builds an AnimeUnity metadata database for `vega-providers` and
+`vega-app`. GitHub Actions runs the pipeline after the first push and every two
+hours. The workflow commits generated data back to this repository. No local
+computer needs to stay online.
+
+## Layout
+
+- `scripts/`: pipeline code.
+- `anime_database/raw/`: AnimeUnity archive, info API and episode payloads.
+- `anime_database/mapped/`: AniBridge v3 and AniZip mapping results using the
+  current Vega provider implementation.
+- `anime_database/final/`: Vega `Info` and `EpisodeLink` records plus a compact
+  catalog and 100 download shards (`shards/00.json` through `99.json`).
+  `manifest.json` is marked `complete` only when every discovered item
+  has a current record in every stage.
+
+Every record is keyed by the stable AnimeUnity anime ID. Final records contain
+the relative provider path, so a consumer can resolve it against the current
+AnimeUnity domain. Episode `link` values are provider episode IDs; stream URLs
+are intentionally resolved live by Vega when playback starts.
+
+## Run locally
+
+Node.js 20 or newer and a built checkout of `vega-providers` are required.
+The checkout must match `vega-providers.ref` for reproducible output. GitHub
+Actions updates this reference automatically from the provider repository's
+default branch. When it changes, mapped and final records are refreshed before
+the manifest can become complete again.
+
+```sh
+npm ci
+node scripts/pipeline.js all --ids 4354 --provider-root /path/to/vega-providers
+npm run verify
+```
+
+Use `--full` to force rechecking records. The normal run checks new titles and
+reviews ongoing/upcoming titles daily and other titles every 30 days. It reads
+the sitemap each run and reconciles the paginated archive at least daily. Each stage
+keeps its successful previous record when an update fails. Generated outputs are
+written atomically. The optional `TMDB_API_KEY` repository secret enables TMDB
+API lookups; Vega also supports its public web fallback.
+
+## Consumer contract
+
+`final/catalog.json` contains compact cards. `final/items/{animeId}.json`
+contains `info` (`Info`), `episodes` (`EpisodeLink[]`), source data, mapping
+provenance and ordered artwork candidates. Read `final/manifest.json` first and
+only promote a generation with `complete: true`. The client should retain its
+last known good generation when a download or live refresh fails.
+The manifest's `itemHashes` let a client download only changed records.
+The `shardHashes` provide a smaller number of downloads for a first offline
+installation, followed by changed-shard updates.
+
+The provider integration is a separate change in `vega-providers`: `getPosts`,
+`getMeta` and `getEpisodes` should read these records first. Ongoing and upcoming
+titles still need the provider's live inventory checks when opened, and new
+episodes still need its normal metadata enrichment. Playback stays live.

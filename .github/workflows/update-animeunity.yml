@@ -1,0 +1,78 @@
+name: Update AnimeUnity database
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'anime_database/**'
+      - 'vega-providers.ref'
+  schedule:
+    - cron: '17 */2 * * *'
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Maximum records per stage in this run'
+        required: false
+        default: '100'
+      full:
+        description: 'Recheck all provider records'
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: animeunity-database-main
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Install pipeline dependencies
+        run: npm ci
+      - name: Check pipeline logic
+        run: npm run verify
+      - name: Check out current Vega provider
+        run: |
+          git clone --filter=blob:none https://github.com/Nokitomo/vega-providers.git .cache/vega-providers
+          git -C .cache/vega-providers rev-parse HEAD > vega-providers.ref
+          npm --prefix .cache/vega-providers ci
+          npm --prefix .cache/vega-providers run build
+      - name: Update database
+        id: pipeline
+        continue-on-error: true
+        env:
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          RUN_LIMIT: ${{ inputs.limit || '100' }}
+          RUN_FULL: ${{ inputs.full || 'false' }}
+        run: |
+          if [ "$RUN_FULL" = 'true' ]; then
+            node scripts/pipeline.js all --full --limit "$RUN_LIMIT" --provider-root .cache/vega-providers
+          else
+            node scripts/pipeline.js all --limit "$RUN_LIMIT" --provider-root .cache/vega-providers
+          fi
+      - name: Commit generated database
+        if: always() && steps.pipeline.outcome != 'skipped'
+        run: |
+          npm run verify:data
+          git add anime_database vega-providers.ref
+          if ! git diff --cached --quiet; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -m 'Update AnimeUnity database'
+            git push
+          fi
+      - name: Report pipeline errors
+        if: steps.pipeline.outcome == 'failure'
+        run: exit 1
