@@ -15,6 +15,15 @@ function due(raw, full) {
   const age = Date.now() - Date.parse(raw.checkedAt || 0);
   return !Number.isFinite(age) || age > (isDynamic(raw) ? 24 : 30 * 24) * 3600000;
 }
+function enrichmentDue(final, now = Date.now()) {
+  if (!final) return true;
+  const age = now - Date.parse(final.updatedAt || 0);
+  if (!Number.isFinite(age)) return true;
+  const missingArtwork = !final.info?.logo || !final.info?.poster || !final.info?.background;
+  const missingEpisodeMetadata = (final.episodes || []).some(episode =>
+    !episode.synopsis || !episode.thumbnail || !episode.title || /^Episodes? \d/i.test(episode.title));
+  return age > (missingArtwork || missingEpisodeMetadata ? 30 : 90) * 86400000;
+}
 function limited(items, limit) { return Number.isFinite(limit) ? items.slice(0, limit) : items; }
 function shouldRefreshArchive(index, full, now = Date.now()) {
   return full || !index.archiveCheckedAt || now - Date.parse(index.archiveCheckedAt) > 24 * 3600000;
@@ -176,7 +185,8 @@ async function runFinal(options, providerRoot) {
     if (!raw || !mapped || mapped.rawFingerprint !== raw.fingerprint || mapped.providerRef !== revision) return false;
     const final = readJson(file('final', id));
     return options.full || manifest.errors[id] || !final || final.providerRef !== revision ||
-      final.rawFingerprint !== raw.fingerprint || final.mappingFingerprint !== hash(mapped);
+      final.rawFingerprint !== raw.fingerprint || final.mappingFingerprint !== hash(mapped) ||
+      enrichmentDue(final);
   });
   const episodeCounts = new Map(pending.map(id => [id, readJson(file('raw', id))?.episodes?.length || 0]));
   pending.sort((a, b) => {
@@ -244,4 +254,4 @@ async function main() {
 }
 
 if (require.main === module) main().catch(error => {console.error(error); process.exitCode = 1;});
-module.exports = {catalogEntry, due, runRaw, runMapped, runFinal, shouldRefreshArchive};
+module.exports = {catalogEntry, due, enrichmentDue, runRaw, runMapped, runFinal, shouldRefreshArchive};

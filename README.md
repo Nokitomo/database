@@ -41,6 +41,10 @@ the sitemap each run and reconciles the paginated archive at least daily. Each s
 keeps its successful previous record when an update fails. Generated outputs are
 written atomically. The optional `TMDB_API_KEY` repository secret enables TMDB
 API lookups; Vega also supports its public web fallback.
+Final metadata is revisited every 30 days when artwork or episode details are
+missing and every 90 days otherwise, even when AnimeUnity's own record is
+unchanged. A missing episode synopsis or logo remains empty when none of the
+available sources supplies it.
 
 ## Consumer contract
 

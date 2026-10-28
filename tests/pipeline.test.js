@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {sitemapItems, episodeBounds, fetchAnime, parseEmbedded} = require('../scripts/source');
-const {catalogEntry, due, shouldRefreshArchive} = require('../scripts/pipeline');
+const {catalogEntry, due, enrichmentDue, shouldRefreshArchive} = require('../scripts/pipeline');
 const {createContext, mergeSourceEpisodes} = require('../scripts/vega');
 
 test('sitemap keeps stable IDs and skips non-anime URLs', () => {
@@ -51,6 +51,18 @@ test('refresh policy revisits dynamic titles daily and completed titles monthly'
   assert.equal(due({checkedAt: twoDaysAgo, info: {status: 'In Corso'}}, false), true);
   assert.equal(due({checkedAt: twoDaysAgo, info: {status: 'Terminato'}}, false), false);
   assert.equal(due({checkedAt: twoDaysAgo, info: {status: 'Terminato'}}, true), true);
+});
+
+test('final metadata is revisited when images or episode details appear later', () => {
+  const now = Date.now();
+  const daysAgo = days => new Date(now - days * 86400000).toISOString();
+  const info = {logo: 'https://image.test/logo', poster: 'https://image.test/poster',
+    background: 'https://image.test/background'};
+  const episode = {title: 'A real title', synopsis: 'Story', thumbnail: 'https://image.test/episode'};
+  assert.equal(enrichmentDue({updatedAt: daysAgo(31), info, episodes: [episode]}, now), false);
+  assert.equal(enrichmentDue({updatedAt: daysAgo(91), info, episodes: [episode]}, now), true);
+  assert.equal(enrichmentDue({updatedAt: daysAgo(31), info: {...info, logo: null}, episodes: [episode]}, now), true);
+  assert.equal(enrichmentDue({updatedAt: daysAgo(31), info, episodes: [{...episode, synopsis: ''}]}, now), true);
 });
 
 test('archive pagination is reconciled daily', () => {
