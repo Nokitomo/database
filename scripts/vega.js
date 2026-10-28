@@ -8,8 +8,11 @@ const {ROOT, hash, readJson, writeJson} = require('./lib');
 const {episodeBounds} = require('./source');
 const {assertWarp} = require('./warp');
 const {createPacedGet} = require('./rate-limit');
+const {createTmdbGet} = require('./tmdb-http');
 
 const pacedGet = createPacedGet((url, options) => axios.get(url, options), {check: assertWarp});
+const tmdbGet = createTmdbGet(pacedGet);
+let tmdbArtworkSamples = 0;
 
 function requireProvider(providerRoot, modulePath) {
   const absolute = path.resolve(providerRoot, 'dist', 'animeunity', modulePath);
@@ -41,7 +44,7 @@ function createContext(providerRoot, baseUrl, raw = null) {
           return Promise.resolve({data: {episodes}});
         }
       }
-      return pacedGet(url, options);
+      return tmdbGet(url, options);
     },
     post: (...args) => {assertWarp(); return axios.post(...args);},
   };
@@ -212,6 +215,12 @@ async function collectArtwork(providerRoot, context, raw, mapped, info) {
   const results = Object.fromEntries(await Promise.all(Object.entries(jobs).map(async ([source, run]) => {
     try { return [source, await run() || {}]; } catch { return [source, {}]; }
   })));
+  if (tmdbArtworkSamples < 5 && (mapped.metadataTargets || mapped.mappings?.targets || [])
+    .some(target => target.provider === 'tmdb_show' || target.provider === 'tmdb_movie')) {
+    tmdbArtworkSamples++;
+    const artwork = results.tmdb || {};
+    console.log(`[tmdb-artwork] anime=${raw.id} source=${artwork.source || 'none'} logo=${Boolean(artwork.logo)} poster=${Boolean(artwork.poster)} background=${Boolean(artwork.background)}`);
+  }
   results.provider = {poster: raw.info.imageurl || raw.info.cover, background: raw.info.imageurl_cover};
   const add = (sources, field) => [...new Map(sources.map(source => ({source, url: results[source]?.[field] || (source === 'anizip' && field === 'background' ? results.anizip?.fanart || results.anizip?.banner : '')}))
     .filter(value => /^https:\/\//i.test(value.url || '')).map(value => [value.url, value])).values()];
