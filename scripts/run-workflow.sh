@@ -54,6 +54,7 @@ while true; do
     git config user.name 'github-actions[bot]'
     git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
     git commit -m "Update AnimeUnity database ($stage batch $batch)"
+    git pull --rebase origin main
     git push
   fi
   echo "Checkpoint published: $selected records processed across stages"
@@ -65,6 +66,7 @@ while true; do
       git add anime_database/refresh-state.json
       if ! git diff --cached --quiet; then
         git commit -m "Finish AnimeUnity full $stage refresh"
+        git pull --rebase origin main
         git push
       fi
     fi
