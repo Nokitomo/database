@@ -10,8 +10,9 @@ const {enrichAnime, mapAnime} = require('./vega');
 function stageIndex(stage) { return path.join(DATA, stage, 'index.json'); }
 function providerRef() { return fs.readFileSync(path.join(__dirname, '..', 'vega-providers.ref'), 'utf8').trim(); }
 function isDynamic(raw) { return /in corso|ongoing|in uscita|upcoming|prossimamente/i.test(raw.info?.status || raw.embeddedAnime?.status || ''); }
-function due(raw, full) {
-  if (!raw || full) return true;
+function due(raw, full, fullSince = null) {
+  if (!raw) return true;
+  if (full && (!fullSince || Date.parse(raw.checkedAt || 0) < fullSince)) return true;
   const age = Date.now() - Date.parse(raw.checkedAt || 0);
   return !Number.isFinite(age) || age > (isDynamic(raw) ? 24 : 30 * 24) * 3600000;
 }
@@ -25,8 +26,13 @@ function enrichmentDue(final, now = Date.now()) {
   return age > (missingArtwork || missingEpisodeMetadata ? 30 : 90) * 86400000;
 }
 function limited(items, limit) { return Number.isFinite(limit) ? items.slice(0, limit) : items; }
-function shouldRefreshArchive(index, full, now = Date.now()) {
-  return full || !index.archiveCheckedAt || now - Date.parse(index.archiveCheckedAt) > 24 * 3600000;
+function errorDue(error, now = Date.now()) {
+  return !error || !Number.isFinite(Date.parse(error.at || 0)) ||
+    now - Date.parse(error.at) >= 30 * 60000;
+}
+function shouldRefreshArchive(index, full, now = Date.now(), fullSince = null) {
+  return (full && (!fullSince || Date.parse(index.archiveCheckedAt || 0) < fullSince)) ||
+    !index.archiveCheckedAt || now - Date.parse(index.archiveCheckedAt) > 24 * 3600000;
 }
 function catalogEntry(record) {
   const source = record.sourceMetadata?.info || {};
@@ -60,7 +66,7 @@ function catalogEntry(record) {
 async function runRaw(options) {
   const discovery = await discover();
   const previousIndex = readJson(stageIndex('raw'), {});
-  const archiveDue = shouldRefreshArchive(previousIndex, options.full);
+  const archiveDue = shouldRefreshArchive(previousIndex, options.full, Date.now(), options.fullSince);
   const archive = archiveDue ? await archiveItems(discovery.baseUrl) : null;
   const merged = new Map(discovery.sitemap);
   if (archive) {
@@ -82,12 +88,14 @@ async function runRaw(options) {
     expectedIds, checkedIds: previousIndex.checkedIds || [],
     errors: Object.fromEntries(Object.entries(previousIndex.errors || {}).filter(([id]) => expected.has(Number(id))))};
   writeJson(stageIndex('raw'), index);
-  const pending = expectedIds.filter(id => (!options.ids || options.ids.has(id)) && (index.errors[id] || due(readJson(file('raw', id)), options.full)));
+  const pending = expectedIds.filter(id => (!options.ids || options.ids.has(id)) &&
+    errorDue(index.errors[id]) && due(readJson(file('raw', id)), options.full, options.fullSince));
   const pendingRaw = new Map(pending.map(id => [id, readJson(file('raw', id))]));
   pending.sort((a, b) => {
     const left = pendingRaw.get(a);
     const right = pendingRaw.get(b);
     const tier = value => !value ? 0 : isDynamic(value) ? 1 : 2;
+    if (options.full && Boolean(left) !== Boolean(right)) return left ? -1 : 1;
     return tier(left) - tier(right) || (left && right
       ? Date.parse(left.checkedAt || 0) - Date.parse(right.checkedAt || 0)
       : b - a);
@@ -115,6 +123,7 @@ async function runRaw(options) {
   index.complete = index.checkedIds.length === expectedIds.length && Object.keys(index.errors).length === 0;
   index.finishedAt = iso();
   writeJson(stageIndex('raw'), index);
+  index.selectedCount = selected.length;
   return index;
 }
 
@@ -140,7 +149,8 @@ async function runMapped(options, providerRoot) {
     const raw = readJson(file('raw', id));
     if (!raw) return false;
     const mapped = readJson(file('mapped', id));
-    return options.full || index?.errors?.[id] || !mapped ||
+    if (!errorDue(index.errors[id])) return false;
+    return (options.full && (!options.fullSince || Date.parse(mapped?.mappedAt || 0) < options.fullSince)) || !mapped ||
       mapped.rawFingerprint !== raw.fingerprint || mapped.providerRef !== revision;
   });
   pending.sort((a, b) => b - a);
@@ -167,6 +177,7 @@ async function runMapped(options, providerRoot) {
   index.complete = source.complete && index.availableCount === index.expectedCount && Object.keys(index.errors).length === 0;
   index.finishedAt = iso();
   writeJson(stageIndex('mapped'), index);
+  index.selectedCount = selected.length;
   return index;
 }
 
@@ -184,7 +195,9 @@ async function runFinal(options, providerRoot) {
     const mapped = readJson(file('mapped', id));
     if (!raw || !mapped || mapped.rawFingerprint !== raw.fingerprint || mapped.providerRef !== revision) return false;
     const final = readJson(file('final', id));
-    return options.full || manifest.errors[id] || !final || final.providerRef !== revision ||
+    if (!errorDue(manifest.errors[id])) return false;
+    return (options.full && (!options.fullSince || Date.parse(final?.updatedAt || 0) < options.fullSince)) ||
+      !final || final.providerRef !== revision ||
       final.rawFingerprint !== raw.fingerprint || final.mappingFingerprint !== hash(mapped) ||
       enrichmentDue(final);
   });
@@ -239,6 +252,7 @@ async function runFinal(options, providerRoot) {
   manifest.itemHashes = Object.fromEntries(records.map(record => [record.id, hash(record)]));
   manifest.shardHashes = shardHashes;
   writeJson(path.join(DATA, 'final', 'manifest.json'), manifest);
+  manifest.selectedCount = selected.length;
   return manifest;
 }
 
@@ -246,12 +260,25 @@ async function main() {
   const options = parseArgs(process.argv.slice(2));
   const providerRoot = options.stage === 'raw' ? null : requireProviderRoot(options);
   let result;
-  if (options.stage === 'raw' || options.stage === 'all') result = await runRaw(options);
-  if (options.stage === 'mapped' || options.stage === 'all') result = await runMapped(options, providerRoot);
-  if (options.stage === 'final' || options.stage === 'all') result = await runFinal(options, providerRoot);
+  const selected = {};
+  if (options.stage === 'raw' || options.stage === 'all') { result = await runRaw(options); selected.raw = result.selectedCount; }
+  if (options.stage === 'mapped' || options.stage === 'all') { result = await runMapped(options, providerRoot); selected.mapped = result.selectedCount; }
+  if (options.stage === 'final' || options.stage === 'all') { result = await runFinal(options, providerRoot); selected.final = result.selectedCount; }
+  if (options.stage === 'raw' && selected.raw > 0) {
+    for (const name of ['mapped/index.json', 'final/manifest.json']) {
+      const target = path.join(DATA, name);
+      const value = readJson(target);
+      if (value?.complete) writeJson(target, {...value, complete: false});
+    }
+  } else if (options.stage === 'mapped' && selected.mapped > 0) {
+    const target = path.join(DATA, 'final', 'manifest.json');
+    const value = readJson(target);
+    if (value?.complete) writeJson(target, {...value, complete: false});
+  }
   if (Object.keys(result.errors || {}).length > 0 && !options.allowPartial) process.exitCode = 1;
   console.log(`${options.stage}: ${result.complete ? 'complete' : 'in progress'}, ${result.availableCount || result.checkedIds?.length || 0}/${result.expectedCount || result.expectedIds?.length || 0}`);
+  console.log(`PIPELINE_BATCH ${JSON.stringify({selected, complete: result.complete})}`);
 }
 
 if (require.main === module) main().catch(error => {console.error(error); process.exitCode = 1;});
-module.exports = {catalogEntry, due, enrichmentDue, runRaw, runMapped, runFinal, shouldRefreshArchive};
+module.exports = {catalogEntry, due, enrichmentDue, errorDue, runRaw, runMapped, runFinal, shouldRefreshArchive};

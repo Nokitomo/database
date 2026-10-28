@@ -4,7 +4,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const {DATA, file, hash, readJson} = require('./lib');
 
-function verifyDatabase() {
+function verifyDatabase(stage = 'all') {
+  if (!['raw', 'mapped', 'final', 'all'].includes(stage)) throw new Error(`Invalid stage: ${stage}`);
   const rawIndex = readJson(path.join(DATA, 'raw', 'index.json'));
   const mappedIndex = readJson(path.join(DATA, 'mapped', 'index.json'));
   const manifest = readJson(path.join(DATA, 'final', 'manifest.json'));
@@ -47,11 +48,14 @@ function verifyDatabase() {
     throw new Error('Raw index does not match records');
   if (rawIndex.complete && (rawCount !== ids.length || Object.keys(rawIndex.errors || {}).length > 0))
     throw new Error('Raw index incorrectly marked complete');
+  if (stage === 'raw') return {expected: ids.length, raw: rawCount, complete: rawIndex.complete};
   if (mappedIndex && mappedIndex.availableCount !== mappedCount)
     throw new Error('Mapped index count does not match current records');
   if (mappedIndex?.complete && (mappedCount !== ids.length || !rawIndex.complete ||
     Object.keys(mappedIndex.errors || {}).length > 0))
     throw new Error('Mapped index incorrectly marked complete');
+  if (stage === 'mapped') return {expected: ids.length, raw: rawCount, mapped: mappedCount,
+    complete: Boolean(mappedIndex?.complete)};
   if (manifest) {
     if (!mappedIndex) throw new Error('Mapped index missing');
     if (manifest.providerRef !== providerRef || mappedIndex.providerRef !== providerRef)
@@ -77,6 +81,9 @@ function verifyDatabase() {
 }
 
 if (require.main === module) {
-  try { console.log(verifyDatabase()); } catch (error) {console.error(error); process.exitCode = 1;}
+  try {
+    const index = process.argv.indexOf('--stage');
+    console.log(verifyDatabase(index >= 0 ? process.argv[index + 1] : 'all'));
+  } catch (error) {console.error(error); process.exitCode = 1;}
 }
 module.exports = {verifyDatabase};

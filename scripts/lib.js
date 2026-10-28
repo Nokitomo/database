@@ -31,7 +31,8 @@ function listIds(stage) {
 }
 
 function parseArgs(argv) {
-  const options = {stage: 'all', limit: Infinity, ids: null, full: false, providerRoot: process.env.VEGA_PROVIDERS_ROOT || '', allowPartial: false};
+  const options = {stage: 'all', limit: Infinity, ids: null, full: false, fullSince: null,
+    providerRoot: process.env.VEGA_PROVIDERS_ROOT || '', allowPartial: false};
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (['raw', 'mapped', 'final', 'all'].includes(arg)) options.stage = arg;
@@ -39,6 +40,12 @@ function parseArgs(argv) {
     else if (arg === '--ids') options.ids = new Set(String(argv[++i] || '').split(',').map(Number).filter(value => Number.isInteger(value) && value > 0));
     else if (arg === '--provider-root') options.providerRoot = argv[++i] || '';
     else if (arg === '--full') options.full = true;
+    else if (arg === '--full-since') {
+      const value = argv[++i];
+      if (!value || !Number.isFinite(Date.parse(value))) throw new Error('Invalid --full-since timestamp');
+      options.full = true;
+      options.fullSince = Date.parse(value);
+    }
     else if (arg === '--allow-partial') options.allowPartial = true;
     else throw new Error(`Unknown argument: ${arg}`);
   }

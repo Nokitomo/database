@@ -3,8 +3,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {sitemapItems, episodeBounds, fetchAnime, parseEmbedded} = require('../scripts/source');
-const {catalogEntry, due, enrichmentDue, shouldRefreshArchive} = require('../scripts/pipeline');
+const {catalogEntry, due, enrichmentDue, errorDue, shouldRefreshArchive} = require('../scripts/pipeline');
 const {createContext, mergeSourceEpisodes} = require('../scripts/vega');
+const {parseArgs} = require('../scripts/lib');
 
 test('sitemap keeps stable IDs and skips non-anime URLs', () => {
   const xml = '<urlset><url><loc>https://www.animeunity.co/</loc></url>' +
@@ -51,6 +52,20 @@ test('refresh policy revisits dynamic titles daily and completed titles monthly'
   assert.equal(due({checkedAt: twoDaysAgo, info: {status: 'In Corso'}}, false), true);
   assert.equal(due({checkedAt: twoDaysAgo, info: {status: 'Terminato'}}, false), false);
   assert.equal(due({checkedAt: twoDaysAgo, info: {status: 'Terminato'}}, true), true);
+});
+
+test('full refresh cutoff processes each record once and backs off failed records', () => {
+  const cutoff = Date.now() - 1000;
+  const before = new Date(cutoff - 1000).toISOString();
+  const after = new Date(cutoff + 1000).toISOString();
+  assert.equal(due({checkedAt: before, info: {status: 'Terminato'}}, true, cutoff), true);
+  assert.equal(due({checkedAt: after, info: {status: 'Terminato'}}, true, cutoff), false);
+  assert.equal(shouldRefreshArchive({archiveCheckedAt: after}, true, Date.now(), cutoff), false);
+  assert.equal(errorDue({at: new Date().toISOString()}), false);
+  assert.equal(errorDue({at: new Date(Date.now() - 31 * 60000).toISOString()}), true);
+  const parsed = parseArgs(['all', '--full-since', before]);
+  assert.equal(parsed.full, true);
+  assert.equal(parsed.fullSince, Date.parse(before));
 });
 
 test('final metadata is revisited when images or episode details appear later', () => {
