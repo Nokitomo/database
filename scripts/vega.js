@@ -6,6 +6,7 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const {ROOT, hash, readJson, writeJson} = require('./lib');
 const {episodeBounds} = require('./source');
+const {assertWarp} = require('./warp');
 
 function requireProvider(providerRoot, modulePath) {
   const absolute = path.resolve(providerRoot, 'dist', 'animeunity', modulePath);
@@ -37,9 +38,10 @@ function createContext(providerRoot, baseUrl, raw = null) {
           return Promise.resolve({data: {episodes}});
         }
       }
+      assertWarp();
       return axios.get(url, options);
     },
-    post: (...args) => axios.post(...args),
+    post: (...args) => {assertWarp(); return axios.post(...args);},
   };
   return {
     axios: client, cheerio, Aes: {}, commonHeaders: {}, getBaseUrl: async () => baseUrl,

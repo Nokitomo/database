@@ -5,6 +5,14 @@ This repository builds an AnimeUnity metadata database for `vega-providers` and
 hours. The workflow commits generated data back to this repository. No local
 computer needs to stay online.
 
+On GitHub's Ubuntu runner, the workflow installs Cloudflare WARP, connects in
+`warp+doh` mode, and requires both a connected client status and Cloudflare's
+`warp=on` trace before installing project dependencies, cloning Vega, scraping,
+or publishing. Pipeline HTTP requests also refuse to start after WARP reports
+a disconnection. The initial checkout and WARP installation necessarily happen
+before the tunnel exists. A real tunnel check requires the first GitHub Actions
+run; local unit tests do not establish a WARP connection on this computer.
+
 ## Layout
 
 - `scripts/`: pipeline code.

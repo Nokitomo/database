@@ -3,6 +3,7 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const {sleep} = require('./lib');
+const {assertWarp} = require('./warp');
 
 const PASTEBIN_URL = 'https://pastebin.com/raw/KgQ4jTy6';
 const FALLBACK_URL = 'https://www.animeunity.co';
@@ -12,6 +13,7 @@ async function request(method, url, data, extra = {}) {
   let last;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
+      assertWarp();
       const response = await axios({method, url, data, timeout: 20000, maxRedirects: 5,
         headers: {...HEADERS, ...extra}, validateStatus: status => status < 500});
       if (response.status >= 400) throw new Error(`HTTP ${response.status} at ${url}`);
