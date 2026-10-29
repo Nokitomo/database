@@ -88,21 +88,50 @@ async function mapAnime(providerRoot, baseUrl, raw) {
     imdbId: resolution.imdbId || null, lookupSource: resolution.lookupSource || null};
 }
 
-async function enrichAnime(providerRoot, baseUrl, raw, mapped) {
-  const {getMeta} = requireProvider(providerRoot, 'meta.js');
-  const {getEpisodes} = requireProvider(providerRoot, 'episodes.js');
+async function enrichAnime(providerRoot, baseUrl, raw, mapped, options = {}) {
+  const getMeta = options.getMeta || requireProvider(providerRoot, 'meta.js').getMeta;
+  const getEpisodes = options.getEpisodes || requireProvider(providerRoot, 'episodes.js').getEpisodes;
+  const fillGaps = options.fillTvdbEpisodeGaps || fillTvdbEpisodeGaps;
+  const getArtwork = options.collectArtwork || collectArtwork;
   const context = createContext(providerRoot, baseUrl, raw);
   const link = new URL(raw.path, baseUrl).href;
-  const info = await getMeta({link, providerContext: context});
+  const info = options.progress?.info || await getMeta({link, providerContext: context});
   if (!info?.title || !Array.isArray(info.linkList)) throw new Error(`Vega metadata incomplete for ${raw.id}`);
-  const byId = new Map();
-  for (const group of info.linkList) {
-    if (!group.episodesLink) continue;
+  const byId = new Map((options.progress?.episodes || []).map(episode => [String(episode.link), episode]));
+  const groups = info.linkList.filter(group => group.episodesLink);
+  const startGroup = options.progress?.nextGroup || 0;
+  const maxGroups = options.maxGroups ?? Infinity;
+  const endGroup = Math.min(groups.length, startGroup + maxGroups);
+  for (let groupIndex = startGroup; groupIndex < endGroup; groupIndex++) {
+    const group = groups[groupIndex];
     const episodes = await getEpisodes({url: group.episodesLink, providerContext: context});
-    for (const episode of episodes) byId.set(String(episode.link), episode);
+    const groupEpisodes = new Map();
+    for (const episode of episodes) {
+      byId.set(String(episode.link), episode);
+      groupEpisodes.set(String(episode.link), episode);
+    }
+    applySourceEpisodeMetadata(groupEpisodes, raw.episodes);
+    await fillGaps(providerRoot, context, groupEpisodes, raw);
+    for (const [id, episode] of groupEpisodes) byId.set(id, episode);
   }
+  if (endGroup < groups.length) return {partial: true, progress: {
+    info, nextGroup: endGroup, episodes: [...byId.values()],
+  }};
   mergeSourceEpisodes(byId, raw.episodes);
-  for (const sourceEpisode of raw.episodes) {
+  applySourceEpisodeMetadata(byId, raw.episodes);
+  if (groups.length === 0) await fillGaps(providerRoot, context, byId, raw);
+  const artworkCandidates = await getArtwork(providerRoot, context, raw, mapped, info);
+  info.extra ||= {};
+  info.extra.artworkCandidates = Object.fromEntries(Object.entries(artworkCandidates).map(
+    ([field, candidates]) => [field, candidates.filter(value => value.source !== 'anilist')]));
+  return {id: raw.id, path: raw.path, updatedAt: new Date().toISOString(), info,
+    episodes: [...byId.values()], sourceIds: mapped.sourceIds, mappings: mapped.mappings,
+    sourceMetadata: {info: raw.info, embedded: raw.embeddedAnime, archive: raw.archiveRecord},
+    sourceEpisodes: raw.episodes, artworkInventory: artworkCandidates};
+}
+
+function applySourceEpisodeMetadata(byId, sourceEpisodes) {
+  for (const sourceEpisode of sourceEpisodes) {
     const episode = byId.get(String(sourceEpisode.id));
     if (!episode) continue;
     if ((!episode.title || /^Episodes? \d/i.test(episode.title)) && (sourceEpisode.title || sourceEpisode.name)) {
@@ -113,15 +142,6 @@ async function enrichAnime(providerRoot, baseUrl, raw, mapped) {
     episode.synopsis ||= sourceEpisode.plot || sourceEpisode.description || undefined;
     episode.thumbnail ||= sourceEpisode.imageurl || sourceEpisode.image || undefined;
   }
-  await fillTvdbEpisodeGaps(providerRoot, context, byId, raw);
-  const artworkCandidates = await collectArtwork(providerRoot, context, raw, mapped, info);
-  info.extra ||= {};
-  info.extra.artworkCandidates = Object.fromEntries(Object.entries(artworkCandidates).map(
-    ([field, candidates]) => [field, candidates.filter(value => value.source !== 'anilist')]));
-  return {id: raw.id, path: raw.path, updatedAt: new Date().toISOString(), info,
-    episodes: [...byId.values()], sourceIds: mapped.sourceIds, mappings: mapped.mappings,
-    sourceMetadata: {info: raw.info, embedded: raw.embeddedAnime, archive: raw.archiveRecord},
-    sourceEpisodes: raw.episodes, artworkInventory: artworkCandidates};
 }
 
 function mergeSourceEpisodes(byId, sourceEpisodes) {

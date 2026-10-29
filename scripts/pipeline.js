@@ -8,7 +8,15 @@ const {archiveItems, discover, fetchAnime} = require('./source');
 const {enrichAnime, mapAnime} = require('./vega');
 
 function stageIndex(stage) { return path.join(DATA, stage, 'index.json'); }
+function finalProgressFile(id) { return path.join(DATA, 'final', 'progress', `${id}.json`); }
 function providerRef() { return fs.readFileSync(path.join(__dirname, '..', 'vega-providers.ref'), 'utf8').trim(); }
+function matchingFinalProgress(progress, rawFingerprint, mappingFingerprint, revision) {
+  return progress?.rawFingerprint === rawFingerprint && progress?.mappingFingerprint === mappingFingerprint &&
+    progress?.providerRef === revision && Number.isInteger(progress?.nextGroup) && progress.nextGroup >= 0 &&
+    progress?.info && Array.isArray(progress.info.linkList) &&
+    progress.nextGroup <= progress.info.linkList.filter(group => group.episodesLink).length &&
+    Array.isArray(progress.episodes);
+}
 function isDynamic(raw) {
   return Number(raw.info?.episodes_count) === 0 && raw.episodes?.length === 0 ||
     /in corso|ongoing|in uscita|upcoming|prossimamente/i.test(raw.info?.status || raw.embeddedAnime?.status || '');
@@ -106,6 +114,7 @@ async function runRaw(options) {
   const selected = limited(pending, options.limit);
   console.log(`raw: ${expectedIds.length} discovered, ${selected.length}/${pending.length} due, ${discovery.baseUrl} (${discovery.source})`);
   for (const [position, id] of selected.entries()) {
+    console.log(`raw ${id}: starting`);
     try {
       const item = merged.get(id);
       const source = await fetchAnime(item, discovery.baseUrl);
@@ -160,6 +169,7 @@ async function runMapped(options, providerRoot) {
   const selected = limited(pending, options.limit);
   console.log(`mapped: ${selected.length}/${pending.length} due`);
   for (const [position, id] of selected.entries()) {
+    console.log(`mapped ${id}: starting`);
     try {
       const raw = readJson(file('raw', id));
       const mapped = await mapAnime(providerRoot, source.baseUrl, raw);
@@ -211,12 +221,25 @@ async function runFinal(options, providerRoot) {
   const selected = limited(pending, options.limit);
   console.log(`final: ${selected.length}/${pending.length} due`);
   for (const [position, id] of selected.entries()) {
+    console.log(`final ${id}: starting`);
     try {
       const raw = readJson(file('raw', id));
       const mapped = readJson(file('mapped', id));
-      const final = await enrichAnime(providerRoot, source.baseUrl, raw, mapped);
-      writeJson(file('final', id), {...final, rawFingerprint: raw.fingerprint,
-        mappingFingerprint: hash(mapped), providerRef: revision});
+      const mappingFingerprint = hash(mapped);
+      const savedProgress = readJson(finalProgressFile(id));
+      const progress = matchingFinalProgress(savedProgress, raw.fingerprint, mappingFingerprint, revision)
+        ? savedProgress : null;
+      const result = await enrichAnime(providerRoot, source.baseUrl, raw, mapped, {progress, maxGroups: 2});
+      if (result.partial) {
+        writeJson(finalProgressFile(id), {...result.progress, rawFingerprint: raw.fingerprint,
+          mappingFingerprint, providerRef: revision});
+        const total = result.progress.info.linkList.filter(group => group.episodesLink).length;
+        console.log(`final ${id}: episode groups ${result.progress.nextGroup}/${total} saved`);
+      } else {
+        writeJson(file('final', id), {...result, rawFingerprint: raw.fingerprint,
+          mappingFingerprint, providerRef: revision});
+        if (fs.existsSync(finalProgressFile(id))) fs.unlinkSync(finalProgressFile(id));
+      }
       delete manifest.errors[id];
     } catch (error) { manifest.errors[id] = {at: iso(), message: error.message}; console.error(`final ${id}: ${error.message}`); }
     if ((position + 1) % 10 === 0) {writeJson(path.join(DATA, 'final', 'manifest.json'), manifest); console.log(`final: ${position + 1}/${selected.length}`);}
@@ -284,4 +307,5 @@ async function main() {
 }
 
 if (require.main === module) main().catch(error => {console.error(error); process.exitCode = 1;});
-module.exports = {catalogEntry, due, enrichmentDue, errorDue, runRaw, runMapped, runFinal, shouldRefreshArchive};
+module.exports = {catalogEntry, due, enrichmentDue, errorDue, matchingFinalProgress,
+  runRaw, runMapped, runFinal, shouldRefreshArchive};

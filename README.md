@@ -66,8 +66,11 @@ continue a long full refresh automatically. A code push does not start a full
 scrape. Scheduled runs use update mode unless a full refresh is already in
 progress.
 
-There is no 100-record total limit. The runner processes 200 records per stage
-and commits a verified checkpoint after each batch. GitHub-hosted runners have
+There is no 100-record total limit. The runner processes up to 50 records per stage
+and commits a verified checkpoint after each batch. Long anime retain intermediate
+episode-group progress under `final/progress/`; only a complete anime is written to
+`final/items/`. Progress is discarded when its source, mapping, or provider revision
+changes. GitHub-hosted runners have
 a finite job lifetime, so the workflow queues another run when its time budget
 is reached. Scheduled runs also resume an unfinished full refresh. Records
 that failed are retried after a 30-minute cooldown, allowing other records to

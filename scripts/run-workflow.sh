@@ -6,7 +6,7 @@ mode="${RUN_MODE:-update}"
 full_since="${RUN_FULL_SINCE:-}"
 state_file=anime_database/refresh-state.json
 budget_seconds=$(( 270 * 60 ))
-batch_size=200
+batch_size=50
 started_at=$(date +%s)
 
 case "$stage" in all|raw|mapped|final) ;; *) echo "Invalid stage: $stage" >&2; exit 2;; esac
@@ -27,6 +27,15 @@ fi
 mkdir -p .cache
 batch=0
 while true; do
+  if (( batch > 0 && $(date +%s) - started_at >= budget_seconds - 30 * 60 )); then
+    echo 'Runner time budget approaching; queuing continuation before another batch.'
+    if [[ "$mode" == full ]]; then
+      gh workflow run update-animeunity.yml --ref main -f mode=full -f stage="$stage" -f full_since="$full_since"
+    else
+      gh workflow run update-animeunity.yml --ref main -f mode=update -f stage="$stage"
+    fi
+    exit 0
+  fi
   batch=$((batch + 1))
   echo "Starting $stage batch $batch ($mode, up to $batch_size records per stage)"
   args=("$stage" --limit "$batch_size" --provider-root .cache/vega-providers)

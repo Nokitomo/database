@@ -3,8 +3,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {sitemapItems, episodeBounds, fetchAnime, parseEmbedded} = require('../scripts/source');
-const {catalogEntry, due, enrichmentDue, errorDue, shouldRefreshArchive} = require('../scripts/pipeline');
-const {boundedRequestOptions, createContext, mergeSourceEpisodes} = require('../scripts/vega');
+const {catalogEntry, due, enrichmentDue, errorDue, matchingFinalProgress,
+  shouldRefreshArchive} = require('../scripts/pipeline');
+const {boundedRequestOptions, createContext, enrichAnime, mergeSourceEpisodes} = require('../scripts/vega');
 const {parseArgs} = require('../scripts/lib');
 
 test('sitemap keeps stable IDs and skips non-anime URLs', () => {
@@ -21,6 +22,52 @@ test('external provider requests always have a bounded timeout', () => {
   assert.equal(boundedRequestOptions({timeout: 10_000}).timeout, 10_000);
   assert.equal(boundedRequestOptions({timeout: 120_000}).timeout, 30_000);
   assert.equal(boundedRequestOptions({timeout: 0}).timeout, 30_000);
+});
+
+test('long anime resumes episode groups without publishing a partial final record', async () => {
+  const calls = [];
+  let metaCalls = 0;
+  const raw = {id: 12, path: '/anime/12-test', slug: 'test', info: {},
+    episodes: [1, 2, 3].map(number => ({id: 100 + number, number: String(number)}))};
+  const mapped = {sourceIds: {}, mappings: {targets: []}};
+  const options = {
+    maxGroups: 1,
+    getMeta: async () => {
+      metaCalls++;
+      return {title: 'Test', linkList: [1, 2, 3].map(number => ({episodesLink: `12|${number}|${number}`}))};
+    },
+    getEpisodes: async ({url}) => {
+      calls.push(url);
+      const number = Number(url.split('|')[1]);
+      return [{link: String(100 + number), title: `Part ${number}`, episodeNumber: number}];
+    },
+    fillTvdbEpisodeGaps: async () => {},
+    collectArtwork: async () => ({logo: [], poster: [], background: []}),
+  };
+  const first = await enrichAnime('.', 'https://www.animeunity.co', raw, mapped, options);
+  assert.equal(first.partial, true);
+  assert.equal(first.progress.nextGroup, 1);
+  assert.equal(first.progress.episodes.length, 1);
+  const second = await enrichAnime('.', 'https://www.animeunity.co', raw, mapped,
+    {...options, progress: first.progress});
+  assert.equal(second.partial, true);
+  assert.equal(second.progress.nextGroup, 2);
+  const final = await enrichAnime('.', 'https://www.animeunity.co', raw, mapped,
+    {...options, progress: JSON.parse(JSON.stringify(second.progress))});
+  assert.equal(final.partial, undefined);
+  assert.deepEqual(final.episodes.map(episode => episode.link), ['101', '102', '103']);
+  assert.deepEqual(calls, ['12|1|1', '12|2|2', '12|3|3']);
+  assert.equal(metaCalls, 1);
+});
+
+test('episode progress is invalidated when source, mapping, or provider changes', () => {
+  const progress = {rawFingerprint: 'a', mappingFingerprint: 'b', providerRef: 'c',
+    nextGroup: 1, info: {linkList: [{episodesLink: '1|1|1'}]}, episodes: []};
+  assert.ok(matchingFinalProgress(progress, 'a', 'b', 'c'));
+  assert.equal(matchingFinalProgress(progress, 'changed', 'b', 'c'), false);
+  assert.equal(matchingFinalProgress(progress, 'a', 'changed', 'c'), false);
+  assert.equal(matchingFinalProgress(progress, 'a', 'b', 'changed'), false);
+  assert.equal(matchingFinalProgress({...progress, nextGroup: 2}, 'a', 'b', 'c'), false);
 });
 
 test('embedded AnimeUnity metadata and absolute episode ranges', () => {
