@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tvdb","kind":"episodes","input":{"tvdbShowId":377543,"seasonNumber":0},"checkedAt":1793314242633,"status":"ok","value":[{"episodeNumber":7,"title":"New Year's Special","synopsis":"Recap of Episode 1 - Episode 13 of Season 1.","titleLanguage":"ita","synopsisLanguage":"eng"}],"fields":{},"episodes":{"7":{"checkedAt":1793314242633,"status":"missing"}}}

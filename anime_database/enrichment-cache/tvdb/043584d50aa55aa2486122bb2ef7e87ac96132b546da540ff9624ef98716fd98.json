@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tvdb","kind":"episodes","input":{"tvdbShowId":442938,"seasonNumber":0},"checkedAt":1793314236644,"status":"ok","value":[{"episodeNumber":3,"title":"Wonderful Pretty Cure the Movie: A Thrilling Adventure In The Game World!","titleLanguage":"eng"}],"fields":{},"episodes":{"3":{"checkedAt":1793314236644,"status":"missing"}}}
