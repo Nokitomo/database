@@ -5,7 +5,7 @@
   "type": "commonjs",
   "scripts": {
     "pipeline": "node scripts/pipeline.js",
-    "verify": "node --test tests/pipeline.test.js tests/quality.test.js tests/rate-limit.test.js tests/tmdb-http.test.js tests/warp.test.js",
+    "verify": "node --test tests/pipeline.test.js tests/quality.test.js tests/rate-limit.test.js tests/record-deadline.test.js tests/tmdb-http.test.js tests/warp.test.js",
     "verify:data": "node scripts/verify-database.js"
   },
   "dependencies": {

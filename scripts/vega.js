@@ -15,9 +15,10 @@ const tmdbGet = createTmdbGet(pacedGet);
 let tmdbArtworkSamples = 0;
 const MAX_EXTERNAL_REQUEST_MS = 30_000;
 
-function boundedRequestOptions(options = {}) {
+function boundedRequestOptions(options = {}, signal) {
   const requested = Number(options.timeout);
-  return {...options, timeout: requested > 0 ? Math.min(requested, MAX_EXTERNAL_REQUEST_MS) : MAX_EXTERNAL_REQUEST_MS};
+  return {...options, signal: signal || options.signal,
+    timeout: requested > 0 ? Math.min(requested, MAX_EXTERNAL_REQUEST_MS) : MAX_EXTERNAL_REQUEST_MS};
 }
 
 function requireProvider(providerRoot, modulePath) {
@@ -34,6 +35,7 @@ function createContext(providerRoot, baseUrl, raw = null, contextOptions = {}) {
   const client = {
     ...axios,
     get: async (url, options) => {
+      contextOptions.signal?.throwIfAborted();
       if (raw && new URL(url).origin === baseUrl) {
         const parsed = new URL(url);
         if (parsed.pathname === `/info_api/${raw.id}/`) return Promise.resolve({data: raw.info});
@@ -54,7 +56,7 @@ function createContext(providerRoot, baseUrl, raw = null, contextOptions = {}) {
       const isTmdbWeb = new URL(url).hostname.toLowerCase() === 'www.themoviedb.org';
       if (isTmdbWeb) externalStatus.tmdbWeb.attempts++;
       try {
-        return await (contextOptions.httpGet || tmdbGet)(url, boundedRequestOptions(options));
+        return await (contextOptions.httpGet || tmdbGet)(url, boundedRequestOptions(options, contextOptions.signal));
       } catch (error) {
         const status = Number(error?.response?.status) || 0;
         if (isTmdbWeb && status !== 404) {
@@ -65,7 +67,7 @@ function createContext(providerRoot, baseUrl, raw = null, contextOptions = {}) {
         throw error;
       }
     },
-    post: (url, data, options) => {assertWarp(); return axios.post(url, data, boundedRequestOptions(options));},
+    post: (url, data, options) => {contextOptions.signal?.throwIfAborted(); assertWarp(); return axios.post(url, data, boundedRequestOptions(options, contextOptions.signal));},
   };
   return {
     axios: client, cheerio, Aes: {}, commonHeaders: {}, getBaseUrl: async () => baseUrl,
@@ -87,9 +89,9 @@ function createContext(providerRoot, baseUrl, raw = null, contextOptions = {}) {
   };
 }
 
-async function mapAnime(providerRoot, baseUrl, raw) {
+async function mapAnime(providerRoot, baseUrl, raw, signal) {
   const {resolveAnimeMappings, buildAniBridgeExtra} = requireProvider(providerRoot, 'mappings/index.js');
-  const context = createContext(providerRoot, baseUrl, raw);
+  const context = createContext(providerRoot, baseUrl, raw, {signal});
   const anilistId = Number(raw.info.anilist_id || raw.embeddedAnime?.anilist_id) || undefined;
   const malId = Number(raw.info.mal_id || raw.embeddedAnime?.mal_id) || undefined;
   const resolution = await resolveAnimeMappings({providerContext: context,
@@ -107,7 +109,8 @@ async function enrichAnime(providerRoot, baseUrl, raw, mapped, options = {}) {
   const getEpisodes = options.getEpisodes || requireProvider(providerRoot, 'episodes.js').getEpisodes;
   const fillGaps = options.fillTvdbEpisodeGaps || fillTvdbEpisodeGaps;
   const getArtwork = options.collectArtwork || collectArtwork;
-  const context = createContext(providerRoot, baseUrl, raw, options.contextOptions);
+  const context = createContext(providerRoot, baseUrl, raw,
+    {...options.contextOptions, signal: options.signal || options.contextOptions?.signal});
   const link = new URL(raw.path, baseUrl).href;
   const info = options.progress?.info || await getMeta({link, providerContext: context});
   if (!info?.title || !Array.isArray(info.linkList)) throw new Error(`Vega metadata incomplete for ${raw.id}`);
@@ -117,6 +120,7 @@ async function enrichAnime(providerRoot, baseUrl, raw, mapped, options = {}) {
   const maxGroups = options.maxGroups ?? Infinity;
   const endGroup = Math.min(groups.length, startGroup + maxGroups);
   for (let groupIndex = startGroup; groupIndex < endGroup; groupIndex++) {
+    options.signal?.throwIfAborted();
     const group = groups[groupIndex];
     const episodes = await getEpisodes({url: group.episodesLink, providerContext: context});
     const groupEpisodes = new Map();
@@ -128,6 +132,7 @@ async function enrichAnime(providerRoot, baseUrl, raw, mapped, options = {}) {
     await fillGaps(providerRoot, context, groupEpisodes, raw);
     for (const [id, episode] of groupEpisodes) byId.set(id, episode);
   }
+  options.signal?.throwIfAborted();
   if (endGroup < groups.length) return {partial: true, progress: {
     info, nextGroup: endGroup, episodes: [...byId.values()],
     sourceStatus: mergeSourceStatus(options.progress?.sourceStatus, context.externalStatus),
@@ -139,6 +144,7 @@ async function enrichAnime(providerRoot, baseUrl, raw, mapped, options = {}) {
   info.extra ||= {};
   info.extra.artworkCandidates = Object.fromEntries(Object.entries(artworkCandidates).map(
     ([field, candidates]) => [field, candidates.filter(value => value.source !== 'anilist')]));
+  options.signal?.throwIfAborted();
   return {id: raw.id, path: raw.path, updatedAt: new Date().toISOString(), info,
     episodes: [...byId.values()], sourceIds: mapped.sourceIds, mappings: mapped.mappings,
     sourceMetadata: {info: raw.info, embedded: raw.embeddedAnime, archive: raw.archiveRecord},

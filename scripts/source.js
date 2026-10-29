@@ -10,16 +10,19 @@ const FALLBACK_URL = 'https://www.animeunity.co';
 const HEADERS = {'User-Agent': 'Mozilla/5.0 (compatible; AnimeDatabase/1.0)', Accept: 'application/json, text/html, application/xml'};
 
 async function request(method, url, data, extra = {}) {
+  const {signal, ...headers} = extra;
   let last;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
+      signal?.throwIfAborted();
       assertWarp();
       const response = await axios({method, url, data, timeout: 20000, maxRedirects: 5,
-        headers: {...HEADERS, ...extra}, validateStatus: status => status < 500});
+        signal, headers: {...HEADERS, ...headers}, validateStatus: status => status < 500});
       if (response.status >= 400) throw new Error(`HTTP ${response.status} at ${url}`);
       return response;
     } catch (error) {
       last = error;
+      signal?.throwIfAborted();
       if (attempt < 2) await sleep(700 * (attempt + 1));
     }
   }
@@ -110,11 +113,12 @@ function episodeBounds(number) {
   return match ? {start: Number(match[1]), end: Number(match[2] || match[1])} : null;
 }
 
-async function fetchAnime(item, baseUrl, fetch = request) {
+async function fetchAnime(item, baseUrl, fetch = request, signal) {
   const [infoResult, htmlResult] = await Promise.allSettled([
-    fetch('get', `${baseUrl}/info_api/${item.id}/`, null, {Referer: `${baseUrl}/`}),
-    fetch('get', new URL(item.path, baseUrl).href),
+    fetch('get', `${baseUrl}/info_api/${item.id}/`, null, {Referer: `${baseUrl}/`, signal}),
+    fetch('get', new URL(item.path, baseUrl).href, null, {signal}),
   ]);
+  signal?.throwIfAborted();
   if (infoResult.status === 'rejected') throw infoResult.reason;
   const info = infoResult.value.data;
   if (Number(info?.id) !== item.id) throw new Error(`Invalid info payload for anime ${item.id}`);
@@ -136,7 +140,8 @@ async function fetchAnime(item, baseUrl, fetch = request) {
   if (count > 0 || embedded.episodes.length > 0) {
     for (let start = from; start <= to; start += 120) {
       const end = Math.min(to, start + 119);
-      const response = await fetch('get', `${baseUrl}/info_api/${item.id}/1?start_range=${start}&end_range=${end}`, null, {Referer: `${baseUrl}/`});
+      const response = await fetch('get', `${baseUrl}/info_api/${item.id}/1?start_range=${start}&end_range=${end}`, null, {Referer: `${baseUrl}/`, signal});
+      signal?.throwIfAborted();
       if (!Array.isArray(response.data?.episodes)) throw new Error(`Invalid episodes payload for anime ${item.id}`);
       response.data.episodes.forEach(append);
       await sleep(150);

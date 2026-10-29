@@ -7,6 +7,7 @@ const {DATA, file, hash, iso, listIds, parseArgs, readJson, sleep, writeJson} = 
 const {archiveItems, discover, fetchAnime} = require('./source');
 const {createContext, enrichAnime, mapAnime, requireProvider} = require('./vega');
 const {buildQualityReport} = require('./quality');
+const {withRecordDeadline} = require('./record-deadline');
 
 function stageIndex(stage) { return path.join(DATA, stage, 'index.json'); }
 function finalProgressFile(id) { return path.join(DATA, 'final', 'progress', `${id}.json`); }
@@ -135,7 +136,8 @@ async function runRaw(options) {
     console.log(`raw ${id}: starting`);
     try {
       const item = merged.get(id);
-      const source = await fetchAnime(item, discovery.baseUrl);
+      const source = await withRecordDeadline(`raw ${id}`,
+        signal => fetchAnime(item, discovery.baseUrl, undefined, signal));
       const previous = readJson(file('raw', id));
       const fingerprint = hash({info: source.info, embeddedAnime: source.embeddedAnime, episodes: source.episodes});
       writeJson(file('raw', id), {...source, archiveRecord: item.archiveRecord || previous?.archiveRecord || null,
@@ -190,7 +192,8 @@ async function runMapped(options, providerRoot) {
     console.log(`mapped ${id}: starting`);
     try {
       const raw = readJson(file('raw', id));
-      const mapped = await mapAnime(providerRoot, source.baseUrl, raw);
+      const mapped = await withRecordDeadline(`mapped ${id}`,
+        signal => mapAnime(providerRoot, source.baseUrl, raw, signal));
       writeJson(file('mapped', id), {...mapped, rawFingerprint: raw.fingerprint,
         providerRef: revision, mappingSourceHash: sourceHash, mappedAt: iso()});
       delete index.errors[id];
@@ -251,8 +254,9 @@ async function runFinal(options, providerRoot) {
       const progress = matchingFinalProgress(savedProgress, raw.fingerprint, mappingFingerprint, revision)
         ? savedProgress : null;
       const previousFinal = readJson(file('final', id));
-      const result = await enrichAnime(providerRoot, source.baseUrl, raw, mapped,
-        {progress, maxGroups: 2, previousSourceStatus: previousFinal?.sourceStatus});
+      const result = await withRecordDeadline(`final ${id}`,
+        signal => enrichAnime(providerRoot, source.baseUrl, raw, mapped,
+          {progress, maxGroups: 2, previousSourceStatus: previousFinal?.sourceStatus, signal}));
       if (result.partial) {
         writeJson(finalProgressFile(id), {...result.progress, rawFingerprint: raw.fingerprint,
           mappingFingerprint, providerRef: revision});

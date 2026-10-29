@@ -25,7 +25,7 @@ function reportOnce(key, message, log = console.error) {
   log(message);
 }
 
-async function curlTmdbHtml(url, _options = {}, check = assertWarp) {
+async function curlTmdbHtml(url, options = {}, check = assertWarp) {
   const parsed = new URL(url);
   if (parsed.protocol !== 'https:' || parsed.hostname !== 'www.themoviedb.org')
     throw new Error('TMDB web fallback only accepts HTTPS TMDB pages');
@@ -35,7 +35,8 @@ async function curlTmdbHtml(url, _options = {}, check = assertWarp) {
   check();
   try {
     const {stdout} = await runFile(process.platform === 'win32' ? 'curl.exe' : 'curl', args,
-      {encoding: 'utf8', timeout: 20000, maxBuffer: 20 * 1024 * 1024, windowsHide: true});
+      {encoding: 'utf8', timeout: 20000, maxBuffer: 20 * 1024 * 1024, windowsHide: true,
+        signal: options.signal});
     if (!stdout || /<title>\s*Just a moment/i.test(stdout))
       throw new Error('TMDB web fallback returned an empty or blocked page');
     return stdout;
