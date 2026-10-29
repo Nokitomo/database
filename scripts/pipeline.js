@@ -6,6 +6,7 @@ const {execFileSync} = require('node:child_process');
 const {DATA, file, hash, iso, listIds, parseArgs, readJson, sleep, writeJson} = require('./lib');
 const {archiveItems, discover, fetchAnime} = require('./source');
 const {createContext, enrichAnime, mapAnime, requireProvider} = require('./vega');
+const {buildQualityReport} = require('./quality');
 
 function stageIndex(stage) { return path.join(DATA, stage, 'index.json'); }
 function finalProgressFile(id) { return path.join(DATA, 'final', 'progress', `${id}.json`); }
@@ -303,6 +304,9 @@ async function runFinal(options, providerRoot) {
   manifest.catalogSha256 = hash(catalog);
   manifest.itemHashes = Object.fromEntries(records.map(record => [record.id, hash(record)]));
   manifest.shardHashes = shardHashes;
+  const quality = buildQualityReport(records, source, mappingIndex, manifest.errors, manifest.generatedAt);
+  writeJson(path.join(DATA, 'final', 'quality.json'), quality);
+  manifest.qualitySha256 = hash(quality);
   writeJson(path.join(DATA, 'final', 'manifest.json'), manifest);
   manifest.selectedCount = selected.length;
   return manifest;

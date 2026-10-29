@@ -75,6 +75,13 @@ function verifyDatabase(stage = 'all') {
       const shard = readJson(path.join(DATA, 'final', 'shards', `${key}.json`));
       if (!shard || hash(shard) !== expected) throw new Error(`Shard hash mismatch: ${key}`);
     }
+    if (manifest.qualitySha256) {
+      const quality = readJson(path.join(DATA, 'final', 'quality.json'));
+      if (!quality || hash(quality) !== manifest.qualitySha256 ||
+        quality.coverage?.final !== manifest.availableCount ||
+        quality.coverage?.expected !== manifest.expectedCount)
+        throw new Error('Quality report does not match manifest');
+    }
   }
   return {expected: ids.length, raw: rawCount,
     mapped: mappedCount, final: complete.length,

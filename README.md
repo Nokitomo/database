@@ -23,7 +23,9 @@ run; local unit tests do not establish a WARP connection on this computer.
 - `anime_database/final/`: Vega `Info` and `EpisodeLink` records plus a compact
   catalog and 100 download shards (`shards/00.json` through `99.json`).
   `manifest.json` is marked `complete` only when every discovered item
-  has a current record in every stage.
+  has a current record in every stage. `quality.json` reports missing artwork,
+  episode fields, mapping candidates and retryable source failures separately;
+  `complete` measures record coverage, not metadata perfection.
 
 Every record is keyed by the stable AnimeUnity anime ID. Final records contain
 the relative provider path, so a consumer can resolve it against the current
