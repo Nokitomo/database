@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const {MIN_GAP_MS, createPacedGet, retryAfterMs} = require('../scripts/rate-limit');
+const {MIN_GAP_MS, MAX_RETRY_WAIT_MS, createPacedGet, retryAfterMs} = require('../scripts/rate-limit');
 
 test('TMDB API pacing stays below documented bulk threshold', () => {
   assert.ok(MIN_GAP_MS['api.themoviedb.org'] >= 250);
@@ -34,4 +34,14 @@ test('sequential TMDB requests reserve separate rate-limit slots', async () => {
   await paced('https://api.themoviedb.org/3/tv/1');
   await paced('https://api.themoviedb.org/3/tv/2');
   assert.deepEqual(starts, [1000, 1250]);
+});
+
+test('an excessive Retry-After fails promptly instead of blocking a job', async () => {
+  let waits = 0;
+  const paced = createPacedGet(async () => {
+    throw {response: {status: 429, headers: {'retry-after': String(MAX_RETRY_WAIT_MS / 1000 + 1)}}};
+  }, {now: () => 1000, sleep: async () => {waits++;}});
+  await assert.rejects(paced('https://api.themoviedb.org/3/tv/1'), error =>
+    error.retryAfterMs === MAX_RETRY_WAIT_MS + 1000);
+  assert.equal(waits, 0);
 });

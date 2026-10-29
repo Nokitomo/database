@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const {sitemapItems, episodeBounds, fetchAnime, parseEmbedded} = require('../scripts/source');
 const {catalogEntry, due, enrichmentDue, errorDue, shouldRefreshArchive} = require('../scripts/pipeline');
-const {createContext, mergeSourceEpisodes} = require('../scripts/vega');
+const {boundedRequestOptions, createContext, mergeSourceEpisodes} = require('../scripts/vega');
 const {parseArgs} = require('../scripts/lib');
 
 test('sitemap keeps stable IDs and skips non-anime URLs', () => {
@@ -14,6 +14,13 @@ test('sitemap keeps stable IDs and skips non-anime URLs', () => {
   assert.equal(items.size, 1);
   assert.deepEqual(items.get(4354), {id: 4354, slug: 'ippon-again', path: '/anime/4354-ippon-again/',
     url: 'https://www.animeunity.co/anime/4354-ippon-again/'});
+});
+
+test('external provider requests always have a bounded timeout', () => {
+  assert.equal(boundedRequestOptions().timeout, 30_000);
+  assert.equal(boundedRequestOptions({timeout: 10_000}).timeout, 10_000);
+  assert.equal(boundedRequestOptions({timeout: 120_000}).timeout, 30_000);
+  assert.equal(boundedRequestOptions({timeout: 0}).timeout, 30_000);
 });
 
 test('embedded AnimeUnity metadata and absolute episode ranges', () => {

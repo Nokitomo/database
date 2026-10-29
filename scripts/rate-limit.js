@@ -7,6 +7,7 @@ const MIN_GAP_MS = Object.freeze({
   'www.themoviedb.org': 500,
   'www.thetvdb.com': 350,
 });
+const MAX_RETRY_WAIT_MS = 60_000;
 
 function retryAfterMs(value, now = Date.now()) {
   if (value == null) return null;
@@ -42,10 +43,15 @@ function createPacedGet(get, options = {}) {
         const headers = error.response?.headers;
         const header = headers?.get?.('retry-after') ?? headers?.['retry-after'] ?? headers?.['Retry-After'];
         const pause = Math.max(2000, retryAfterMs(header, now()) ?? Math.min(30000, 2000 * 2 ** attempt));
+        if (pause > MAX_RETRY_WAIT_MS) {
+          const limited = new Error(`Rate limit requires waiting more than ${MAX_RETRY_WAIT_MS / 1000} seconds for ${host}`);
+          limited.retryAfterMs = pause;
+          throw limited;
+        }
         blockedUntil.set(host, Math.max(blockedUntil.get(host) || 0, now() + pause));
       }
     }
   };
 }
 
-module.exports = {MIN_GAP_MS, createPacedGet, retryAfterMs};
+module.exports = {MIN_GAP_MS, MAX_RETRY_WAIT_MS, createPacedGet, retryAfterMs};

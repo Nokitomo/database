@@ -13,6 +13,12 @@ const {createTmdbGet} = require('./tmdb-http');
 const pacedGet = createPacedGet((url, options) => axios.get(url, options), {check: assertWarp});
 const tmdbGet = createTmdbGet(pacedGet);
 let tmdbArtworkSamples = 0;
+const MAX_EXTERNAL_REQUEST_MS = 30_000;
+
+function boundedRequestOptions(options = {}) {
+  const requested = Number(options.timeout);
+  return {...options, timeout: requested > 0 ? Math.min(requested, MAX_EXTERNAL_REQUEST_MS) : MAX_EXTERNAL_REQUEST_MS};
+}
 
 function requireProvider(providerRoot, modulePath) {
   const absolute = path.resolve(providerRoot, 'dist', 'animeunity', modulePath);
@@ -44,9 +50,9 @@ function createContext(providerRoot, baseUrl, raw = null) {
           return Promise.resolve({data: {episodes}});
         }
       }
-      return tmdbGet(url, options);
+      return tmdbGet(url, boundedRequestOptions(options));
     },
-    post: (...args) => {assertWarp(); return axios.post(...args);},
+    post: (url, data, options) => {assertWarp(); return axios.post(url, data, boundedRequestOptions(options));},
   };
   return {
     axios: client, cheerio, Aes: {}, commonHeaders: {}, getBaseUrl: async () => baseUrl,
@@ -231,4 +237,4 @@ async function collectArtwork(providerRoot, context, raw, mapped, info) {
   };
 }
 
-module.exports = {collectArtwork, createContext, enrichAnime, mapAnime, mergeSourceEpisodes, requireProvider};
+module.exports = {boundedRequestOptions, collectArtwork, createContext, enrichAnime, mapAnime, mergeSourceEpisodes, requireProvider};
