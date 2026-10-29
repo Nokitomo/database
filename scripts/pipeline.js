@@ -12,9 +12,10 @@ const {withRecordDeadline} = require('./record-deadline');
 function stageIndex(stage) { return path.join(DATA, stage, 'index.json'); }
 function finalProgressFile(id) { return path.join(DATA, 'final', 'progress', `${id}.json`); }
 function providerRef() { return fs.readFileSync(path.join(__dirname, '..', 'vega-providers.ref'), 'utf8').trim(); }
-function matchingFinalProgress(progress, rawFingerprint, mappingFingerprint, revision) {
+function matchingFinalProgress(progress, rawFingerprint, mappingFingerprint, revision, rawPath) {
   return progress?.rawFingerprint === rawFingerprint && progress?.mappingFingerprint === mappingFingerprint &&
-    progress?.providerRef === revision && Number.isInteger(progress?.nextGroup) && progress.nextGroup >= 0 &&
+    progress?.providerRef === revision && (!rawPath || progress.path === rawPath) &&
+    Number.isInteger(progress?.nextGroup) && progress.nextGroup >= 0 &&
     progress?.info && Array.isArray(progress.info.linkList) &&
     progress.nextGroup <= progress.info.linkList.filter(group => group.episodesLink).length &&
     Array.isArray(progress.episodes);
@@ -35,8 +36,9 @@ function isDynamic(raw) {
   return Number(raw.info?.episodes_count) === 0 && raw.episodes?.length === 0 ||
     /in corso|ongoing|in uscita|upcoming|prossimamente/i.test(raw.info?.status || raw.embeddedAnime?.status || '');
 }
-function due(raw, full, fullSince = null) {
+function due(raw, full, fullSince = null, expectedPath = null) {
   if (!raw) return true;
+  if (expectedPath && raw.path !== expectedPath) return true;
   if (full && (!fullSince || Date.parse(raw.checkedAt || 0) < fullSince)) return true;
   const age = Date.now() - Date.parse(raw.checkedAt || 0);
   return !Number.isFinite(age) || age > (isDynamic(raw) ? 24 : 30 * 24) * 3600000;
@@ -93,17 +95,25 @@ function catalogEntry(record) {
   };
 }
 
+function mergeDiscoveredItems(sitemap, archiveItems, archiveOnly = []) {
+  const merged = new Map(sitemap);
+  for (const [id, item] of archiveItems || []) {
+    const sitemapItem = merged.get(id);
+    merged.set(id, sitemapItem ? {...sitemapItem, archiveRecord: item.archiveRecord} : item);
+  }
+  for (const item of archiveOnly) {
+    if (!merged.has(item.id)) merged.set(item.id, item);
+  }
+  return merged;
+}
+
 async function runRaw(options) {
   const discovery = await discover();
   const previousIndex = readJson(stageIndex('raw'), {});
   const archiveDue = shouldRefreshArchive(previousIndex, options.full, Date.now(), options.fullSince);
   const archive = archiveDue ? await archiveItems(discovery.baseUrl) : null;
-  const merged = new Map(discovery.sitemap);
-  if (archive) {
-    for (const [id, item] of archive.items) merged.set(id, item);
-  } else {
-    for (const item of previousIndex.archiveOnly || []) merged.set(item.id, item);
-  }
+  const merged = mergeDiscoveredItems(discovery.sitemap, archive?.items,
+    archive ? [] : previousIndex.archiveOnly || []);
   const expectedIds = [...merged.keys()].sort((a, b) => a - b);
   if (expectedIds.length < 1000) throw new Error(`Archive unexpectedly small: ${expectedIds.length}`);
   const expected = new Set(expectedIds);
@@ -119,7 +129,7 @@ async function runRaw(options) {
     errors: Object.fromEntries(Object.entries(previousIndex.errors || {}).filter(([id]) => expected.has(Number(id))))};
   writeJson(stageIndex('raw'), index);
   const pending = expectedIds.filter(id => (!options.ids || options.ids.has(id)) &&
-    errorDue(index.errors[id]) && due(readJson(file('raw', id)), options.full, options.fullSince));
+    errorDue(index.errors[id]) && due(readJson(file('raw', id)), options.full, options.fullSince, merged.get(id)?.path));
   const pendingRaw = new Map(pending.map(id => [id, readJson(file('raw', id))]));
   pending.sort((a, b) => {
     const left = pendingRaw.get(a);
@@ -236,6 +246,7 @@ async function runFinal(options, providerRoot) {
     return (options.full && (!options.fullSince || Date.parse(final?.updatedAt || 0) < options.fullSince)) ||
       !final || final.providerRef !== revision ||
       final.rawFingerprint !== raw.fingerprint || final.mappingFingerprint !== hash(mapped) ||
+      final.path !== raw.path ||
       enrichmentDue(final);
   });
   const episodeCounts = new Map(pending.map(id => [id, readJson(file('raw', id))?.episodes?.length || 0]));
@@ -251,14 +262,14 @@ async function runFinal(options, providerRoot) {
       const mapped = readJson(file('mapped', id));
       const mappingFingerprint = hash(mapped);
       const savedProgress = readJson(finalProgressFile(id));
-      const progress = matchingFinalProgress(savedProgress, raw.fingerprint, mappingFingerprint, revision)
+      const progress = matchingFinalProgress(savedProgress, raw.fingerprint, mappingFingerprint, revision, raw.path)
         ? savedProgress : null;
       const previousFinal = readJson(file('final', id));
       const result = await withRecordDeadline(`final ${id}`,
         signal => enrichAnime(providerRoot, source.baseUrl, raw, mapped,
           {progress, maxGroups: 2, previousSourceStatus: previousFinal?.sourceStatus, signal}));
       if (result.partial) {
-        writeJson(finalProgressFile(id), {...result.progress, rawFingerprint: raw.fingerprint,
+        writeJson(finalProgressFile(id), {...result.progress, path: raw.path, rawFingerprint: raw.fingerprint,
           mappingFingerprint, providerRef: revision});
         const total = result.progress.info.linkList.filter(group => group.episodesLink).length;
         console.log(`final ${id}: episode groups ${result.progress.nextGroup}/${total} saved`);
@@ -275,16 +286,24 @@ async function runFinal(options, providerRoot) {
     if ((position + 1) % 10 === 0) {writeJson(path.join(DATA, 'final', 'manifest.json'), manifest); console.log(`final: ${position + 1}/${selected.length}`);}
     await sleep(100);
   }
+  const published = rebuildFinalArtifacts(source, mappingIndex, manifest, revision);
+  published.selectedCount = selected.length;
+  return published;
+}
+
+function rebuildFinalArtifacts(source, mappingIndex, manifest, revision, root = DATA) {
+  const recordFile = (stage, id) => path.join(root, stage, 'items', `${id}.json`);
   const records = source.expectedIds.map(id => {
-    const raw = readJson(file('raw', id));
-    const mapped = readJson(file('mapped', id));
-    const final = readJson(file('final', id));
+    const raw = readJson(recordFile('raw', id));
+    const mapped = readJson(recordFile('mapped', id));
+    const final = readJson(recordFile('final', id));
     return raw && mapped?.providerRef === revision && mapped?.mappingSourceHash === mappingIndex.sourceHash &&
       final?.providerRef === revision &&
-      final?.rawFingerprint === raw.fingerprint && final?.mappingFingerprint === hash(mapped) ? final : null;
+      final?.rawFingerprint === raw.fingerprint && final?.mappingFingerprint === hash(mapped) &&
+      final?.path === raw.path ? final : null;
   }).filter(Boolean);
   const catalog = records.map(catalogEntry);
-  writeJson(path.join(DATA, 'final', 'catalog.json'), {schemaVersion: 1, records: catalog});
+  writeJson(path.join(root, 'final', 'catalog.json'), {schemaVersion: 1, records: catalog});
   const shards = new Map();
   for (const record of records) {
     const key = String(record.id % 100).padStart(2, '0');
@@ -296,7 +315,7 @@ async function runFinal(options, providerRoot) {
   for (const [key, bucket] of shards) {
     bucket.sort((a, b) => a.id - b.id);
     const payload = {schemaVersion: 1, records: bucket};
-    writeJson(path.join(DATA, 'final', 'shards', `${key}.json`), payload);
+    writeJson(path.join(root, 'final', 'shards', `${key}.json`), payload);
     shardHashes[key] = hash(payload);
   }
   manifest.generatedAt = iso();
@@ -309,10 +328,9 @@ async function runFinal(options, providerRoot) {
   manifest.itemHashes = Object.fromEntries(records.map(record => [record.id, hash(record)]));
   manifest.shardHashes = shardHashes;
   const quality = buildQualityReport(records, source, mappingIndex, manifest.errors, manifest.generatedAt);
-  writeJson(path.join(DATA, 'final', 'quality.json'), quality);
+  writeJson(path.join(root, 'final', 'quality.json'), quality);
   manifest.qualitySha256 = hash(quality);
-  writeJson(path.join(DATA, 'final', 'manifest.json'), manifest);
-  manifest.selectedCount = selected.length;
+  writeJson(path.join(root, 'final', 'manifest.json'), manifest);
   return manifest;
 }
 
@@ -341,5 +359,5 @@ async function main() {
 }
 
 if (require.main === module) main().catch(error => {console.error(error); process.exitCode = 1;});
-module.exports = {catalogEntry, due, enrichmentDue, errorDue, mappingDue, matchingFinalProgress,
-  runRaw, runMapped, runFinal, shouldRefreshArchive};
+module.exports = {catalogEntry, due, enrichmentDue, errorDue, mappingDue, matchingFinalProgress, mergeDiscoveredItems,
+  rebuildFinalArtifacts, runRaw, runMapped, runFinal, shouldRefreshArchive};

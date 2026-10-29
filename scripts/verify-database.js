@@ -3,6 +3,8 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const {DATA, file, hash, readJson} = require('./lib');
+const {normalizeRelatedLinks} = require('./provider-links');
+const {buildArtworkFallbacks} = require('./artwork-fallbacks');
 
 function verifyDatabase(stage = 'all') {
   if (!['raw', 'mapped', 'final', 'all'].includes(stage)) throw new Error(`Invalid stage: ${stage}`);
@@ -33,7 +35,7 @@ function verifyDatabase(stage = 'all') {
     if (mapped.id !== id) throw new Error(`Mapped record ${id} invalid`);
     const final = readJson(file('final', id));
     if (!final || final.providerRef !== providerRef || final.rawFingerprint !== raw.fingerprint ||
-      final.mappingFingerprint !== hash(mapped)) continue;
+      final.mappingFingerprint !== hash(mapped) || final.path !== raw.path) continue;
     if (final.id !== id || !final.info?.title || !Array.isArray(final.episodes))
       throw new Error(`Final record ${id} invalid`);
     if (new Set(final.episodes.map(episode => episode.link)).size !== final.episodes.length)
@@ -41,6 +43,13 @@ function verifyDatabase(stage = 'all') {
     const finalEpisodeIds = new Set(final.episodes.map(episode => String(episode.link)));
     if (raw.episodes.some(episode => !finalEpisodeIds.has(String(episode.id))))
       throw new Error(`Final record ${id} omits source episodes`);
+    if (final.linkSchemaVersion === 2 &&
+      JSON.stringify(final.info.related || []) !== JSON.stringify(normalizeRelatedLinks(final.info).related || []))
+      throw new Error(`Final record ${id} has absolute AnimeUnity related links`);
+    if (final.linkSchemaVersion === 2 &&
+      JSON.stringify(final.info.extra?.artworkFallbacks) !==
+        JSON.stringify(buildArtworkFallbacks(final.info, final.artworkInventory)))
+      throw new Error(`Final record ${id} has invalid artwork fallbacks`);
     complete.push(final);
   }
   const checkedIds = rawIndex.checkedIds || [];

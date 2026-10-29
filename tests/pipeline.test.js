@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {sitemapItems, episodeBounds, fetchAnime, parseEmbedded} = require('../scripts/source');
-const {catalogEntry, due, enrichmentDue, errorDue, mappingDue, matchingFinalProgress,
+const {catalogEntry, due, enrichmentDue, errorDue, mappingDue, matchingFinalProgress, mergeDiscoveredItems,
   shouldRefreshArchive} = require('../scripts/pipeline');
 const {boundedRequestOptions, createContext, enrichAnime, mergeSourceEpisodes,
   uniqueEpisodeFallback} = require('../scripts/vega');
@@ -16,6 +16,16 @@ test('sitemap keeps stable IDs and skips non-anime URLs', () => {
   assert.equal(items.size, 1);
   assert.deepEqual(items.get(4354), {id: 4354, slug: 'ippon-again', path: '/anime/4354-ippon-again/',
     url: 'https://www.animeunity.co/anime/4354-ippon-again/'});
+});
+
+test('sitemap path wins over an outdated archive slug while archive metadata is retained', () => {
+  const sitemap = new Map([[7, {id: 7, slug: 'new', path: '/anime/7-new'}]]);
+  const archive = new Map([[7, {id: 7, slug: 'old', path: '/anime/7-old', archiveRecord: {views: 12}}],
+    [8, {id: 8, slug: 'archive-only', path: '/anime/8-archive-only', archiveRecord: {views: 1}}]]);
+  const merged = mergeDiscoveredItems(sitemap, archive);
+  assert.equal(merged.get(7).path, '/anime/7-new');
+  assert.equal(merged.get(7).archiveRecord.views, 12);
+  assert.equal(merged.get(8).path, '/anime/8-archive-only');
 });
 
 test('external provider requests always have a bounded timeout', () => {
@@ -51,7 +61,11 @@ test('long anime resumes episode groups without publishing a partial final recor
     getMeta: async ({providerContext}) => {
       metaCalls++;
       await assert.rejects(providerContext.axios.get('https://www.themoviedb.org/temporary'));
-      return {title: 'Test', linkList: [1, 2, 3].map(number => ({episodesLink: `12|${number}|${number}`}))};
+      return {title: 'Test', poster: 'https://img.animeunity.co/anime/12.jpg',
+        extra: {artworkSources: {poster: 'provider'}},
+        related: [{link: 'https://www.animeunity.co/anime/13-related', variants: [
+          {link: 'https://www.animeunity.co/anime/14-related-dubbed'}]}],
+        linkList: [1, 2, 3].map(number => ({episodesLink: `12|${number}|${number}`}))};
     },
     getEpisodes: async ({url}) => {
       calls.push(url);
@@ -59,7 +73,8 @@ test('long anime resumes episode groups without publishing a partial final recor
       return [{link: String(100 + number), title: `Part ${number}`, episodeNumber: number}];
     },
     fillTvdbEpisodeGaps: async () => {},
-    collectArtwork: async () => ({logo: [], poster: [], background: []}),
+    collectArtwork: async () => ({logo: [], poster: [
+      {source: 'tmdb', url: 'https://image.tmdb.org/t/p/original/12.jpg'}], background: []}),
   };
   const first = await enrichAnime('.', 'https://www.animeunity.co', raw, mapped, options);
   assert.equal(first.partial, true);
@@ -72,6 +87,11 @@ test('long anime resumes episode groups without publishing a partial final recor
   const final = await enrichAnime('.', 'https://www.animeunity.co', raw, mapped,
     {...options, progress: JSON.parse(JSON.stringify(second.progress))});
   assert.equal(final.partial, undefined);
+  assert.equal(final.linkSchemaVersion, 2);
+  assert.equal(final.info.related[0].link, '/anime/13-related');
+  assert.equal(final.info.related[0].variants[0].link, '/anime/14-related-dubbed');
+  assert.equal(final.info.extra.artworkFallbacks.poster[0].source, 'provider');
+  assert.equal(final.info.extra.artworkFallbacks.poster[1].source, 'tmdb');
   assert.deepEqual(final.episodes.map(episode => episode.link), ['101', '102', '103']);
   assert.deepEqual(calls, ['12|1|1', '12|2|2', '12|3|3']);
   assert.equal(metaCalls, 1);
@@ -80,13 +100,15 @@ test('long anime resumes episode groups without publishing a partial final recor
   });
 });
 
-test('episode progress is invalidated when source, mapping, or provider changes', () => {
-  const progress = {rawFingerprint: 'a', mappingFingerprint: 'b', providerRef: 'c',
+test('episode progress is invalidated when source, mapping, provider, or path changes', () => {
+  const progress = {rawFingerprint: 'a', mappingFingerprint: 'b', providerRef: 'c', path: '/anime/1-first',
     nextGroup: 1, info: {linkList: [{episodesLink: '1|1|1'}]}, episodes: []};
   assert.ok(matchingFinalProgress(progress, 'a', 'b', 'c'));
   assert.equal(matchingFinalProgress(progress, 'changed', 'b', 'c'), false);
   assert.equal(matchingFinalProgress(progress, 'a', 'changed', 'c'), false);
   assert.equal(matchingFinalProgress(progress, 'a', 'b', 'changed'), false);
+  assert.equal(matchingFinalProgress(progress, 'a', 'b', 'c', '/anime/1-first'), true);
+  assert.equal(matchingFinalProgress(progress, 'a', 'b', 'c', '/anime/1-renamed'), false);
   assert.equal(matchingFinalProgress({...progress, nextGroup: 2}, 'a', 'b', 'c'), false);
 });
 
@@ -158,6 +180,8 @@ test('refresh policy revisits dynamic titles daily and completed titles monthly'
   assert.equal(due({checkedAt: twoDaysAgo, info: {status: 'In Corso'}}, false), true);
   assert.equal(due({checkedAt: twoDaysAgo, info: {status: 'Terminato'}}, false), false);
   assert.equal(due({checkedAt: twoDaysAgo, info: {status: 'Terminato'}}, true), true);
+  assert.equal(due({checkedAt: new Date().toISOString(), path: '/anime/7-old',
+    info: {status: 'Terminato'}}, false, null, '/anime/7-new'), true);
 });
 
 test('full refresh cutoff processes each record once and backs off failed records', () => {

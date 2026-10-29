@@ -29,7 +29,14 @@ run; local unit tests do not establish a WARP connection on this computer.
 
 Every record is keyed by the stable AnimeUnity anime ID. Final records contain
 the relative provider path, so a consumer can resolve it against the current
-AnimeUnity domain. Episode `link` values are provider episode IDs; stream URLs
+AnimeUnity domain. `info.related` links and variant links are also relative in
+link schema v2. Resolve those page paths against the provider's current verified
+base URL when displaying them; `manifest.baseUrlSnapshot` is only the domain
+observed at build time. Image URLs remain absolute because the image CDN can
+move separately from the site. `info.extra.artworkFallbacks` lists the selected
+image first, followed by distinct HTTPS alternatives in preference order. A
+client can try the next candidate when an image fails to load. Episode `link`
+values are provider episode IDs; stream URLs
 are intentionally resolved live by Vega when playback starts.
 
 ## Run locally
@@ -75,7 +82,8 @@ progress.
 There is no 100-record total limit. The runner processes up to 50 records per stage
 and commits a verified checkpoint after each batch. Long anime retain intermediate
 episode-group progress under `final/progress/`; only a complete anime is written to
-`final/items/`. Progress is discarded when its source, mapping, or provider revision
+`final/items/`. Progress is discarded when its source, mapping, provider revision,
+or page path
 changes. GitHub-hosted runners have
 a finite job lifetime, so the workflow queues another run when its time budget
 is reached. Scheduled runs also resume an unfinished full refresh. Records
@@ -101,6 +109,15 @@ last known good generation when a download or live refresh fails.
 The manifest's `itemHashes` let a client download only changed records.
 The `shardHashes` provide a smaller number of downloads for a first offline
 installation, followed by changed-shard updates.
+
+Existing records created with absolute AnimeUnity related links can be
+converted without scraping: **Actions → Migrate AnimeUnity page links → Run
+workflow**. The migration normalizes related page links, adds artwork fallback
+lists, and rebuilds the catalog, shards, manifest and quality report together.
+It is idempotent and shares the update workflow's concurrency group. Use it
+after the current full refresh has stopped or completed, so it processes the
+latest published checkpoint. Its initial dry run only reports how many final
+records need conversion.
 
 The provider integration is a separate change in `vega-providers`: `getPosts`,
 `getMeta` and `getEpisodes` should read these records first. Ongoing and upcoming

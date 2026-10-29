@@ -9,6 +9,8 @@ const {episodeBounds} = require('./source');
 const {assertWarp} = require('./warp');
 const {createPacedGet} = require('./rate-limit');
 const {createTmdbGet} = require('./tmdb-http');
+const {normalizeRelatedLinks} = require('./provider-links');
+const {buildArtworkFallbacks} = require('./artwork-fallbacks');
 
 const pacedGet = createPacedGet((url, options) => axios.get(url, options), {check: assertWarp});
 const tmdbGet = createTmdbGet(pacedGet);
@@ -112,7 +114,7 @@ async function enrichAnime(providerRoot, baseUrl, raw, mapped, options = {}) {
   const context = createContext(providerRoot, baseUrl, raw,
     {...options.contextOptions, signal: options.signal || options.contextOptions?.signal});
   const link = new URL(raw.path, baseUrl).href;
-  const info = options.progress?.info || await getMeta({link, providerContext: context});
+  const info = normalizeRelatedLinks(options.progress?.info || await getMeta({link, providerContext: context}));
   if (!info?.title || !Array.isArray(info.linkList)) throw new Error(`Vega metadata incomplete for ${raw.id}`);
   const byId = new Map((options.progress?.episodes || []).map(episode => [String(episode.link), episode]));
   const groups = info.linkList.filter(group => group.episodesLink);
@@ -144,8 +146,10 @@ async function enrichAnime(providerRoot, baseUrl, raw, mapped, options = {}) {
   info.extra ||= {};
   info.extra.artworkCandidates = Object.fromEntries(Object.entries(artworkCandidates).map(
     ([field, candidates]) => [field, candidates.filter(value => value.source !== 'anilist')]));
+  info.extra.artworkFallbacks = buildArtworkFallbacks(info, artworkCandidates);
   options.signal?.throwIfAborted();
-  return {id: raw.id, path: raw.path, updatedAt: new Date().toISOString(), info,
+  return {id: raw.id, path: raw.path, linkSchemaVersion: 2,
+    updatedAt: new Date().toISOString(), info,
     episodes: [...byId.values()], sourceIds: mapped.sourceIds, mappings: mapped.mappings,
     sourceMetadata: {info: raw.info, embedded: raw.embeddedAnime, archive: raw.archiveRecord},
     sourceEpisodes: raw.episodes, artworkInventory: artworkCandidates,
