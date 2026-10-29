@@ -58,3 +58,19 @@ test('curl fallback rejects other hosts before making a request', async () => {
   assert.equal(credentialKind('0123456789abcdef0123456789abcdef'), 'v3-key');
   assert.equal(credentialKind('eyJhbGci.eyJzdWI.signature'), 'bearer-token');
 });
+
+test('TMDB API diagnostics describe Bearer authentication without exposing the token', async () => {
+  const previous = process.env.TMDB_API_KEY;
+  process.env.TMDB_API_KEY = 'eyJhbGci.eyJzdWI.signature';
+  try {
+    const logs = [];
+    const get = createTmdbGet(async () => ({status: 200, data: {id: 37854}}),
+      {log: message => logs.push(message)});
+    await get('https://api.themoviedb.org/3/tv/37854');
+    assert.match(logs.join('\n'), /credential=bearer-token; authentication=bearer header/);
+    assert.doesNotMatch(logs.join('\n'), /eyJhbGci/);
+  } finally {
+    if (previous === undefined) delete process.env.TMDB_API_KEY;
+    else process.env.TMDB_API_KEY = previous;
+  }
+});

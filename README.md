@@ -73,9 +73,10 @@ is reached. Scheduled runs also resume an unfinished full refresh. Records
 that failed are retried after a 30-minute cooldown, allowing other records to
 progress meanwhile.
 
-The `TMDB_API_KEY` repository secret is optional. The Vega AnimeUnity provider
-uses public TMDB web pages when it is absent and fills missing API fields from
-those pages when it is present. TVDB also uses public pages; AniBridge, AniZip,
+The `TMDB_API_KEY` repository secret is optional and accepts either a TMDB v3 API
+key or an API Read Access Token. The Vega AnimeUnity provider uses public TMDB
+web pages when it is absent and fills missing API fields from those pages when
+it is present. TVDB also uses public pages; AniBridge, AniZip,
 Cinemeta and AniList do not require additional secrets in this pipeline. TMDB
 API requests are paced to at most four starts per second and a `429` response
 waits for `Retry-After` before retrying. The key is never written to the database

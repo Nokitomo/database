@@ -15,6 +15,10 @@ function credentialKind(value) {
   return 'other';
 }
 
+function authenticationMethod(value) {
+  return credentialKind(value) === 'bearer-token' ? 'bearer header' : 'api_key query';
+}
+
 function reportOnce(key, message, log = console.error) {
   if (reported.has(key)) return;
   reported.add(key);
@@ -46,7 +50,7 @@ function createTmdbGet(get, {fallback = curlTmdbHtml, log = console.error} = {})
     try {
       const response = await get(url, options);
       if (host === 'api.themoviedb.org') {
-        reportOnce('api-success', `[tmdb-api] HTTP ${response.status}; credential=${credentialKind(process.env.TMDB_API_KEY)}; authentication=api_key query`, log);
+        reportOnce('api-success', `[tmdb-api] HTTP ${response.status}; credential=${credentialKind(process.env.TMDB_API_KEY)}; authentication=${authenticationMethod(process.env.TMDB_API_KEY)}`, log);
       }
       return response;
     } catch (error) {
@@ -55,7 +59,7 @@ function createTmdbGet(get, {fallback = curlTmdbHtml, log = console.error} = {})
         const tmdbCode = Number(error?.response?.data?.status_code) || 0;
         const code = /^[A-Z_0-9]+$/.test(String(error?.code || '')) ? error.code : 'unknown';
         reportOnce(`api-${status}-${tmdbCode}-${code}`,
-          `[tmdb-api] HTTP ${status || 'none'}; tmdb_code=${tmdbCode || 'none'}; network_code=${code}; credential=${credentialKind(process.env.TMDB_API_KEY)}; authentication=api_key query`, log);
+          `[tmdb-api] HTTP ${status || 'none'}; tmdb_code=${tmdbCode || 'none'}; network_code=${code}; credential=${credentialKind(process.env.TMDB_API_KEY)}; authentication=${authenticationMethod(process.env.TMDB_API_KEY)}`, log);
       }
       if (host !== 'www.themoviedb.org' || Number(error?.response?.status) !== 403) throw error;
       try {
