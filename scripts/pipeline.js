@@ -8,6 +8,8 @@ const {archiveItems, discover, fetchAnime} = require('./source');
 const {createContext, enrichAnime, mapAnime, requireProvider} = require('./vega');
 const {buildQualityReport} = require('./quality');
 const {withRecordDeadline} = require('./record-deadline');
+const {mappingFingerprint, matchesMapping, migrateFinalMapping, finalIsCurrent,
+  publishable, consumerContent, ENRICHMENT_SCHEMA_VERSION} = require('./incremental');
 
 function stageIndex(stage) { return path.join(DATA, stage, 'index.json'); }
 function finalProgressFile(id) { return path.join(DATA, 'final', 'progress', `${id}.json`); }
@@ -21,7 +23,7 @@ function matchingFinalProgress(progress, rawFingerprint, mappingFingerprint, rev
     Array.isArray(progress.episodes);
 }
 function mappingDue(raw, mapped, revision, sourceHash, full = false, fullSince = null) {
-  return (full && (!fullSince || Date.parse(mapped?.mappedAt || 0) < fullSince)) || !mapped ||
+  return (full && (!fullSince || Date.parse(mapped?.checkedAt || mapped?.mappedAt || 0) < fullSince)) || !mapped ||
     mapped.rawFingerprint !== raw.fingerprint || mapped.providerRef !== revision ||
     mapped.mappingSourceHash !== sourceHash;
 }
@@ -45,6 +47,8 @@ function due(raw, full, fullSince = null, expectedPath = null) {
 }
 function enrichmentDue(final, now = Date.now()) {
   if (!final) return true;
+  if (Object.values(final.metadataTasks || {}).some(task =>
+    Number.isFinite(task.nextCheckAt) && now >= task.nextCheckAt)) return true;
   const age = now - Date.parse(final.updatedAt || 0);
   if (!Number.isFinite(age)) return true;
   if (final.sourceStatus?.tmdbWeb?.transientFailures > 0) {
@@ -202,10 +206,17 @@ async function runMapped(options, providerRoot) {
     console.log(`mapped ${id}: starting`);
     try {
       const raw = readJson(file('raw', id));
+      const previous = readJson(file('mapped', id));
       const mapped = await withRecordDeadline(`mapped ${id}`,
         signal => mapAnime(providerRoot, source.baseUrl, raw, signal));
-      writeJson(file('mapped', id), {...mapped, rawFingerprint: raw.fingerprint,
-        providerRef: revision, mappingSourceHash: sourceHash, mappedAt: iso()});
+      const unchanged = previous && mappingFingerprint(previous) === mappingFingerprint(mapped);
+      const next = {...mapped, rawFingerprint: raw.fingerprint, providerRef: revision,
+        mappingSourceHash: sourceHash, mappedAt: unchanged ? previous.mappedAt : iso(), checkedAt: iso()};
+      const final = readJson(file('final', id));
+      const migrated = migrateFinalMapping(final, previous, next);
+      if (migrated !== final) writeJson(file('final', id), migrated);
+      writeJson(file('mapped', id), next);
+      console.log(`mapped ${id}: ${unchanged ? 'content unchanged; final retained' : 'content changed; enrichment dependencies will be compared'}`);
       delete index.errors[id];
     } catch (error) { index.errors[id] = {at: iso(), message: error.message}; console.error(`mapped ${id}: ${error.message}`); }
     if ((position + 1) % 20 === 0) {writeJson(stageIndex('mapped'), index); console.log(`mapped: ${position + 1}/${selected.length}`);}
@@ -245,7 +256,8 @@ async function runFinal(options, providerRoot) {
     if (!errorDue(manifest.errors[id])) return false;
     return (options.full && (!options.fullSince || Date.parse(final?.updatedAt || 0) < options.fullSince)) ||
       !final || final.providerRef !== revision ||
-      final.rawFingerprint !== raw.fingerprint || final.mappingFingerprint !== hash(mapped) ||
+      final.enrichmentSchemaVersion !== ENRICHMENT_SCHEMA_VERSION ||
+      final.rawFingerprint !== raw.fingerprint || !matchesMapping(final, mapped) ||
       final.path !== raw.path ||
       enrichmentDue(final);
   });
@@ -260,22 +272,25 @@ async function runFinal(options, providerRoot) {
     try {
       const raw = readJson(file('raw', id));
       const mapped = readJson(file('mapped', id));
-      const mappingFingerprint = hash(mapped);
+      const fingerprint = mappingFingerprint(mapped);
       const savedProgress = readJson(finalProgressFile(id));
-      const progress = matchingFinalProgress(savedProgress, raw.fingerprint, mappingFingerprint, revision, raw.path)
+      const progress = matchingFinalProgress(savedProgress, raw.fingerprint, fingerprint, revision, raw.path)
         ? savedProgress : null;
       const previousFinal = readJson(file('final', id));
+      const checkpoint = value => writeJson(finalProgressFile(id), {...value, path: raw.path,
+        rawFingerprint: raw.fingerprint, mappingFingerprint: fingerprint,
+        mappingFingerprintVersion: 2, providerRef: revision});
       const result = await withRecordDeadline(`final ${id}`,
         signal => enrichAnime(providerRoot, source.baseUrl, raw, mapped,
-          {progress, maxGroups: 2, previousSourceStatus: previousFinal?.sourceStatus, signal}));
+          {progress, previousFinal, checkpoint, maxGroups: 2, previousSourceStatus: previousFinal?.sourceStatus, signal}));
       if (result.partial) {
         writeJson(finalProgressFile(id), {...result.progress, path: raw.path, rawFingerprint: raw.fingerprint,
-          mappingFingerprint, providerRef: revision});
+          mappingFingerprint: fingerprint, mappingFingerprintVersion: 2, providerRef: revision});
         const total = result.progress.info.linkList.filter(group => group.episodesLink).length;
         console.log(`final ${id}: episode groups ${result.progress.nextGroup}/${total} saved`);
       } else {
         writeJson(file('final', id), {...result, rawFingerprint: raw.fingerprint,
-          mappingFingerprint, providerRef: revision});
+          mappingFingerprint: fingerprint, mappingFingerprintVersion: 2, providerRef: revision});
         if (result.sourceStatus?.tmdbWeb?.transientFailures) {
           console.log(`final ${id}: TMDB web had ${result.sourceStatus.tmdbWeb.transientFailures} temporary failures; retry scheduled`);
         }
@@ -293,14 +308,17 @@ async function runFinal(options, providerRoot) {
 
 function rebuildFinalArtifacts(source, mappingIndex, manifest, revision, root = DATA) {
   const recordFile = (stage, id) => path.join(root, stage, 'items', `${id}.json`);
+  const pendingRefreshIds = [];
   const records = source.expectedIds.map(id => {
     const raw = readJson(recordFile('raw', id));
     const mapped = readJson(recordFile('mapped', id));
     const final = readJson(recordFile('final', id));
-    return raw && mapped?.providerRef === revision && mapped?.mappingSourceHash === mappingIndex.sourceHash &&
-      final?.providerRef === revision &&
-      final?.rawFingerprint === raw.fingerprint && final?.mappingFingerprint === hash(mapped) &&
-      final?.path === raw.path ? final : null;
+    if (!publishable(final, id)) return null;
+    if (!finalIsCurrent(final, raw, mapped, revision) || mapped.mappingSourceHash !== mappingIndex.sourceHash ||
+      final.enrichmentSchemaVersion !== ENRICHMENT_SCHEMA_VERSION)
+      pendingRefreshIds.push(id);
+    // Keep the previous coherent record visible until its replacement is ready.
+    return final;
   }).filter(Boolean);
   const catalog = records.map(catalogEntry);
   writeJson(path.join(root, 'final', 'catalog.json'), {schemaVersion: 1, records: catalog});
@@ -308,7 +326,7 @@ function rebuildFinalArtifacts(source, mappingIndex, manifest, revision, root = 
   for (const record of records) {
     const key = String(record.id % 100).padStart(2, '0');
     const bucket = shards.get(key) || [];
-    bucket.push({id: record.id, path: record.path, info: record.info, episodes: record.episodes});
+    bucket.push(consumerContent(record));
     shards.set(key, bucket);
   }
   const shardHashes = {};
@@ -319,13 +337,16 @@ function rebuildFinalArtifacts(source, mappingIndex, manifest, revision, root = 
     shardHashes[key] = hash(payload);
   }
   manifest.generatedAt = iso();
+  manifest.enrichmentSchemaVersion = ENRICHMENT_SCHEMA_VERSION;
   manifest.baseUrlSnapshot = source.baseUrl;
   manifest.expectedCount = source.expectedIds.length;
   manifest.availableCount = records.length;
-  manifest.complete = source.complete && mappingIndex.complete && records.length === source.expectedIds.length && Object.keys(manifest.errors).length === 0;
+  manifest.pendingRefreshIds = pendingRefreshIds;
+  manifest.complete = source.complete && mappingIndex.complete && pendingRefreshIds.length === 0 && records.length === source.expectedIds.length && Object.keys(manifest.errors).length === 0;
   manifest.providerRef = revision;
   manifest.catalogSha256 = hash(catalog);
   manifest.itemHashes = Object.fromEntries(records.map(record => [record.id, hash(record)]));
+  manifest.contentHashes = Object.fromEntries(records.map(record => [record.id, hash(consumerContent(record))]));
   manifest.shardHashes = shardHashes;
   const quality = buildQualityReport(records, source, mappingIndex, manifest.errors, manifest.generatedAt);
   writeJson(path.join(root, 'final', 'quality.json'), quality);

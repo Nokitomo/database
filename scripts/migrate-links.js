@@ -6,6 +6,7 @@ const {DATA, hash, readJson, writeJson} = require('./lib');
 const {normalizeRelatedLinks} = require('./provider-links');
 const {buildArtworkFallbacks} = require('./artwork-fallbacks');
 const {rebuildFinalArtifacts} = require('./pipeline');
+const {matchesMapping} = require('./incremental');
 
 function migrateLinks({apply = false, dataRoot = DATA, providerRefPath = path.join(DATA, '..', 'vega-providers.ref')} = {}) {
   const recordFile = (stage, id) => path.join(dataRoot, stage, 'items', `${id}.json`);
@@ -24,7 +25,7 @@ function migrateLinks({apply = false, dataRoot = DATA, providerRefPath = path.jo
     if (!raw || !mapped || !final || mapped.providerRef !== revision ||
       mapped.mappingSourceHash !== mappingIndex.sourceHash || mapped.rawFingerprint !== raw.fingerprint ||
       final.providerRef !== revision || final.rawFingerprint !== raw.fingerprint ||
-      final.mappingFingerprint !== hash(mapped) || final.path !== raw.path) continue;
+      !matchesMapping(final, mapped) || final.path !== raw.path) continue;
     const normalized = normalizeRelatedLinks(final.info);
     const info = {...normalized, extra: {...normalized.extra,
       artworkFallbacks: buildArtworkFallbacks(normalized, final.artworkInventory)}};

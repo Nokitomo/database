@@ -5,6 +5,7 @@ const path = require('node:path');
 const {DATA, file, hash, readJson} = require('./lib');
 const {normalizeRelatedLinks} = require('./provider-links');
 const {buildArtworkFallbacks} = require('./artwork-fallbacks');
+const {finalIsCurrent, publishable, consumerContent} = require('./incremental');
 
 function verifyDatabase(stage = 'all') {
   if (!['raw', 'mapped', 'final', 'all'].includes(stage)) throw new Error(`Invalid stage: ${stage}`);
@@ -20,6 +21,7 @@ function verifyDatabase(stage = 'all') {
   if (rawIndex.archiveCount !== rawIndex.archiveReportedTotal)
     throw new Error('Archive total mismatch');
   const complete = [];
+  const pendingRefreshIds = [];
   let rawCount = 0;
   let mappedCount = 0;
   for (const id of ids) {
@@ -29,19 +31,22 @@ function verifyDatabase(stage = 'all') {
     if (raw.id !== id || raw.fingerprint !== hash({info: raw.info, embeddedAnime: raw.embeddedAnime, episodes: raw.episodes}))
       throw new Error(`Raw record ${id} invalid`);
     const mapped = readJson(file('mapped', id));
-    if (!mapped || mapped.rawFingerprint !== raw.fingerprint || mapped.providerRef !== providerRef ||
-      mapped.mappingSourceHash !== mappedIndex?.sourceHash) continue;
-    mappedCount++;
-    if (mapped.id !== id) throw new Error(`Mapped record ${id} invalid`);
+    const mappingCurrent = mapped && mapped.rawFingerprint === raw.fingerprint && mapped.providerRef === providerRef &&
+      mapped.mappingSourceHash === mappedIndex?.sourceHash;
+    if (mappingCurrent) mappedCount++;
+    if (mapped && mapped.id !== id) throw new Error(`Mapped record ${id} invalid`);
     const final = readJson(file('final', id));
-    if (!final || final.providerRef !== providerRef || final.rawFingerprint !== raw.fingerprint ||
-      final.mappingFingerprint !== hash(mapped) || final.path !== raw.path) continue;
+    const current = mappingCurrent && finalIsCurrent(final, raw, mapped, providerRef) &&
+      (!manifest?.enrichmentSchemaVersion || final.enrichmentSchemaVersion === manifest.enrichmentSchemaVersion);
+    // Legacy manifests excluded stale records; new manifests retain coherent snapshots.
+    if (manifest?.pendingRefreshIds ? !publishable(final, id) : !current) continue;
+    if (!current) pendingRefreshIds.push(id);
     if (final.id !== id || !final.info?.title || !Array.isArray(final.episodes))
       throw new Error(`Final record ${id} invalid`);
     if (new Set(final.episodes.map(episode => episode.link)).size !== final.episodes.length)
       throw new Error(`Duplicate episode IDs in ${id}`);
     const finalEpisodeIds = new Set(final.episodes.map(episode => String(episode.link)));
-    if (raw.episodes.some(episode => !finalEpisodeIds.has(String(episode.id))))
+    if ((current ? raw.episodes : final.sourceEpisodes || []).some(episode => !finalEpisodeIds.has(String(episode.id))))
       throw new Error(`Final record ${id} omits source episodes`);
     if (final.linkSchemaVersion === 2 &&
       JSON.stringify(final.info.related || []) !== JSON.stringify(normalizeRelatedLinks(final.info).related || []))
@@ -72,13 +77,17 @@ function verifyDatabase(stage = 'all') {
       throw new Error('Provider revision mismatch');
     if (manifest.availableCount !== complete.length || manifest.expectedCount !== ids.length)
       throw new Error('Manifest counts do not match current records');
-    if (manifest.complete && (complete.length !== ids.length || !rawIndex.complete || !mappedIndex.complete))
+    if (manifest.pendingRefreshIds && JSON.stringify(manifest.pendingRefreshIds) !== JSON.stringify(pendingRefreshIds))
+      throw new Error('Pending refresh IDs do not match current records');
+    if (manifest.complete && (pendingRefreshIds.length || complete.length !== ids.length || !rawIndex.complete || !mappedIndex.complete))
       throw new Error('Manifest incorrectly marked complete');
     const catalog = readJson(path.join(DATA, 'final', 'catalog.json'));
     if (!catalog || catalog.records.length !== complete.length || manifest.catalogSha256 !== hash(catalog.records))
       throw new Error('Catalog does not match manifest');
     for (const record of complete) {
       if (manifest.itemHashes?.[record.id] !== hash(record)) throw new Error(`Item hash mismatch: ${record.id}`);
+      if (manifest.contentHashes && manifest.contentHashes[record.id] !== hash(consumerContent(record)))
+        throw new Error(`Consumer content hash mismatch: ${record.id}`);
     }
     for (const [key, expected] of Object.entries(manifest.shardHashes || {})) {
       const shard = readJson(path.join(DATA, 'final', 'shards', `${key}.json`));

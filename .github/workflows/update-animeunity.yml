@@ -65,6 +65,7 @@ jobs:
           node .cache/vega-providers/tests/animeunity-tvdb.js
           node .cache/vega-providers/tests/animeunity-anizip.js
           node .cache/vega-providers/tests/animeunity-anibridge.js
+          node --test .cache/vega-providers/tests/animeunity-artwork-library.js
       - name: Update database with checkpoints
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}

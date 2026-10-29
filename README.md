@@ -123,3 +123,41 @@ The provider integration is a separate change in `vega-providers`: `getPosts`,
 `getMeta` and `getEpisodes` should read these records first. Ongoing and upcoming
 titles still need the provider's live inventory checks when opened, and new
 episodes still need its normal metadata enrichment. Playback stays live.
+
+## Incremental enrichment (schema 2)
+
+AniBridge checks compare each anime's effective IDs and episode mappings. Global
+index dates and check timestamps do not invalidate unchanged anime. Old coherent
+final records remain published while replacements are being prepared; the manifest
+lists them in `pendingRefreshIds` and remains incomplete until backfill finishes.
+
+`anime_database/enrichment-cache/` contains durable, credential-free results keyed
+by service, target, season and request parameters. Episodes are cached separately
+within a season. Successful complete data expires after 90 days, missing data after
+30 days, and transient failures after 30 minutes. These deadlines also make the
+final phase retry a missing service field when a different source already supplies
+the displayed value. Explicitly unsupported seasonal artwork does not generate
+repeated lookups. Checkpoints include this cache, so interrupted work can reuse it.
+
+Final records have `enrichmentSchemaVersion: 2`. Existing records are migrated by
+the normal final phase without forcing another raw archive scrape. Legacy episode
+records without field provenance require a one-time enrichment pass. Subsequent
+artwork-only updates reuse current episodes; mapping changes rebuild the affected
+associations while reusable service results remain cached.
+
+`artworkLibrary.tmdb` stores series images and season posters, with candidates and
+the first selected image for each requested language: Italian, English, original
+language and no-language (`xx`), excluding original-language-only logos. Duplicate
+languages are collapsed. Order within a language remains the provider's source
+order. Seasonal logos/backgrounds explicitly inherit the series images where TMDB
+does not expose a seasonal gallery. `artworkLibrary.tvdb` stores the chosen series
+images and actual season artwork, with explicit inherited references for gaps.
+
+`episodes[].metadataSources` records the TMDB and fetched TVDB field values and
+text languages. TVDB is requested for missing TMDB fields, preferring Italian then
+English independently for title and synopsis. All useful fields returned in that
+request are retained, even if some do not replace the TMDB selection.
+
+Manifest `contentHashes` ignore operational timestamps and the global AniBridge
+publication date. `itemHashes` still validate exact files. Shards include the image
+library and episode provenance as well as the displayed metadata.
