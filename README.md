@@ -35,8 +35,9 @@ are intentionally resolved live by Vega when playback starts.
 Node.js 20 or newer and a built checkout of `vega-providers` are required.
 The checkout must match `vega-providers.ref` for reproducible output. GitHub
 Actions updates this reference automatically from the provider repository's
-default branch. When it changes, mapped and final records are refreshed before
-the manifest can become complete again.
+default branch. Mapped records also store a hash of the AniBridge index. When
+the provider or AniBridge data changes, mapped and final records are refreshed
+before the manifest can become complete again.
 
 ```sh
 npm ci

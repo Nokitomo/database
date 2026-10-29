@@ -27,7 +27,8 @@ function verifyDatabase(stage = 'all') {
     if (raw.id !== id || raw.fingerprint !== hash({info: raw.info, embeddedAnime: raw.embeddedAnime, episodes: raw.episodes}))
       throw new Error(`Raw record ${id} invalid`);
     const mapped = readJson(file('mapped', id));
-    if (!mapped || mapped.rawFingerprint !== raw.fingerprint || mapped.providerRef !== providerRef) continue;
+    if (!mapped || mapped.rawFingerprint !== raw.fingerprint || mapped.providerRef !== providerRef ||
+      mapped.mappingSourceHash !== mappedIndex?.sourceHash) continue;
     mappedCount++;
     if (mapped.id !== id) throw new Error(`Mapped record ${id} invalid`);
     const final = readJson(file('final', id));

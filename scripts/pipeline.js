@@ -5,7 +5,7 @@ const path = require('node:path');
 const {execFileSync} = require('node:child_process');
 const {DATA, file, hash, iso, listIds, parseArgs, readJson, sleep, writeJson} = require('./lib');
 const {archiveItems, discover, fetchAnime} = require('./source');
-const {enrichAnime, mapAnime} = require('./vega');
+const {createContext, enrichAnime, mapAnime, requireProvider} = require('./vega');
 
 function stageIndex(stage) { return path.join(DATA, stage, 'index.json'); }
 function finalProgressFile(id) { return path.join(DATA, 'final', 'progress', `${id}.json`); }
@@ -16,6 +16,18 @@ function matchingFinalProgress(progress, rawFingerprint, mappingFingerprint, rev
     progress?.info && Array.isArray(progress.info.linkList) &&
     progress.nextGroup <= progress.info.linkList.filter(group => group.episodesLink).length &&
     Array.isArray(progress.episodes);
+}
+function mappingDue(raw, mapped, revision, sourceHash, full = false, fullSince = null) {
+  return (full && (!fullSince || Date.parse(mapped?.mappedAt || 0) < fullSince)) || !mapped ||
+    mapped.rawFingerprint !== raw.fingerprint || mapped.providerRef !== revision ||
+    mapped.mappingSourceHash !== sourceHash;
+}
+
+async function aniBridgeSourceHash(providerRoot, baseUrl) {
+  const {getAniBridgeIndex} = requireProvider(providerRoot, 'mappings/anibridge.js');
+  const index = await getAniBridgeIndex(createContext(providerRoot, baseUrl));
+  if (!index?.schemaVersion || !index.records?.size) throw new Error('AniBridge index unavailable');
+  return hash([...index.records.entries()].sort(([left], [right]) => left.localeCompare(right)));
 }
 function isDynamic(raw) {
   return Number(raw.info?.episodes_count) === 0 && raw.episodes?.length === 0 ||
@@ -159,6 +171,7 @@ async function runMapped(options, providerRoot) {
   if (!source) throw new Error('raw/index.json missing');
   const index = readJson(stageIndex('mapped'), {schemaVersion: 1, errors: {}});
   const revision = providerRef();
+  const sourceHash = await aniBridgeSourceHash(providerRoot, source.baseUrl);
   const expected = new Set(source.expectedIds);
   index.errors = Object.fromEntries(Object.entries(index.errors || {}).filter(([id]) => expected.has(Number(id))));
   const pending = source.expectedIds.filter(id => {
@@ -167,8 +180,7 @@ async function runMapped(options, providerRoot) {
     if (!raw) return false;
     const mapped = readJson(file('mapped', id));
     if (!errorDue(index.errors[id])) return false;
-    return (options.full && (!options.fullSince || Date.parse(mapped?.mappedAt || 0) < options.fullSince)) || !mapped ||
-      mapped.rawFingerprint !== raw.fingerprint || mapped.providerRef !== revision;
+    return mappingDue(raw, mapped, revision, sourceHash, options.full, options.fullSince);
   });
   pending.sort((a, b) => b - a);
   const selected = limited(pending, options.limit);
@@ -179,7 +191,7 @@ async function runMapped(options, providerRoot) {
       const raw = readJson(file('raw', id));
       const mapped = await mapAnime(providerRoot, source.baseUrl, raw);
       writeJson(file('mapped', id), {...mapped, rawFingerprint: raw.fingerprint,
-        providerRef: revision, mappedAt: iso()});
+        providerRef: revision, mappingSourceHash: sourceHash, mappedAt: iso()});
       delete index.errors[id];
     } catch (error) { index.errors[id] = {at: iso(), message: error.message}; console.error(`mapped ${id}: ${error.message}`); }
     if ((position + 1) % 20 === 0) {writeJson(stageIndex('mapped'), index); console.log(`mapped: ${position + 1}/${selected.length}`);}
@@ -189,9 +201,11 @@ async function runMapped(options, providerRoot) {
   index.availableCount = source.expectedIds.filter(id => {
     const raw = readJson(file('raw', id));
     const mapped = readJson(file('mapped', id));
-    return raw && mapped?.rawFingerprint === raw.fingerprint && mapped?.providerRef === revision;
+    return raw && mapped?.rawFingerprint === raw.fingerprint && mapped?.providerRef === revision &&
+      mapped?.mappingSourceHash === sourceHash;
   }).length;
   index.providerRef = revision;
+  index.sourceHash = sourceHash;
   index.complete = source.complete && index.availableCount === index.expectedCount && Object.keys(index.errors).length === 0;
   index.finishedAt = iso();
   writeJson(stageIndex('mapped'), index);
@@ -211,7 +225,8 @@ async function runFinal(options, providerRoot) {
     if (options.ids && !options.ids.has(id)) return false;
     const raw = readJson(file('raw', id));
     const mapped = readJson(file('mapped', id));
-    if (!raw || !mapped || mapped.rawFingerprint !== raw.fingerprint || mapped.providerRef !== revision) return false;
+    if (!raw || !mapped || mapped.rawFingerprint !== raw.fingerprint || mapped.providerRef !== revision ||
+      mapped.mappingSourceHash !== mappingIndex.sourceHash) return false;
     const final = readJson(file('final', id));
     if (!errorDue(manifest.errors[id])) return false;
     return (options.full && (!options.fullSince || Date.parse(final?.updatedAt || 0) < options.fullSince)) ||
@@ -259,7 +274,8 @@ async function runFinal(options, providerRoot) {
     const raw = readJson(file('raw', id));
     const mapped = readJson(file('mapped', id));
     const final = readJson(file('final', id));
-    return raw && mapped?.providerRef === revision && final?.providerRef === revision &&
+    return raw && mapped?.providerRef === revision && mapped?.mappingSourceHash === mappingIndex.sourceHash &&
+      final?.providerRef === revision &&
       final?.rawFingerprint === raw.fingerprint && final?.mappingFingerprint === hash(mapped) ? final : null;
   }).filter(Boolean);
   const catalog = records.map(catalogEntry);
@@ -317,5 +333,5 @@ async function main() {
 }
 
 if (require.main === module) main().catch(error => {console.error(error); process.exitCode = 1;});
-module.exports = {catalogEntry, due, enrichmentDue, errorDue, matchingFinalProgress,
+module.exports = {catalogEntry, due, enrichmentDue, errorDue, mappingDue, matchingFinalProgress,
   runRaw, runMapped, runFinal, shouldRefreshArchive};

@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {sitemapItems, episodeBounds, fetchAnime, parseEmbedded} = require('../scripts/source');
-const {catalogEntry, due, enrichmentDue, errorDue, matchingFinalProgress,
+const {catalogEntry, due, enrichmentDue, errorDue, mappingDue, matchingFinalProgress,
   shouldRefreshArchive} = require('../scripts/pipeline');
 const {boundedRequestOptions, createContext, enrichAnime, mergeSourceEpisodes} = require('../scripts/vega');
 const {parseArgs} = require('../scripts/lib');
@@ -87,6 +87,16 @@ test('episode progress is invalidated when source, mapping, or provider changes'
   assert.equal(matchingFinalProgress(progress, 'a', 'changed', 'c'), false);
   assert.equal(matchingFinalProgress(progress, 'a', 'b', 'changed'), false);
   assert.equal(matchingFinalProgress({...progress, nextGroup: 2}, 'a', 'b', 'c'), false);
+});
+
+test('AniBridge source changes require remapping even with unchanged provider code', () => {
+  const raw = {fingerprint: 'raw-a'};
+  const mapped = {rawFingerprint: 'raw-a', providerRef: 'provider-a',
+    mappingSourceHash: 'anibridge-a', mappedAt: new Date().toISOString()};
+  assert.equal(mappingDue(raw, mapped, 'provider-a', 'anibridge-a'), false);
+  assert.equal(mappingDue(raw, mapped, 'provider-a', 'anibridge-b'), true);
+  assert.equal(mappingDue(raw, mapped, 'provider-b', 'anibridge-a'), true);
+  assert.equal(mappingDue({...raw, fingerprint: 'raw-b'}, mapped, 'provider-a', 'anibridge-a'), true);
 });
 
 test('embedded AnimeUnity metadata and absolute episode ranges', () => {
