@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tvdb","kind":"episodes","input":{"tvdbShowId":388317,"seasonNumber":0},"checkedAt":1793313639231,"status":"ok","value":[{"episodeNumber":8,"title":"Chapter 1 - Intro - Nakasu Kasumi Version","titleLanguage":"eng"}],"fields":{},"episodes":{"8":{"checkedAt":1793313639231,"status":"missing"}}}
