@@ -5,7 +5,8 @@ const assert = require('node:assert/strict');
 const {sitemapItems, episodeBounds, fetchAnime, parseEmbedded} = require('../scripts/source');
 const {catalogEntry, due, enrichmentDue, errorDue, mappingDue, matchingFinalProgress,
   shouldRefreshArchive} = require('../scripts/pipeline');
-const {boundedRequestOptions, createContext, enrichAnime, mergeSourceEpisodes} = require('../scripts/vega');
+const {boundedRequestOptions, createContext, enrichAnime, mergeSourceEpisodes,
+  uniqueEpisodeFallback} = require('../scripts/vega');
 const {parseArgs} = require('../scripts/lib');
 
 test('sitemap keeps stable IDs and skips non-anime URLs', () => {
@@ -97,6 +98,13 @@ test('AniBridge source changes require remapping even with unchanged provider co
   assert.equal(mappingDue(raw, mapped, 'provider-a', 'anibridge-b'), true);
   assert.equal(mappingDue(raw, mapped, 'provider-b', 'anibridge-a'), true);
   assert.equal(mappingDue({...raw, fingerprint: 'raw-b'}, mapped, 'provider-a', 'anibridge-a'), true);
+});
+
+test('TVDB metadata is only applied for a unique mapped episode', () => {
+  const episodes = [{episodeNumber: 79, title: 'First'}, {episodeNumber: 500, title: 'Conflict'}];
+  assert.equal(uniqueEpisodeFallback(episodes, [79]).title, 'First');
+  assert.equal(uniqueEpisodeFallback(episodes, [79, 500]), null);
+  assert.equal(uniqueEpisodeFallback(episodes, [900]), null);
 });
 
 test('embedded AnimeUnity metadata and absolute episode ranges', () => {

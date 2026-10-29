@@ -202,6 +202,11 @@ function mergeSourceEpisodes(byId, sourceEpisodes) {
   }
 }
 
+function uniqueEpisodeFallback(fallbacks, episodeNumbers) {
+  const matches = fallbacks.filter(value => episodeNumbers.includes(value.episodeNumber));
+  return matches.length === 1 ? matches[0] : null;
+}
+
 async function fillTvdbEpisodeGaps(providerRoot, context, byId, raw) {
   const {resolveTvdbEpisodeFallbacks} = requireProvider(providerRoot, 'tvdb/index.js');
   const groups = new Map();
@@ -220,9 +225,8 @@ async function fillTvdbEpisodeGaps(providerRoot, context, byId, raw) {
       const fallbacks = await resolveTvdbEpisodeFallbacks({providerContext: context,
         tvdbShowId: group.id, seasonNumber: group.season, episodeNumbers: [...group.numbers],
         sourceRevision: String(raw.info.episodes_count || '')});
-      const byNumber = new Map(fallbacks.map(value => [value.episodeNumber, value]));
       for (const {episode, mapping} of group.episodes) {
-        const fallback = mapping.episodeNumbers.map(number => byNumber.get(number)).find(Boolean);
+        const fallback = uniqueEpisodeFallback(fallbacks, mapping.episodeNumbers);
         if (!fallback) continue;
         if ((!episode.title || /^Episodes? \d/i.test(episode.title)) && fallback.title) {
           episode.title = fallback.title;
@@ -291,4 +295,5 @@ async function collectArtwork(providerRoot, context, raw, mapped, info) {
   };
 }
 
-module.exports = {boundedRequestOptions, collectArtwork, createContext, enrichAnime, mapAnime, mergeSourceEpisodes, requireProvider};
+module.exports = {boundedRequestOptions, collectArtwork, createContext, enrichAnime, mapAnime,
+  mergeSourceEpisodes, requireProvider, uniqueEpisodeFallback};
