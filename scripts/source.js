@@ -43,11 +43,11 @@ function sitemapItems(xml, baseUrl) {
   return items;
 }
 
-async function discover() {
+async function discover(signal) {
   let pasteError = null;
   let pasteUrl = null;
   try {
-    const text = String((await request('get', PASTEBIN_URL)).data);
+    const text = String((await request('get', PASTEBIN_URL, null, {signal})).data);
     pasteUrl = [...text.matchAll(/https?:\/\/[^\s"'<>]+/gi)].map(value => value[0])
       .find(value => { try { return /(^|\.)animeunity\./i.test(new URL(value).hostname); } catch { return false; } });
   } catch (error) { pasteError = error.message; }
@@ -55,14 +55,15 @@ async function discover() {
   const failures = [];
   for (const candidate of candidates) {
     try {
+      signal?.throwIfAborted();
       const origin = new URL(candidate).origin;
-      const response = await request('get', `${origin}/sitemap.xml`);
+      const response = await request('get', `${origin}/sitemap.xml`, null, {signal});
       const final = new URL(response.request?.res?.responseUrl || `${origin}/sitemap.xml`);
       if (!/^https:$/.test(final.protocol) || !/(^|\.)animeunity\.[a-z]+$/i.test(final.hostname)) throw new Error('Invalid final host');
       const items = sitemapItems(response.data, final.origin);
       if (items.size < 1000) throw new Error(`Sitemap unexpectedly small: ${items.size}`);
       const probeId = items.keys().next().value;
-      const probe = await request('get', `${final.origin}/info_api/${probeId}/`);
+      const probe = await request('get', `${final.origin}/info_api/${probeId}/`, null, {signal});
       if (Number(probe.data?.id) !== probeId) throw new Error('Info API returned unexpected content');
       return {baseUrl: final.origin, source: candidate === pasteUrl ? 'pastebin' : 'fallback', pasteUrl, pasteError, sitemap: items};
     } catch (error) { failures.push(`${candidate}: ${error.message}`); }

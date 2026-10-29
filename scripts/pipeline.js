@@ -8,6 +8,7 @@ const {archiveItems, discover, fetchAnime} = require('./source');
 const {createContext, enrichAnime, mapAnime, requireProvider} = require('./vega');
 const {buildQualityReport} = require('./quality');
 const {withRecordDeadline} = require('./record-deadline');
+const {maintainImages, applyImageReplacements} = require('./image-health');
 const {mappingFingerprint, matchesMapping, migrateFinalMapping, finalIsCurrent,
   publishable, consumerContent, ENRICHMENT_SCHEMA_VERSION} = require('./incremental');
 
@@ -242,6 +243,7 @@ async function runFinal(options, providerRoot) {
   const source = readJson(stageIndex('raw'));
   const mappingIndex = readJson(stageIndex('mapped'));
   if (!source || !mappingIndex) throw new Error('Raw and mapped stages required');
+  const imageHealth = await maintainImages();
   const manifest = readJson(path.join(DATA, 'final', 'manifest.json'), {schemaVersion: 1, errors: {}});
   const revision = providerRef();
   const expected = new Set(source.expectedIds);
@@ -303,17 +305,21 @@ async function runFinal(options, providerRoot) {
   }
   const published = rebuildFinalArtifacts(source, mappingIndex, manifest, revision);
   published.selectedCount = selected.length;
+  published.imageChecks = imageHealth.processed || imageHealth.checked;
   return published;
 }
 
 function rebuildFinalArtifacts(source, mappingIndex, manifest, revision, root = DATA) {
+  const imageReplacements = readJson(path.join(root, 'image-health.json'))?.replacements || {};
   const recordFile = (stage, id) => path.join(root, stage, 'items', `${id}.json`);
   const pendingRefreshIds = [];
   const records = source.expectedIds.map(id => {
     const raw = readJson(recordFile('raw', id));
     const mapped = readJson(recordFile('mapped', id));
-    const final = readJson(recordFile('final', id));
-    if (!publishable(final, id)) return null;
+    const saved = readJson(recordFile('final', id));
+    if (!publishable(saved, id)) return null;
+    const final = applyImageReplacements(saved, imageReplacements);
+    if (final !== saved) writeJson(recordFile('final', id), final);
     if (!finalIsCurrent(final, raw, mapped, revision) || mapped.mappingSourceHash !== mappingIndex.sourceHash ||
       final.enrichmentSchemaVersion !== ENRICHMENT_SCHEMA_VERSION)
       pendingRefreshIds.push(id);
@@ -362,7 +368,10 @@ async function main() {
   const selected = {};
   if (options.stage === 'raw' || options.stage === 'all') { result = await runRaw(options); selected.raw = result.selectedCount; }
   if (options.stage === 'mapped' || options.stage === 'all') { result = await runMapped(options, providerRoot); selected.mapped = result.selectedCount; }
-  if (options.stage === 'final' || options.stage === 'all') { result = await runFinal(options, providerRoot); selected.final = result.selectedCount; }
+  if (options.stage === 'final' || options.stage === 'all') {
+    result = await runFinal(options, providerRoot); selected.final = result.selectedCount;
+    if (result.imageChecks) selected.images = result.imageChecks;
+  }
   if (options.stage === 'raw' && selected.raw > 0) {
     for (const name of ['mapped/index.json', 'final/manifest.json']) {
       const target = path.join(DATA, name);

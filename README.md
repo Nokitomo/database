@@ -168,3 +168,24 @@ request are retained, even if some do not replace the TMDB selection.
 Manifest `contentHashes` ignore operational timestamps and the global AniBridge
 publication date. `itemHashes` still validate exact files. Shards include the image
 library and episode provenance as well as the displayed metadata.
+
+## AnimeUnity image health
+
+The final phase checks one AnimeUnity CDN image from each of up to five rotating
+records once per day. A failed check triggers a fresh provider-domain discovery
+and an image-only metadata lookup. Episode thumbnails use the matching source
+episode ID. A new URL must return an image content type before it is stored;
+HTML error pages, transient failures and missing fields never delete the old URL.
+
+A confirmed CDN change queues other affected records. Each batch handles up to
+three queued records and three image URLs per record, with a two-minute total
+budget and six-hour retries for failures. Every replacement is individually
+verified; the website's domain is never substituted blindly into image URLs.
+Requests use WARP and bounded timeouts. HEAD checks fall back to a small ranged
+GET when needed. This maintenance runs during ordinary final/all batches.
+
+`anime_database/image-health.json` persists the sample cursor, repair queue and
+verified URL replacements with their verification dates. Final artifacts apply
+these replacements when rebuilt, including after later metadata regeneration.
+Raw source snapshots and metadata refresh timestamps remain unchanged. External
+TMDB/TVDB/AniList images are outside this AnimeUnity-specific health check.
