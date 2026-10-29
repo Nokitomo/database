@@ -2,11 +2,11 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const {DATA, hash, readJson, writeJson} = require('./lib');
-const {normalizeRelatedLinks} = require('./provider-links');
+const {DATA, readJson, writeJson} = require('./lib');
+const {animeUnityPath, normalizeRelatedLinks} = require('./provider-links');
 const {buildArtworkFallbacks} = require('./artwork-fallbacks');
 const {rebuildFinalArtifacts} = require('./pipeline');
-const {matchesMapping} = require('./incremental');
+const {publishable} = require('./incremental');
 
 function migrateLinks({apply = false, dataRoot = DATA, providerRefPath = path.join(DATA, '..', 'vega-providers.ref')} = {}) {
   const recordFile = (stage, id) => path.join(dataRoot, stage, 'items', `${id}.json`);
@@ -18,24 +18,25 @@ function migrateLinks({apply = false, dataRoot = DATA, providerRefPath = path.jo
   if (mappingIndex.providerRef !== revision || manifest.providerRef !== revision)
     throw new Error('Provider revision mismatch; refresh the pipeline first');
   const changes = [];
-  for (const id of source.expectedIds) {
-    const raw = readJson(recordFile('raw', id));
-    const mapped = readJson(recordFile('mapped', id));
+  const itemDirectory = path.join(dataRoot, 'final', 'items');
+  const ids = fs.existsSync(itemDirectory) ? fs.readdirSync(itemDirectory)
+    .filter(name => /^\d+\.json$/.test(name)).map(name => Number(name.slice(0, -5))) : [];
+  for (const id of ids) {
     const final = readJson(recordFile('final', id));
-    if (!raw || !mapped || !final || mapped.providerRef !== revision ||
-      mapped.mappingSourceHash !== mappingIndex.sourceHash || mapped.rawFingerprint !== raw.fingerprint ||
-      final.providerRef !== revision || final.rawFingerprint !== raw.fingerprint ||
-      !matchesMapping(final, mapped) || final.path !== raw.path) continue;
+    if (!publishable(final, id)) throw new Error(`Invalid final record ${id}; migration stopped`);
+    // Link normalization does not depend on the freshness of source or mapping data.
+    // Preserve fingerprints and refresh timestamps: stale records must remain due.
+    const normalizedPath = animeUnityPath(final.path) || final.path;
     const normalized = normalizeRelatedLinks(final.info);
     const info = {...normalized, extra: {...normalized.extra,
       artworkFallbacks: buildArtworkFallbacks(normalized, final.artworkInventory)}};
-    if (final.linkSchemaVersion === 2 && JSON.stringify(info.related) === JSON.stringify(final.info.related) &&
+    if (final.linkSchemaVersion === 2 && normalizedPath === final.path && JSON.stringify(info.related) === JSON.stringify(final.info.related) &&
       JSON.stringify(info.extra.artworkFallbacks) === JSON.stringify(final.info.extra?.artworkFallbacks)) continue;
     changes.push(id);
-    if (apply) writeJson(recordFile('final', id), {...final, linkSchemaVersion: 2, info});
+    if (apply) writeJson(recordFile('final', id), {...final, path: normalizedPath, linkSchemaVersion: 2, info});
   }
   if (apply && changes.length) rebuildFinalArtifacts(source, mappingIndex, manifest, revision, dataRoot);
-  return {mode: apply ? 'applied' : 'dry-run', changed: changes.length,
+  return {mode: apply ? 'applied' : 'dry-run', scanned: ids.length, changed: changes.length,
     examples: changes.slice(0, 10)};
 }
 

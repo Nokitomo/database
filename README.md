@@ -119,6 +119,13 @@ after the current full refresh has stopped or completed, so it processes the
 latest published checkpoint. Its initial dry run only reports how many final
 records need conversion.
 
+The migration scans every saved final item, including stale records waiting for
+metadata refresh and records outside the current catalog. It preserves provider
+revisions, mapping/raw fingerprints, episode data and refresh timestamps. Migrating
+a link never marks old metadata as current. Image URLs remain unchanged. The
+workflow checks that a second migration would make zero further changes before
+publishing the corrected files, catalog, shards and hashes.
+
 The provider integration is a separate change in `vega-providers`: `getPosts`,
 `getMeta` and `getEpisodes` should read these records first. Ongoing and upcoming
 titles still need the provider's live inventory checks when opened, and new

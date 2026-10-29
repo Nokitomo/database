@@ -50,3 +50,48 @@ test('link migration is dry by default, then rebuilds final hashes without scrap
     fs.rmSync(root, {recursive: true, force: true});
   }
 });
+
+test('migration includes stale and archived final records without changing their refresh state', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'anime-stale-link-migration-'));
+  const dataRoot = path.join(root, 'anime_database');
+  const providerRefPath = path.join(root, 'vega-providers.ref');
+  try {
+    fs.writeFileSync(providerRefPath, 'current-provider\n');
+    writeJson(path.join(dataRoot, 'raw/index.json'), {expectedIds: [7], complete: true});
+    writeJson(path.join(dataRoot, 'mapped/index.json'), {providerRef: 'current-provider', sourceHash: 'new', complete: true});
+    writeJson(path.join(dataRoot, 'final/manifest.json'), {providerRef: 'current-provider', errors: {}});
+    writeJson(path.join(dataRoot, 'raw/items/7.json'), {id: 7, path: '/anime/7-new-slug', fingerprint: 'new'});
+    writeJson(path.join(dataRoot, 'mapped/items/7.json'), {id: 7, providerRef: 'current-provider',
+      rawFingerprint: 'new', mappingSourceHash: 'new'});
+    const old = {id: 7, path: 'https://www.animeunity.co/anime/7-old-slug',
+      providerRef: 'old-provider', rawFingerprint: 'old', mappingFingerprint: 'old', updatedAt: '2020-01-01',
+      info: {title: 'Old', poster: 'https://img.animeunity.co/anime/7.jpg', related: [
+        {link: 'https://www.animeunity.co/anime/8-related', variants: [
+          {link: 'https://www.animeunity.co/anime/9-dubbed'}]}]},
+      episodes: [{link: '123', title: 'Episode', thumbnail: 'https://image.tmdb.org/t/p/original/episode.jpg'}],
+      sourceEpisodes: []};
+    const filename = path.join(dataRoot, 'final/items/7.json');
+    const archived = path.join(dataRoot, 'final/items/99.json');
+    writeJson(filename, old);
+    writeJson(archived, {...old, id: 99, path: '/anime/99-archived'});
+    const result = migrateLinks({apply: true, dataRoot, providerRefPath});
+    assert.equal(result.scanned, 2);
+    assert.equal(result.changed, 2);
+    const migrated = readJson(filename);
+    assert.equal(migrated.path, '/anime/7-old-slug');
+    assert.equal(migrated.info.related[0].link, '/anime/8-related');
+    assert.equal(migrated.info.related[0].variants[0].link, '/anime/9-dubbed');
+    for (const key of ['providerRef', 'rawFingerprint', 'mappingFingerprint', 'updatedAt'])
+      assert.equal(migrated[key], old[key]);
+    assert.deepEqual(migrated.episodes, old.episodes);
+    assert.equal(migrated.info.poster, old.info.poster);
+    assert.equal(readJson(archived).info.related[0].link, '/anime/8-related');
+    const manifest = readJson(path.join(dataRoot, 'final/manifest.json'));
+    assert.deepEqual(manifest.pendingRefreshIds, [7]);
+    assert.equal(manifest.availableCount, 1);
+    assert.equal(manifest.complete, false);
+    assert.equal(readJson(path.join(dataRoot, 'final/catalog.json')).records[0].path, '/anime/7-old-slug');
+    assert.equal(readJson(path.join(dataRoot, 'final/shards/07.json')).records[0].info.related[0].link, '/anime/8-related');
+    assert.equal(migrateLinks({apply: true, dataRoot, providerRefPath}).changed, 0);
+  } finally { fs.rmSync(root, {recursive: true, force: true}); }
+});

@@ -40,6 +40,7 @@ jobs:
           bash scripts/check-warp.sh
           node scripts/migrate-links.js
           node scripts/migrate-links.js --apply
+          node -e "const r=require('./scripts/migrate-links').migrateLinks(); console.log(r); if(r.changed) throw new Error('Link migration is incomplete');"
           npm run verify:data
       - name: Publish migrated database
         run: |
