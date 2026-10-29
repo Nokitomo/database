@@ -26,13 +26,14 @@ function requireProvider(providerRoot, modulePath) {
   return require(absolute);
 }
 
-function createContext(providerRoot, baseUrl, raw = null) {
+function createContext(providerRoot, baseUrl, raw = null, contextOptions = {}) {
   const cacheDir = path.join(ROOT, '.cache', 'vega');
   const memory = new Map();
+  const externalStatus = {tmdbWeb: {attempts: 0, transientFailures: 0, lastFailureCode: null}};
   const cachePath = key => path.join(cacheDir, `${hash(key)}.json`);
   const client = {
     ...axios,
-    get: (url, options) => {
+    get: async (url, options) => {
       if (raw && new URL(url).origin === baseUrl) {
         const parsed = new URL(url);
         if (parsed.pathname === `/info_api/${raw.id}/`) return Promise.resolve({data: raw.info});
@@ -50,12 +51,25 @@ function createContext(providerRoot, baseUrl, raw = null) {
           return Promise.resolve({data: {episodes}});
         }
       }
-      return tmdbGet(url, boundedRequestOptions(options));
+      const isTmdbWeb = new URL(url).hostname.toLowerCase() === 'www.themoviedb.org';
+      if (isTmdbWeb) externalStatus.tmdbWeb.attempts++;
+      try {
+        return await (contextOptions.httpGet || tmdbGet)(url, boundedRequestOptions(options));
+      } catch (error) {
+        const status = Number(error?.response?.status) || 0;
+        if (isTmdbWeb && status !== 404) {
+          externalStatus.tmdbWeb.transientFailures++;
+          externalStatus.tmdbWeb.lastFailureCode = status ? `HTTP_${status}` :
+            String(error?.code || 'NETWORK').replace(/[^A-Z0-9_]/gi, '').slice(0, 32);
+        }
+        throw error;
+      }
     },
     post: (url, data, options) => {assertWarp(); return axios.post(url, data, boundedRequestOptions(options));},
   };
   return {
     axios: client, cheerio, Aes: {}, commonHeaders: {}, getBaseUrl: async () => baseUrl,
+    externalStatus,
     cache: {
       getString: key => memory.get(key) ?? readJson(cachePath(key))?.value,
       setString: (key, value) => {memory.set(key, value); writeJson(cachePath(key), {value});},
@@ -93,7 +107,7 @@ async function enrichAnime(providerRoot, baseUrl, raw, mapped, options = {}) {
   const getEpisodes = options.getEpisodes || requireProvider(providerRoot, 'episodes.js').getEpisodes;
   const fillGaps = options.fillTvdbEpisodeGaps || fillTvdbEpisodeGaps;
   const getArtwork = options.collectArtwork || collectArtwork;
-  const context = createContext(providerRoot, baseUrl, raw);
+  const context = createContext(providerRoot, baseUrl, raw, options.contextOptions);
   const link = new URL(raw.path, baseUrl).href;
   const info = options.progress?.info || await getMeta({link, providerContext: context});
   if (!info?.title || !Array.isArray(info.linkList)) throw new Error(`Vega metadata incomplete for ${raw.id}`);
@@ -116,6 +130,7 @@ async function enrichAnime(providerRoot, baseUrl, raw, mapped, options = {}) {
   }
   if (endGroup < groups.length) return {partial: true, progress: {
     info, nextGroup: endGroup, episodes: [...byId.values()],
+    sourceStatus: mergeSourceStatus(options.progress?.sourceStatus, context.externalStatus),
   }};
   mergeSourceEpisodes(byId, raw.episodes);
   applySourceEpisodeMetadata(byId, raw.episodes);
@@ -127,7 +142,26 @@ async function enrichAnime(providerRoot, baseUrl, raw, mapped, options = {}) {
   return {id: raw.id, path: raw.path, updatedAt: new Date().toISOString(), info,
     episodes: [...byId.values()], sourceIds: mapped.sourceIds, mappings: mapped.mappings,
     sourceMetadata: {info: raw.info, embedded: raw.embeddedAnime, archive: raw.archiveRecord},
-    sourceEpisodes: raw.episodes, artworkInventory: artworkCandidates};
+    sourceEpisodes: raw.episodes, artworkInventory: artworkCandidates,
+    sourceStatus: finalizeSourceStatus(mergeSourceStatus(options.progress?.sourceStatus, context.externalStatus),
+      options.previousSourceStatus)};
+}
+
+function finalizeSourceStatus(current, previous) {
+  const tmdbWeb = current.tmdbWeb;
+  tmdbWeb.retryCount = tmdbWeb.transientFailures > 0
+    ? Math.min(16, (previous?.tmdbWeb?.retryCount || 0) + 1) : 0;
+  return current;
+}
+
+function mergeSourceStatus(previous, current) {
+  const old = previous?.tmdbWeb || {};
+  const next = current?.tmdbWeb || {};
+  return {tmdbWeb: {
+    attempts: (old.attempts || 0) + (next.attempts || 0),
+    transientFailures: (old.transientFailures || 0) + (next.transientFailures || 0),
+    lastFailureCode: next.lastFailureCode || old.lastFailureCode || null,
+  }};
 }
 
 function applySourceEpisodeMetadata(byId, sourceEpisodes) {

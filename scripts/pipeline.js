@@ -31,6 +31,11 @@ function enrichmentDue(final, now = Date.now()) {
   if (!final) return true;
   const age = now - Date.parse(final.updatedAt || 0);
   if (!Number.isFinite(age)) return true;
+  if (final.sourceStatus?.tmdbWeb?.transientFailures > 0) {
+    const failures = Math.max(1, Number(final.sourceStatus.tmdbWeb.retryCount) || 1);
+    const retryDelay = Math.min(24 * 3600000, 30 * 60000 * 2 ** Math.min(failures - 1, 6));
+    if (age > retryDelay) return true;
+  }
   const missingArtwork = !final.info?.logo || !final.info?.poster || !final.info?.background;
   const missingEpisodeMetadata = (final.episodes || []).some(episode =>
     !episode.synopsis || !episode.thumbnail || !episode.title || /^Episodes? \d/i.test(episode.title));
@@ -229,7 +234,9 @@ async function runFinal(options, providerRoot) {
       const savedProgress = readJson(finalProgressFile(id));
       const progress = matchingFinalProgress(savedProgress, raw.fingerprint, mappingFingerprint, revision)
         ? savedProgress : null;
-      const result = await enrichAnime(providerRoot, source.baseUrl, raw, mapped, {progress, maxGroups: 2});
+      const previousFinal = readJson(file('final', id));
+      const result = await enrichAnime(providerRoot, source.baseUrl, raw, mapped,
+        {progress, maxGroups: 2, previousSourceStatus: previousFinal?.sourceStatus});
       if (result.partial) {
         writeJson(finalProgressFile(id), {...result.progress, rawFingerprint: raw.fingerprint,
           mappingFingerprint, providerRef: revision});
@@ -238,6 +245,9 @@ async function runFinal(options, providerRoot) {
       } else {
         writeJson(file('final', id), {...result, rawFingerprint: raw.fingerprint,
           mappingFingerprint, providerRef: revision});
+        if (result.sourceStatus?.tmdbWeb?.transientFailures) {
+          console.log(`final ${id}: TMDB web had ${result.sourceStatus.tmdbWeb.transientFailures} temporary failures; retry scheduled`);
+        }
         if (fs.existsSync(finalProgressFile(id))) fs.unlinkSync(finalProgressFile(id));
       }
       delete manifest.errors[id];

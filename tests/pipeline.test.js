@@ -24,6 +24,20 @@ test('external provider requests always have a bounded timeout', () => {
   assert.equal(boundedRequestOptions({timeout: 0}).timeout, 30_000);
 });
 
+test('TMDB web failures are tracked separately from missing pages', async () => {
+  const context = createContext('.', 'https://www.animeunity.co', null, {httpGet: async url => {
+    if (url.endsWith('/missing')) throw {response: {status: 404}};
+    if (url.endsWith('/blocked')) throw {response: {status: 403}};
+    return {status: 200, data: '<html>The Movie Database</html>'};
+  }});
+  await assert.rejects(context.axios.get('https://www.themoviedb.org/missing'));
+  await assert.rejects(context.axios.get('https://www.themoviedb.org/blocked'));
+  await context.axios.get('https://www.themoviedb.org/working');
+  assert.deepEqual(context.externalStatus.tmdbWeb, {
+    attempts: 3, transientFailures: 1, lastFailureCode: 'HTTP_403',
+  });
+});
+
 test('long anime resumes episode groups without publishing a partial final record', async () => {
   const calls = [];
   let metaCalls = 0;
@@ -32,8 +46,10 @@ test('long anime resumes episode groups without publishing a partial final recor
   const mapped = {sourceIds: {}, mappings: {targets: []}};
   const options = {
     maxGroups: 1,
-    getMeta: async () => {
+    contextOptions: {httpGet: async () => {throw {response: {status: 503}};}},
+    getMeta: async ({providerContext}) => {
       metaCalls++;
+      await assert.rejects(providerContext.axios.get('https://www.themoviedb.org/temporary'));
       return {title: 'Test', linkList: [1, 2, 3].map(number => ({episodesLink: `12|${number}|${number}`}))};
     },
     getEpisodes: async ({url}) => {
@@ -58,6 +74,9 @@ test('long anime resumes episode groups without publishing a partial final recor
   assert.deepEqual(final.episodes.map(episode => episode.link), ['101', '102', '103']);
   assert.deepEqual(calls, ['12|1|1', '12|2|2', '12|3|3']);
   assert.equal(metaCalls, 1);
+  assert.deepEqual(final.sourceStatus.tmdbWeb, {
+    attempts: 1, transientFailures: 1, lastFailureCode: 'HTTP_503', retryCount: 1,
+  });
 });
 
 test('episode progress is invalidated when source, mapping, or provider changes', () => {
@@ -144,6 +163,10 @@ test('final metadata is revisited when images or episode details appear later', 
     background: 'https://image.test/background'};
   const episode = {title: 'A real title', synopsis: 'Story', thumbnail: 'https://image.test/episode'};
   assert.equal(enrichmentDue({updatedAt: daysAgo(31), info, episodes: [episode]}, now), false);
+  assert.equal(enrichmentDue({updatedAt: new Date(now - 31 * 60000).toISOString(), info,
+    episodes: [episode], sourceStatus: {tmdbWeb: {transientFailures: 1}}}, now), true);
+  assert.equal(enrichmentDue({updatedAt: new Date(now - 31 * 60000).toISOString(), info,
+    episodes: [episode], sourceStatus: {tmdbWeb: {transientFailures: 1, retryCount: 3}}}, now), false);
   assert.equal(enrichmentDue({updatedAt: daysAgo(91), info, episodes: [episode]}, now), true);
   assert.equal(enrichmentDue({updatedAt: daysAgo(31), info: {...info, logo: null}, episodes: [episode]}, now), true);
   assert.equal(enrichmentDue({updatedAt: daysAgo(31), info, episodes: [{...episode, synopsis: ''}]}, now), true);

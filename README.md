@@ -54,6 +54,9 @@ Final metadata is revisited every 30 days when artwork or episode details are
 missing and every 90 days otherwise, even when AnimeUnity's own record is
 unchanged. A missing episode synopsis or logo remains empty when none of the
 available sources supplies it.
+Temporary TMDB web failures are recorded per anime and retried with a bounded
+backoff even when another source supplied the visible artwork. A successful
+lookup with no image is not treated as a failed request.
 
 ## GitHub Actions controls
 
