@@ -169,6 +169,7 @@ async function enrichAnime(providerRoot, baseUrl, raw, mapped, options = {}) {
     }
     applySourceEpisodeMetadata(groupEpisodes, raw.episodes);
     await fillGaps(providerRoot, context, groupEpisodes, raw);
+    options.signal?.throwIfAborted();
     for (const [id, episode] of groupEpisodes) byId.set(id, episode);
     if (options.checkpoint) await options.checkpoint({info, nextGroup: groupIndex + 1,
       episodes: [...byId.values()],

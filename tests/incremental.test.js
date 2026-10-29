@@ -106,3 +106,17 @@ test('episode checkpoint survives a later artwork failure', async () => {
   assert.equal(episodeCalls, 1);
   assert.equal(result.episodes.length, 1);
 });
+
+test('an aborted group is not checkpointed as complete', async () => {
+  const controller = new AbortController();
+  let checkpoints = 0;
+  const raw = {id: 1, path: '/anime/1', info: {}, episodes: [{id: 10, number: '1'}]};
+  await assert.rejects(enrichAnime('.', 'https://www.animeunity.co', raw, {sourceIds: {}}, {
+    signal: controller.signal,
+    getMeta: async () => ({title: 'Test', linkList: [{episodesLink: '1|1|1'}]}),
+    getEpisodes: async () => {controller.abort(); return [];},
+    fillTvdbEpisodeGaps: async () => {}, collectArtwork: async () => ({}),
+    checkpoint: () => {checkpoints++;},
+  }), {name: 'AbortError'});
+  assert.equal(checkpoints, 0);
+});
