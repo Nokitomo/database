@@ -1,11 +1,11 @@
 'use strict';
 const path=require('node:path');
 const {read,write,hash}=require('../../shared/storage/json');
-const PROVIDERS=['streamingunity','altadefinizione','eurostreaming'];
+const PROVIDERS=['streamingunity','altadefinizione','eurostreaming','filmez'];
 function loadSources(roots){
   const entries=[],snapshots={},origins={},missingProviders=[];
   for(const provider of PROVIDERS){
-    if(provider==='eurostreaming'&&(!roots[provider]||!require('node:fs').existsSync(path.join(roots[provider],'manifest.json')))){missingProviders.push(provider);continue;}
+    if(['eurostreaming','filmez'].includes(provider)&&(!roots[provider]||!require('node:fs').existsSync(path.join(roots[provider],'manifest.json')))){missingProviders.push(provider);continue;}
     require(`../../providers/${provider}/scripts/verify`).verify(roots[provider]);
     const m=read(path.join(roots[provider],'manifest.json'));snapshots[provider]={hash:hash(m),complete:m.complete,expectedCount:m.expectedCount};
     for(const [key,value]of Object.entries(m.origins))origins[provider+':'+key]=value;
@@ -20,6 +20,7 @@ function group(entries,registry={nextId:1,members:{}}){
   registry=structuredClone(registry);const groups=[],lookup=new Map(),conflicts=[];
   for(const e of [...entries].sort((a,b)=>a.key.localeCompare(b.key))){
     const keys=Object.entries(ids(e.record)).filter(([,v])=>v).map(([k,v])=>`${e.record.info.type}:${k}:${v}`);
+    if(e.provider==='filmez'){const alias=e.record.sourceAlias;const canonical=alias?.method==='identical-provider-url-title-and-full-plot'?positive(alias.canonicalId):null;keys.push(e.record.info.type+':filmez-source:'+(canonical||e.record.id));}
     const candidates=[...new Set(keys.flatMap(k=>lookup.get(k)||[]))];
     let g;
     if(candidates.length&&candidates.every(c=>c.entries.every(other=>compatible(e,other)))&&candidates.every(c=>candidates.every(d=>c.entries.every(x=>d.entries.every(y=>compatible(x,y)))))){
@@ -44,7 +45,7 @@ function mergeGroup(g){
   const info={...namespace(r.info,primary.provider),title:r.info.name,type:r.info.type,year:r.info.year||Number(String(r.info.release_date||'').slice(0,4))||null,synopsis:r.info.plot||r.info.synopsis||null};const provenance={};
   for(const entry of ordered){const record=namespace(entry.record,entry.provider);for(const [k,v]of Object.entries(ids(entry.record)))if(v)external[k]=v;
     warnings.push(...(record.warnings||[]).map(reason=>({source:entry.key,reason})));
-    (providers[entry.provider]||=[]).push({id:record.id,path:record.path,availability:record.active?'present':'unavailable',seasons:record.seasons,info:record.info,...(record.episodeBlocks?{episodeBlocks:record.episodeBlocks}:{}),...(record.identity?{identity:record.identity}:{})});
+    (providers[entry.provider]||=[]).push({id:record.id,path:record.path,availability:record.active?'present':'unavailable',seasons:record.seasons,info:record.info,...(record.episodeBlocks?{episodeBlocks:record.episodeBlocks}:{}),...(record.sourceAlias?{sourceAlias:record.sourceAlias}:{}),...(record.sourceMetadata?{sourceMetadata:record.sourceMetadata}:{}),...(record.playback?{playback:record.playback}:{}),...(record.identity?{identity:record.identity}:{})});
     images.push(...record.images.map(x=>({...x,provider:entry.provider})));if(!info.synopsis&&(record.info.plot||record.info.synopsis))info.synopsis=record.info.plot||record.info.synopsis;
     for(const [key,value]of Object.entries(record.info))if((info[key]==null||info[key]===''||Array.isArray(info[key])&&!info[key].length)&&value!=null)info[key]=value;
     for(const field of ['poster','background','logo'])if(!info[field])info[field]=record.images.find(x=>(x.role||x.type)===field)?.reference;

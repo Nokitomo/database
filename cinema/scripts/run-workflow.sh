@@ -8,13 +8,13 @@ mkdir -p "$cache"
 bash shared/warp/check.sh
 gh auth setup-git
 # Fetch committed snapshots once; a source workflow may keep publishing meanwhile.
-for provider in streamingunity altadefinizione eurostreaming; do
+for provider in streamingunity altadefinizione eurostreaming filmez; do
 if git ls-remote --exit-code --heads origin "refs/heads/$provider-data" > "$cache/$provider-ref"; then
   git fetch --depth=1 origin "$provider-data"
   git archive FETCH_HEAD "providers/$provider/data" | tar -x
 else
   result=$?
-  if [[ "$result" == 2 && "$provider" == eurostreaming ]]; then echo "Eurostreaming has no first snapshot; publishing existing providers."; continue; fi
+  if [[ "$result" == 2 && ( "$provider" == eurostreaming || "$provider" == filmez ) ]]; then echo "Optional provider $provider has no first snapshot; publishing existing providers."; continue; fi
   if [[ "$result" == 2 ]]; then echo "$provider has not published its first snapshot yet; retry on the next schedule."; exit 0; fi
   exit "$result"
 fi

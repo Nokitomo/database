@@ -198,3 +198,7 @@ verified URL replacements with their verification dates. Final artifacts apply
 these replacements when rebuilt, including after later metadata regeneration.
 Raw source snapshots and metadata refresh timestamps remain unchanged. External
 TMDB/TVDB/AniList images are outside this AnimeUnity-specific health check.
+
+## Filmez source
+
+The independent Filmez scraper, data contract and verification commands are documented in [providers/filmez/README.md](providers/filmez/README.md). Its snapshot on `filmez-data` is consumed by the cinema unifier, with safe external-ID matching and separate records for unresolved identities.

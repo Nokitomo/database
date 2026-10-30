@@ -37,7 +37,11 @@
     "animetop": "node providers/animetop/scripts/pipeline.js",
     "verify:animetop": "node --test providers/animetop/tests/provider.test.js providers/animetop/tests/workflow.test.js",
     "verify:animetop:data": "node providers/animetop/scripts/verify.js",
-    "verify:animetop:live": "node providers/animetop/scripts/smoke.js"
+    "verify:animetop:live": "node providers/animetop/scripts/smoke.js",
+    "filmez": "node providers/filmez/scripts/pipeline.js",
+    "verify:filmez": "node --test providers/filmez/tests/provider.test.js providers/filmez/tests/workflow.test.js",
+    "verify:filmez:data": "node providers/filmez/scripts/verify.js",
+    "verify:filmez:live": "node providers/filmez/scripts/smoke.js"
   },
   "dependencies": {
     "axios": "^1.10.0",

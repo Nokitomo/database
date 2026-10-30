@@ -32,5 +32,5 @@ async function run({roots,output,providerRoot,enrich=defaultEnrich,stage='all',n
   const manifest=publish(output,records,source,g.registry,g.conflicts,g.aliases,{pendingCount});
   return {complete:manifest.complete,count:manifest.count,pendingCount,hasImmediateWork,processed};
 }
-if(require.main===module){const root=path.resolve(__dirname,'../..');run({roots:Object.fromEntries(['streamingunity','altadefinizione','eurostreaming'].map(p=>[p,path.join(root,'providers',p,'data')])),output:path.join(root,'cinema/data'),providerRoot:path.join(root,'.cache/vega-providers'),stage:process.env.RUN_STAGE||'all'}).then(r=>console.log('CINEMA_BATCH '+JSON.stringify(r))).catch(e=>{console.error(e);process.exitCode=1;});}
+if(require.main===module){const root=path.resolve(__dirname,'../..');run({roots:Object.fromEntries(['streamingunity','altadefinizione','eurostreaming','filmez'].map(p=>[p,path.join(root,'providers',p,'data')])),output:path.join(root,'cinema/data'),providerRoot:path.join(root,'.cache/vega-providers'),stage:process.env.RUN_STAGE||'all'}).then(r=>console.log('CINEMA_BATCH '+JSON.stringify(r))).catch(e=>{console.error(e);process.exitCode=1;});}
 module.exports={run};

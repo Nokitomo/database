@@ -45,8 +45,8 @@ test('cinema publishes existing catalogs before first Eurostreaming snapshot, th
   s.known[id]={id,active:true};s.archive={completedAt:1,total:1};s.origins={site:'https://example.invalid'};write(store.itemFile(roots[provider],id),r);store.publish(roots[provider],s,{complete:true});}
  source('streamingunity',1,{tmdb_id:10,imdb_id:'tt39980704'});source('altadefinizione',2,{tmdb_id:10,imdb_id:'tt39980704'});
  const output=path.join(root,'out'),ready=async r=>({...r,enrichment:{status:'ready'}});
- await run({roots,output,enrich:ready,now:1});assert.deepEqual(read(path.join(output,'manifest.json')).awaitingProviders,['eurostreaming']);
- source('eurostreaming',3,{imdb_id:'tt39980704'});const r=await run({roots,output,enrich:ready,now:2,identityLookup:()=>assert.fail('local match available')});assert.equal(r.count,1);assert.deepEqual(read(path.join(output,'manifest.json')).awaitingProviders,[]);
+ await run({roots,output,enrich:ready,now:1});assert.deepEqual(read(path.join(output,'manifest.json')).awaitingProviders,['eurostreaming','filmez']);
+ source('eurostreaming',3,{imdb_id:'tt39980704'});const r=await run({roots,output,enrich:ready,now:2,identityLookup:()=>assert.fail('local match available')});assert.equal(r.count,1);assert.deepEqual(read(path.join(output,'manifest.json')).awaitingProviders,['filmez']);
  assert(read(path.join(output,'items/work-1.json')).providers.eurostreaming);
 });
 test('expired verified identity survives a transient lookup failure, including merge-only replay',async t=>{

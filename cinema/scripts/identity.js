@@ -37,11 +37,13 @@ async function resolve(record,{context,apiKey=process.env.TMDB_API_KEY}={}){
 }
 async function identify(source,{output,providerRoot,now,deadline,limit=10,lookup=resolve}){
   const file=path.join(output,'identity.json'),state=read(file,{});let processed=0,pending=0,immediate=false;
-  for(const e of source.entries.filter(e=>e.provider==='eurostreaming')){
-    const r=e.record;if(!r.active)continue;
+  const candidateIndexes=new Map();
+  function candidates(e){const key=e.provider+':'+e.record.info.type;if(!candidateIndexes.has(key)){const entries=source.entries.filter(v=>v.provider!==e.provider&&v.record.info.type===e.record.info.type),names=new Map();for(const v of entries){const n=norm(v.record.info.name);if(!names.has(n))names.set(n,[]);names.get(n).push(v);}candidateIndexes.set(key,{entries,names});}return candidateIndexes.get(key);}
+  for(const e of source.entries.filter(e=>['eurostreaming','filmez'].includes(e.provider))){
+    const r=e.record;if(!r.active||r.sourceIds.tmdb_id)continue;
     // Direct IDs already support grouping. Local matches also supply IDs without requests.
-    const other=source.entries.filter(v=>v.provider!=='eurostreaming'&&v.record.info.type===r.info.type);
-    const shared=other.filter(v=>Object.entries(r.sourceIds).some(([k,id])=>id&&String(v.record.sourceIds?.[k])===String(id)));
+    const index=candidates(e),other=index.entries,external=Object.entries(r.sourceIds).filter(([k,id])=>id&&['tmdb_id','imdb_id','tvdb_id'].includes(k));
+    const shared=external.length?other.filter(v=>external.some(([k,id])=>String(v.record.sourceIds?.[k])===String(id))):[];
     const consistent=shared.filter(v=>Object.entries(r.sourceIds).every(([k,id])=>!id||!v.record.sourceIds[k]||String(v.record.sourceIds[k])===String(id)));
     if(!r.sourceIds.tmdb_id&&consistent.length&&consistent.every(v=>String(v.record.sourceIds.tmdb_id||'')===String(consistent[0].record.sourceIds.tmdb_id||''))){
       if(consistent[0].record.sourceIds.tmdb_id)r.sourceIds={...consistent[0].record.sourceIds,...r.sourceIds};
@@ -61,7 +63,7 @@ async function identify(source,{output,providerRoot,now,deadline,limit=10,lookup
     if(cached?.status==='verified'||cached?.retainedVerifiedIdentity){r.sourceIds.tmdb_id=cached.tmdb_id;if(cached.tvdb_id&&!r.sourceIds.tvdb_id)r.sourceIds.tvdb_id=cached.tvdb_id;}
     r.identity=cached?{status:cached.status,method:cached.method,candidates:cached.candidates,reason:cached.reason}:{status:'pending'};
     if(cached?.status==='retry')pending++;
-    if(!r.sourceIds.imdb_id&&!r.sourceIds.tmdb_id){r.identity.localCandidates=other.filter(v=>norm(v.record.info.name)===norm(r.info.name)&&(!r.info.year||!v.record.info.year||String(r.info.year)===String(v.record.info.year))).map(v=>v.key).slice(0,20);}
+    if(!r.sourceIds.imdb_id&&!r.sourceIds.tmdb_id){r.identity.localCandidates=(index.names.get(norm(r.info.name))||[]).filter(v=>!r.info.year||!v.record.info.year||String(r.info.year)===String(v.record.info.year)).map(v=>v.key).slice(0,20);}
   }
   return {pending,immediate,processed};
 }

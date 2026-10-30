@@ -81,3 +81,7 @@ other. Sacrifice TMDB 1182831 and 1284186 stayed separate. Full regression suite
 External enrichment is covered by deterministic integration tests using the
 existing pinned resolvers' interfaces; the GitHub secret and runner network are
 not exercised by the local merge smoke.
+
+## Filmez
+
+Filmez is an optional independent input from `filmez-data`. Before its first snapshot, `awaitingProviders` reports it without preventing other providers from publishing. Direct compatible external IDs permit merging; missing IDs yield a separate work and review candidates, never a title-only automatic match. Playback links and all source image variants are retained.
