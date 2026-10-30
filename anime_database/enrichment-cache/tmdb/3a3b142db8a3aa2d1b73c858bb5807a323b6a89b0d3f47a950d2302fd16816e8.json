@@ -1,1 +1,1 @@
-{"schemaVersion":1,"source":"tmdb","kind":"season-poster","input":{"mediaId":121320,"seasonNumber":0},"checkedAt":1793345133696,"status":"error","value":null,"fields":{},"episodes":{}}
+{"schemaVersion":1,"source":"tmdb","kind":"season-poster","input":{"mediaId":121320,"seasonNumber":0},"checkedAt":1793376702384,"status":"error","value":{"id":121320,"type":"tv","source":"tmdb-web","sourceUrl":"https://www.themoviedb.org/tv/121320/season/0","originalLanguage":"ja-JP","seasonNumber":0},"fields":{},"episodes":{}}
