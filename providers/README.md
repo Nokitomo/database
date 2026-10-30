@@ -12,3 +12,8 @@ It can be moved into this layout after that build is complete.
 schema, WARP-enabled workflow, validation and incremental update policy. Its
 generated output uses the dedicated `animeworld-data` branch, while code stays
 on `main`, so its checkpoints do not contend with AnimeUnity's publication.
+
+`animesaturn/` follows the same independent layout and publishes only to
+`animesaturn-data`. Its full archive and episode metadata checkpoints feed the
+shared `unified/` catalog, which adds provider membership and enriches exclusive
+works. WARP and JSON storage helpers live under `shared/`.

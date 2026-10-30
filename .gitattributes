@@ -1,3 +1,4 @@
 providers/animeworld/scripts/*.sh text eol=lf
+providers/animesaturn/scripts/*.sh text eol=lf
 shared/warp/*.sh text eol=lf
 unified/scripts/*.sh text eol=lf

@@ -1,6 +1,6 @@
 # Unified anime catalog
 
-This independent pipeline reads committed AnimeUnity and AnimeWorld snapshots.
+This independent pipeline reads committed AnimeUnity, AnimeWorld and AnimeSaturn snapshots.
 It does not scrape source pages, change either source pipeline, or implement
 playback in Vega. AnimeWorld source scraping remains a separate workflow.
 
@@ -28,7 +28,7 @@ catalog. Server-side item files and external caches remain for reactivation.
 Hashes use recursively sorted object keys, unchanged array order, compact UTF-8
 JSON without trailing newline; they are content hashes, not raw file hashes.
 
-`providers.animeunity` and `providers.animeworld` are arrays: dubbed/subtitled
+`providers.animeunity`, `providers.animeworld` and `providers.animesaturn` are arrays: dubbed/subtitled
 variants have independent source IDs, paths and actual episode inventories.
 Empty means `not_matched`, not proof of absence from an incomplete archive.
 Canonical episode metadata never implies availability on every provider.
@@ -53,11 +53,17 @@ after review. Work IDs persist across provider arrivals and reactivation.
 
 Raw AnimeUnity records count as membership even before final enrichment. Such
 records wait for the AnimeUnity pipeline rather than duplicating its work.
-Only AnimeWorld-exclusive groups invoke external enrichment: AniBridge, TMDB,
+Groups absent from AnimeUnity invoke external enrichment using AnimeWorld, or
+AnimeSaturn when no AnimeWorld entry exists: AniBridge, TMDB,
 modular TVDB episode fallback, AniZip and the existing shared artwork resolvers.
 No AnimeUnity endpoints or fabricated AnimeUnity pages are used by this adapter.
 Range/fractional provider episode labels are retained; ambiguous mappings do not
 invent episode metadata. External metadata cannot be guaranteed to exist.
+
+Both source adapters use the same external resolver and task cache. AnimeSaturn
+artwork references use their own `animesaturn:images` origin. Its string source
+codes do not collide with the numeric IDs of other providers. No AnimeSaturn
+implementation in vega-providers is needed for collecting/enriching metadata.
 
 The adapter batches episodes per TMDB season, reuses the existing paced HTTP
 client/API authentication/web fallback and durable per-service task cache.
@@ -70,7 +76,7 @@ attempt does not imply every service supplied every field.
 
 `Update unified anime database` runs every two hours and supports manual `all`
 or `merge` (no external enrichment). It never runs on push. It waits for the
-first AnimeWorld data snapshot, then pins both input snapshots for that run.
+first AnimeWorld and AnimeSaturn data snapshots, then pins all input snapshots for that run.
 WARP is checked before requests and publication. `TMDB_API_KEY` uses the existing
 GitHub secret. Resolver code is built at the tracked `vega-providers.ref` commit.
 The new workflow has its own concurrency group and only pushes `unified-data`.

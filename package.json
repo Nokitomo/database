@@ -13,7 +13,11 @@
     "verify:animeworld:live": "node providers/animeworld/scripts/smoke.js",
     "unified": "node unified/scripts/pipeline.js",
     "verify:unified": "node --test unified/tests/unified.test.js unified/tests/workflow.test.js",
-    "verify:unified:data": "node unified/scripts/verify.js"
+    "verify:unified:data": "node unified/scripts/verify.js",
+    "animesaturn": "node providers/animesaturn/scripts/pipeline.js",
+    "verify:animesaturn": "node --test providers/animesaturn/tests/provider.test.js providers/animesaturn/tests/workflow.test.js",
+    "verify:animesaturn:data": "node providers/animesaturn/scripts/verify.js",
+    "verify:animesaturn:live": "node providers/animesaturn/scripts/smoke.js"
   },
   "dependencies": {
     "axios": "^1.10.0",

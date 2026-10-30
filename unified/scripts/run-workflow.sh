@@ -8,14 +8,16 @@ mkdir -p "$cache"
 bash shared/warp/check.sh
 gh auth setup-git
 # Fetch committed snapshots once; a source workflow may keep publishing meanwhile.
-if git ls-remote --exit-code --heads origin refs/heads/animeworld-data > "$cache/source-ref"; then
-  git fetch --depth=1 origin animeworld-data
-  git archive FETCH_HEAD providers/animeworld/data | tar -x
+for provider in animeworld animesaturn; do
+if git ls-remote --exit-code --heads origin "refs/heads/$provider-data" > "$cache/$provider-ref"; then
+  git fetch --depth=1 origin "$provider-data"
+  git archive FETCH_HEAD "providers/$provider/data" | tar -x
 else
   result=$?
-  if [[ "$result" == 2 ]]; then echo 'AnimeWorld has not published its first snapshot yet; retry on the next schedule.'; exit 0; fi
+  if [[ "$result" == 2 ]]; then echo "$provider has not published its first snapshot yet; retry on the next schedule."; exit 0; fi
   exit "$result"
 fi
+done
 git init -b "$branch" "$publish_dir"
 git -C "$publish_dir" remote add origin "https://github.com/${GH_REPO}.git"
 git -C "$publish_dir" config user.name 'github-actions[bot]'

@@ -11,6 +11,7 @@ function verify(root) {
     seen.add(row.id);
     const record = read(path.join(root, 'items', `${row.id}.json`));
     if (record?.id !== row.id || hash(record) !== manifest.itemHashes[row.id]) throw new Error(`Invalid item ${row.id}`);
+    if (!record.info?.title) throw new Error(`Missing title for ${row.id}`);
     if (!Object.values(record.providers).some(entries => entries.length)) throw new Error('Item without a provider');
     const walk = value => {
       if (!value || typeof value !== 'object') return;

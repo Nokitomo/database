@@ -104,4 +104,4 @@ async function enrichWorld(record, {providerRoot, cacheRoot, signal, previous, s
     enrichment: {status: failed ? 'retry' : resolution.targets?.length ? 'ready' : 'unmapped',
       mappingFingerprint: hash(resolution.targets || [])}};
 }
-module.exports = {enrichWorld};
+module.exports = {enrichWorld, enrichSource:enrichWorld};

@@ -133,3 +133,37 @@ test('image-only updates do not repeat external enrichment',async t=>{
   await run({...config,enrich});assert.equal(calls,1);
   assert.equal(verify(config.output).count,2);
 });
+test('AnimeSaturn shared membership preserves AU metadata; exclusive titles use external enrichment',async t=>{
+  const config=fixture(t),saturn=path.join(config.awRoot,'../saturn');
+  const shared={...anime('Ab123',10),provider:'animesaturn',images:[{kind:'poster',url:{base:'images',path:'/saturn.jpg'}}]};
+  const exclusive={...anime('Xy999',777),provider:'animesaturn',images:[]};
+  for(const record of [shared,exclusive])write(path.join(saturn,`items/${record.id}.json`),record);
+  write(path.join(saturn,'manifest.json'),{provider:'animesaturn',complete:true,origins:{site:'https://www.animesaturn.net',images:'https://img.saturncdn.net'},
+    itemHashes:{Ab123:hash(shared),Xy999:hash(exclusive)}});
+  const calls=[];
+  await run({...config,additionalSources:{animesaturn:saturn},enrich:async record=>{
+    calls.push(`${record.provider}:${record.id}`);return {info:record.info,episodes:record.episodes,enrichment:{status:'ready'}};
+  }});
+  assert.deepEqual(calls.sort(),['animesaturn:Xy999','animeworld:3']);
+  const registry=read(path.join(config.output,'registry.json'));
+  const linked=read(path.join(config.output,`items/${registry.members['animeunity:1']}.json`));
+  assert.equal(linked.metadataProvider,'animeunity');assert.equal(linked.info.title,'Anime 1');
+  assert.equal(linked.providers.animesaturn[0].id,'Ab123');
+  assert.equal(linked.providerImages.animesaturn[0].url.base,'animesaturn:images');
+  const only=read(path.join(config.output,`items/${registry.members['animesaturn:Xy999']}.json`));
+  assert.equal(only.metadataProvider,'animesaturn');assert.equal(only.providers.animeunity.length,0);
+  assert.equal(verify(config.output).count,3);
+  fs.unlinkSync(path.join(saturn,'manifest.json'));
+  await assert.rejects(()=>run({...config,additionalSources:{animesaturn:saturn}}),/Missing animesaturn/);
+});
+test('an AnimeSaturn identity remains stable when it later appears on another provider',()=>{
+  const first=groupEntries([entry('animesaturn',anime('Cd123',100))]);
+  const next=groupEntries([entry('animeunity',anime(88,100)),entry('animesaturn',anime('Cd123',100))],first.registry);
+  assert.equal(next.groups.length,1);assert.equal(next.groups[0].id,first.groups[0].id);
+});
+test('pending AnimeUnity source records normalize title_eng and plot for the consumer',()=>{
+  const au=anime(1,2928);au.info={title:null,title_eng:'.hack//G.U. Returner',plot:'Trama',imageurl:'https://example.org/poster.jpg'};
+  const result=baseRecord(groupEntries([entry('animeunity',au),entry('animesaturn',anime('8PrAP',2928))]).groups[0]);
+  assert.equal(result.info.title,'.hack//G.U. Returner');assert.equal(result.info.synopsis,'Trama');
+  assert.equal(result.enrichment.status,'pending');
+});
