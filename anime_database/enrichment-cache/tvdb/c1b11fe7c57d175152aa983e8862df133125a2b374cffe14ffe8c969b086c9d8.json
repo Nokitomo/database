@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tvdb","kind":"episodes","input":{"tvdbShowId":259863,"seasonNumber":12},"checkedAt":1793343748177,"status":"ok","value":[{"episodeNumber":4,"title":"Sparkling Sparkle","titleLanguage":"eng"}],"fields":{},"episodes":{"4":{"checkedAt":1793343748177,"status":"missing"}}}
