@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tvdb","kind":"episodes","input":{"tvdbShowId":81110,"seasonNumber":0},"checkedAt":1793330329922,"status":"ok","value":[{"episodeNumber":4,"title":"Arcadian Memory 2","titleLanguage":"eng"}],"fields":{},"episodes":{"4":{"checkedAt":1793330329922,"status":"missing"}}}
