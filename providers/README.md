@@ -17,3 +17,8 @@ on `main`, so its checkpoints do not contend with AnimeUnity's publication.
 `animesaturn-data`. Its full archive and episode metadata checkpoints feed the
 shared `unified/` catalog, which adds provider membership and enriches exclusive
 works. WARP and JSON storage helpers live under `shared/`.
+
+`streamingunity/` collects the Italian film/TV catalog, using StreamingCommunity
+as a mirror fallback, and publishes only to `streamingunity-data`. It does not
+feed the anime unifier. Future film/TV aggregation and global catalog integration
+are separate pipelines; see its README for archive coverage guarantees.
