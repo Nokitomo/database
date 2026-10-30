@@ -21,7 +21,15 @@
     "streamingunity": "node providers/streamingunity/scripts/pipeline.js",
     "verify:streamingunity": "node --test providers/streamingunity/tests/provider.test.js providers/streamingunity/tests/workflow.test.js",
     "verify:streamingunity:data": "node providers/streamingunity/scripts/verify.js",
-    "verify:streamingunity:live": "node providers/streamingunity/scripts/smoke.js"
+    "verify:streamingunity:live": "node providers/streamingunity/scripts/smoke.js",
+    "altadefinizione": "node providers/altadefinizione/scripts/pipeline.js",
+    "verify:altadefinizione": "node --test providers/altadefinizione/tests/provider.test.js providers/altadefinizione/tests/workflow.test.js",
+    "verify:altadefinizione:data": "node providers/altadefinizione/scripts/verify.js",
+    "verify:altadefinizione:live": "node providers/altadefinizione/scripts/smoke.js",
+    "cinema": "node cinema/scripts/pipeline.js",
+    "verify:cinema": "node --test cinema/tests/catalog.test.js cinema/tests/workflow.test.js",
+    "verify:cinema:data": "node cinema/scripts/verify.js",
+    "verify:cinema:live": "node cinema/scripts/smoke.js"
   },
   "dependencies": {
     "axios": "^1.10.0",

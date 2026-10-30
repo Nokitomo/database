@@ -1,0 +1,54 @@
+name: Update cinema film and series database
+on:
+  schedule:
+    - cron: '49 */2 * * *'
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: 'Merge source snapshots and fill missing metadata, or merge only'
+        type: choice
+        options: [all, merge]
+        default: all
+permissions:
+  contents: write
+  actions: write
+concurrency:
+  group: cinema-database-main
+  cancel-in-progress: false
+jobs:
+  update:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 280
+    env:
+      WARP_REQUIRED: '1'
+      HTTP_PROXY: ''
+      HTTPS_PROXY: ''
+      ALL_PROXY: ''
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+      - name: Install and verify WARP
+        run: bash shared/warp/setup.sh
+        timeout-minutes: 15
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm run verify:cinema
+      - name: Build pinned external resolvers
+        run: |
+          bash shared/warp/check.sh
+          git clone --filter=blob:none https://github.com/Nokitomo/vega-providers.git .cache/vega-providers
+          git -C .cache/vega-providers checkout "$(cat vega-providers.ref)"
+          npm --prefix .cache/vega-providers ci
+          npm --prefix .cache/vega-providers run build
+      - name: Merge and enrich with durable checkpoints
+        env:
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          RUN_STAGE: ${{ inputs.stage || 'all' }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: bash cinema/scripts/run-workflow.sh

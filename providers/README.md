@@ -20,5 +20,9 @@ works. WARP and JSON storage helpers live under `shared/`.
 
 `streamingunity/` collects the Italian film/TV catalog, using StreamingCommunity
 as a mirror fallback, and publishes only to `streamingunity-data`. It does not
-feed the anime unifier. Future film/TV aggregation and global catalog integration
-are separate pipelines; see its README for archive coverage guarantees.
+feed the anime unifier. It feeds the separate `cinema/` film/TV aggregator;
+global anime/cinema catalog integration remains separate.
+
+`altadefinizione/` collects source metadata, artwork and episode inventories,
+publishes only to `altadefinizione-data`, and feeds `cinema/` alongside StreamingUnity.
+Each workflow has independent concurrency, checkpoints and WARP verification.

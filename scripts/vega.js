@@ -6,7 +6,7 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const {ROOT, hash, readJson, writeJson} = require('./lib');
 const {episodeBounds} = require('./source');
-const {needsEpisodeIdentity, protectSourceEpisodes} = require('./episode-safety');
+const {protectSourceEpisodes} = require('./episode-safety');
 const {assertWarp} = require('./warp');
 const {createPacedGet} = require('./rate-limit');
 const {createTmdbGet} = require('./tmdb-http');
@@ -62,7 +62,8 @@ function createContext(providerRoot, baseUrl, raw = null, contextOptions = {}) {
           const start = Number(parsed.searchParams.get('start_range') || 0);
           const end = Number(parsed.searchParams.get('end_range') || Infinity);
           const episodes = raw.episodes.filter(value => {
-            if (needsEpisodeIdentity(value.number)) return false;
+            // Keep source ordering intact: Vega also supports record-aligned
+            // ranges. Ambiguous results are stripped before checkpoints/fallbacks.
             const number = Number.parseFloat(String(value.number));
             return Number.isFinite(number) && number >= start && number <= end;
           });

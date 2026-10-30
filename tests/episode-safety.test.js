@@ -16,11 +16,11 @@ test('ambiguous labels retain provider data and discard all old external metadat
   }
   assert.equal(needsEpisodeIdentity('1'),false);assert.equal(needsEpisodeIdentity('1180'),false);
 });
-test('AnimeUnity excludes ambiguous labels before external enrichment and restores them safely',async()=>{
+test('AnimeUnity preserves record alignment and strips ambiguous metadata before publication',async()=>{
   const raw={id:1,slug:'x',path:'/anime/1-x',info:{},episodes:[{id:10,number:'3.5'},{id:11,number:'1'}]};
   const ctx=createContext('.','https://www.animeunity.co',raw);
   const r=await ctx.axios.get('https://www.animeunity.co/info_api/1/1?start_range=0&end_range=10');
-  assert.deepEqual(r.data.episodes.map(e=>e.id),[11]);
+  assert.deepEqual(r.data.episodes.map(e=>e.id),[10,11]);
   const final=await enrichAnime('.','https://www.animeunity.co',raw,{sourceIds:{},mappings:{}},{
     getMeta:async()=>({title:'X',linkList:[]}),getEpisodes:async()=>[],
     fillTvdbEpisodeGaps:async()=>{},collectArtwork:async()=>({poster:[],logo:[],background:[]}),
