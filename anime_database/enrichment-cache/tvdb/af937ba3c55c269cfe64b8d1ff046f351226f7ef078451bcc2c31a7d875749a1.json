@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tvdb","kind":"episodes","input":{"tvdbShowId":392944,"seasonNumber":0},"checkedAt":1793319914345,"status":"ok","value":[{"episodeNumber":2,"title":"Tropical-Rouge! Pretty Cure the Movie: Petite Dive! Collaboration Dance Party!","titleLanguage":"eng"}],"fields":{},"episodes":{"2":{"checkedAt":1793319914345,"status":"missing"}}}
