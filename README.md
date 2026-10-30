@@ -60,6 +60,15 @@ the sitemap each run and reconciles the paginated archive at least daily. Each s
 keeps its successful previous record when an update fails. Generated outputs are
 written atomically. The optional `TMDB_API_KEY` repository secret enables TMDB
 API lookups; Vega also supports its public web fallback.
+`raw/discovery-state.json` retains the last complete archive membership and known
+anime paths. Sitemap entries may add titles, but a sitemap omission alone never
+removes one. A complete archive scan must have a stable reported total and all
+pages; a title missing from that scan and the sitemap is excluded only when both
+its info API and anime page confirm absence. Failed scans and uncertain responses
+retain the previous membership. Excluded IDs remain in the discovery state, and
+their raw, mapped, final and enrichment files stay on disk. If they reappear, the
+raw record is queued until a successful refresh, even across limited batches;
+unchanged metadata and mappings can then be reused by incremental runs.
 Final metadata is revisited every 30 days when artwork or episode details are
 missing and every 90 days otherwise, even when AnimeUnity's own record is
 unchanged. A missing episode synopsis or logo remains empty when none of the

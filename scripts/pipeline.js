@@ -4,7 +4,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const {execFileSync} = require('node:child_process');
 const {DATA, file, hash, iso, listIds, parseArgs, readJson, sleep, writeJson} = require('./lib');
-const {archiveItems, discover, fetchAnime} = require('./source');
+const {archiveItems, discover, fetchAnime, verifyAnimeUnavailable} = require('./source');
+const {initialDiscoveryState, mergeDiscoveredItems, reconcileDiscovery} = require('./discovery-state');
 const {createContext, enrichAnime, mapAnime, requireProvider} = require('./vega');
 const {buildQualityReport} = require('./quality');
 const {withRecordDeadline} = require('./record-deadline');
@@ -100,41 +101,52 @@ function catalogEntry(record) {
   };
 }
 
-function mergeDiscoveredItems(sitemap, archiveItems, archiveOnly = []) {
-  const merged = new Map(sitemap);
-  for (const [id, item] of archiveItems || []) {
-    const sitemapItem = merged.get(id);
-    merged.set(id, sitemapItem ? {...sitemapItem, archiveRecord: item.archiveRecord} : item);
-  }
-  for (const item of archiveOnly) {
-    if (!merged.has(item.id)) merged.set(item.id, item);
-  }
-  return merged;
-}
-
 async function runRaw(options) {
   const discovery = await discover();
   const previousIndex = readJson(stageIndex('raw'), {});
-  const archiveDue = shouldRefreshArchive(previousIndex, options.full, Date.now(), options.fullSince);
-  const archive = archiveDue ? await archiveItems(discovery.baseUrl) : null;
-  const merged = mergeDiscoveredItems(discovery.sitemap, archive?.items,
-    archive ? [] : previousIndex.archiveOnly || []);
+  const statePath = path.join(DATA, 'raw', 'discovery-state.json');
+  const savedState = readJson(statePath);
+  // Recover records omitted by the sitemap during the first deployment.
+  const previousState = savedState || initialDiscoveryState(previousIndex,
+    listIds('raw').map(id => readJson(file('raw', id))).filter(Boolean));
+  const now = Date.now();
+  const archiveDue = (!previousState.archiveRetryAt || now >= Date.parse(previousState.archiveRetryAt)) &&
+    (!previousState.archive || shouldRefreshArchive({archiveCheckedAt: previousState.archive.checkedAt},
+      options.full, now, options.fullSince));
+  let archive = null;
+  let archiveError = previousIndex.archiveError || null;
+  if (archiveDue) {
+    try { archive = await archiveItems(discovery.baseUrl); archiveError = null; }
+    catch (error) {
+      archiveError = {at: iso(), message: error.message};
+      console.error(`raw archive: ${error.message}; retaining the previous discovery state`);
+    }
+  }
+  const reconciliation = await reconcileDiscovery({sitemap: discovery.sitemap, archive,
+    state: previousState, verifyUnavailable: (id, item) =>
+      verifyAnimeUnavailable(id, item, discovery.baseUrl)});
+  if (archiveError) reconciliation.state.archiveRetryAt = archiveDue
+    ? new Date(now + 30 * 60000).toISOString() : previousState.archiveRetryAt;
+  const nextState = reconciliation.state;
+  if (JSON.stringify(nextState) !== JSON.stringify(savedState)) writeJson(statePath, nextState);
+  const merged = reconciliation.merged;
+  const archived = new Map((nextState.archive?.items || []).map(item => [item.id, item]));
   const expectedIds = [...merged.keys()].sort((a, b) => a - b);
   if (expectedIds.length < 1000) throw new Error(`Archive unexpectedly small: ${expectedIds.length}`);
   const expected = new Set(expectedIds);
-  const archiveOnly = archive
-    ? [...archive.items.values()].filter(item => !discovery.sitemap.has(item.id))
-    : previousIndex.archiveOnly || [];
+  const archiveOnly = [...archived.values()].filter(item => !discovery.sitemap.has(item.id));
   const index = {schemaVersion: 1, discoveredAt: iso(), baseUrl: discovery.baseUrl,
     discoverySource: discovery.source, pastebinUrl: discovery.pasteUrl,
-    sitemapCount: discovery.sitemap.size, archiveCount: archive?.items.size ?? previousIndex.archiveCount,
-    archiveReportedTotal: archive?.total ?? previousIndex.archiveReportedTotal,
-    archiveCheckedAt: archive ? iso() : previousIndex.archiveCheckedAt, archiveOnly,
+    sitemapCount: discovery.sitemap.size, archiveCount: archived.size || previousIndex.archiveCount,
+    archiveReportedTotal: nextState.archive?.total ?? previousIndex.archiveReportedTotal,
+    archiveCheckedAt: nextState.archive?.checkedAt ?? previousIndex.archiveCheckedAt,
+    archiveError, archiveOnly, inactiveIds: Object.keys(nextState.inactive).map(Number).sort((a, b) => a - b),
     expectedIds, checkedIds: previousIndex.checkedIds || [],
     errors: Object.fromEntries(Object.entries(previousIndex.errors || {}).filter(([id]) => expected.has(Number(id))))};
   writeJson(stageIndex('raw'), index);
   const pending = expectedIds.filter(id => (!options.ids || options.ids.has(id)) &&
-    errorDue(index.errors[id]) && due(readJson(file('raw', id)), options.full, options.fullSince, merged.get(id)?.path));
+    errorDue(index.errors[id]) && (nextState.reactivationPending[id] ||
+      due(readJson(file('raw', id)), options.full, options.fullSince, merged.get(id)?.path)));
   const pendingRaw = new Map(pending.map(id => [id, readJson(file('raw', id))]));
   pending.sort((a, b) => {
     const left = pendingRaw.get(a);
@@ -151,6 +163,7 @@ async function runRaw(options) {
     console.log(`raw ${id}: starting`);
     try {
       const item = merged.get(id);
+      if (!item.path) throw new Error(`Anime ${id} has no saved path; waiting for archive or sitemap`);
       const source = await withRecordDeadline(`raw ${id}`,
         signal => fetchAnime(item, discovery.baseUrl, undefined, signal));
       const previous = readJson(file('raw', id));
@@ -158,6 +171,7 @@ async function runRaw(options) {
       writeJson(file('raw', id), {...source, archiveRecord: item.archiveRecord || previous?.archiveRecord || null,
         checkedAt: iso(), fingerprint, changedAt: previous?.fingerprint === fingerprint ? previous.changedAt : iso()});
       delete index.errors[id];
+      delete nextState.reactivationPending[id];
     } catch (error) {
       index.errors[id] = {at: iso(), message: error.message};
       console.error(`raw ${id}: ${error.message}`);
@@ -167,9 +181,12 @@ async function runRaw(options) {
   }
   const available = new Set(listIds('raw'));
   index.checkedIds = expectedIds.filter(id => available.has(id));
-  index.complete = index.checkedIds.length === expectedIds.length && Object.keys(index.errors).length === 0;
+  index.complete = !!nextState.archive && !archiveError &&
+    Object.keys(nextState.reactivationPending).length === 0 &&
+    index.checkedIds.length === expectedIds.length && Object.keys(index.errors).length === 0;
   index.finishedAt = iso();
   writeJson(stageIndex('raw'), index);
+  if (JSON.stringify(nextState) !== JSON.stringify(readJson(statePath))) writeJson(statePath, nextState);
   index.selectedCount = selected.length;
   return index;
 }

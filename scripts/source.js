@@ -18,7 +18,11 @@ async function request(method, url, data, extra = {}) {
       assertWarp();
       const response = await axios({method, url, data, timeout: 20000, maxRedirects: 5,
         signal, headers: {...HEADERS, ...headers}, validateStatus: status => status < 500});
-      if (response.status >= 400) throw new Error(`HTTP ${response.status} at ${url}`);
+      if (response.status >= 400) {
+        const error = new Error(`HTTP ${response.status} at ${url}`);
+        error.status = response.status;
+        throw error;
+      }
       return response;
     } catch (error) {
       last = error;
@@ -71,8 +75,8 @@ async function discover(signal) {
   throw new Error(`AnimeUnity unavailable. Pastebin: ${pasteError || 'readable'}. ${failures.join(' | ')}`);
 }
 
-async function archiveItems(baseUrl) {
-  const home = await request('get', `${baseUrl}/`);
+async function archiveItems(baseUrl, fetch = request) {
+  const home = await fetch('get', `${baseUrl}/`);
   const cookie = (home.headers['set-cookie'] || []).map(value => value.split(';')[0]).join('; ');
   const csrf = String(home.data).match(/name=["']csrf-token["']\s+content=["']([^"']+)/i)?.[1];
   const xsrf = (home.headers['set-cookie'] || []).join('; ').match(/XSRF-TOKEN=([^;]+)/)?.[1];
@@ -83,9 +87,13 @@ async function archiveItems(baseUrl) {
   for (let offset = 0; ; offset += 30) {
     const payload = {title: false, type: false, year: false, order: false, status: false,
       genres: false, offset, dubbed: false, season: false};
-    const response = await request('post', `${baseUrl}/archivio/get-animes`, payload, headers);
+    const response = await fetch('post', `${baseUrl}/archivio/get-animes`, payload, headers);
     if (!Array.isArray(response.data?.records)) throw new Error(`Invalid archive response at offset ${offset}`);
-    if (Number.isFinite(response.data.tot)) total = response.data.tot;
+    if (Number.isFinite(response.data.tot)) {
+      if (total != null && response.data.tot !== total)
+        throw new Error(`Archive total changed during pagination: ${total}/${response.data.tot}`);
+      total = response.data.tot;
+    }
     for (const record of response.data.records) {
       const id = Number(record?.id);
       if (!Number.isInteger(id) || id <= 0) continue;
@@ -96,8 +104,25 @@ async function archiveItems(baseUrl) {
     if (offset > 50000) throw new Error('Archive pagination exceeded safety bound');
     await sleep(250);
   }
-  if (total != null && items.size !== total) throw new Error(`Archive count mismatch: ${items.size}/${total}`);
+  if (!Number.isSafeInteger(total) || total < 1000) throw new Error(`Invalid archive total: ${total}`);
+  if (items.size !== total) throw new Error(`Archive count mismatch: ${items.size}/${total}`);
   return {items, total};
+}
+
+async function verifyAnimeUnavailable(id, item, baseUrl, fetch = request) {
+  const probe = async url => {
+    try { await fetch('get', url); return false; }
+    catch (error) {
+      const status = Number(error.status || error.response?.status ||
+        String(error.message || '').match(/^HTTP (\d+)/)?.[1]);
+      return status === 404 || status === 410;
+    }
+  };
+  if (!item.path) return false;
+  const [infoMissing, pageMissing] = await Promise.all([
+    probe(`${baseUrl}/info_api/${id}/`), probe(new URL(item.path, baseUrl).href),
+  ]);
+  return infoMissing && pageMissing;
 }
 
 function parseEmbedded(html) {
@@ -153,4 +178,5 @@ async function fetchAnime(item, baseUrl, fetch = request, signal) {
     episodes: [...byId.values()].sort((a, b) => (episodeBounds(a.number)?.start ?? Infinity) - (episodeBounds(b.number)?.start ?? Infinity))};
 }
 
-module.exports = {FALLBACK_URL, PASTEBIN_URL, archiveItems, discover, episodeBounds, fetchAnime, parseEmbedded, request, sitemapItems};
+module.exports = {FALLBACK_URL, PASTEBIN_URL, archiveItems, discover, episodeBounds, fetchAnime,
+  parseEmbedded, request, sitemapItems, verifyAnimeUnavailable};

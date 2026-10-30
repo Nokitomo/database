@@ -20,6 +20,25 @@ function verifyDatabase(stage = 'all') {
     throw new Error('Invalid archive IDs');
   if (rawIndex.archiveCount !== rawIndex.archiveReportedTotal)
     throw new Error('Archive total mismatch');
+  const discovery = readJson(path.join(DATA, 'raw', 'discovery-state.json'));
+  if (discovery) {
+    const inactive = new Set(Object.keys(discovery.inactive || {}).map(Number));
+    const activeKnown = Object.keys(discovery.known || {}).map(Number)
+      .filter(id => !inactive.has(id)).sort((a, b) => a - b);
+    const pendingReactivation = Object.keys(discovery.reactivationPending || {}).map(Number);
+    if (JSON.stringify(ids) !== JSON.stringify(activeKnown) ||
+      JSON.stringify(rawIndex.inactiveIds || []) !== JSON.stringify([...inactive].sort((a, b) => a - b)) ||
+      pendingReactivation.some(id => inactive.has(id) || !activeKnown.includes(id)))
+      throw new Error('Discovery state does not match active archive IDs');
+    if (discovery.archive) {
+      const archived = discovery.archive.items || [];
+      if (archived.length !== discovery.archive.total ||
+        new Set(archived.map(item => item.id)).size !== archived.length ||
+        rawIndex.archiveCount !== archived.length ||
+        rawIndex.archiveCheckedAt !== discovery.archive.checkedAt)
+        throw new Error('Last complete archive snapshot is inconsistent');
+    }
+  }
   const complete = [];
   const pendingRefreshIds = [];
   let rawCount = 0;
