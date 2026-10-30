@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tvdb","kind":"episodes","input":{"tvdbShowId":85146,"seasonNumber":1},"checkedAt":1793364439094,"status":"ok","value":[{"episodeNumber":20,"title":"Il volere della Sacra Regina","titleLanguage":"ita"}],"fields":{},"episodes":{"20":{"checkedAt":1793364439094,"status":"missing"}}}
