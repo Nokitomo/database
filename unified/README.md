@@ -19,12 +19,27 @@ The `unified-data` branch contains `unified/data/`:
 - `registry.json`: persistent source-to-canonical identity assignments.
 - `enriched/`, `cache/`, `state.json`: internal resumable enrichment data.
 
-Vega should download only manifest, catalog and active items (or initial shards), never internal
+Vega should download only manifest, catalog and retained items (or initial shards), never internal
 cache/state or either provider source database. Compare the client's saved hashes
 with the latest manifest to support missed updates of any duration. Fetch all
 files from the **same Git commit**, validate hashes, then atomically activate the
-local snapshot. A missing manifest ID removes a record from the active local
-catalog. Server-side item files and external caches remain for reactivation.
+local snapshot. Schema version 2 retains inactive records in itemHashes and shards.
+Use `catalog.json` for navigation: it contains active records only. Apply item
+updates even for hidden records; `active: false` hides an item without deleting
+its metadata. `count` includes all retained items, with `activeCount` and
+`inactiveCount` reported separately. `changes.json` includes `deactivated` and
+`reactivated`; clients that miss publications must still compare manifest hashes.
+Source-confirmed inactive IDs mark provider variants `unavailable`. Missing
+membership without confirmation becomes `unknown`, preserves visibility and
+prevents claiming complete coverage. `not_matched` means no known association.
+An item stays active while any variant is present or its previous availability
+is uncertain. Identity reassignment marks the old variant `reassigned` so it
+cannot falsely keep a superseded canonical item active. Playback must only use
+variants marked `present`, or perform a live check for `unknown` variants.
+Retained files from schema version 1 migrate automatically on publication.
+Historical provider inventories, images, origins and metadata remain available;
+when the metadata provider disappears, its last metadata snapshot is preserved.
+Reactivation uses the same canonical identity and existing enrichment caches.
 Hashes use recursively sorted object keys, unchanged array order, compact UTF-8
 JSON without trailing newline; they are content hashes, not raw file hashes.
 

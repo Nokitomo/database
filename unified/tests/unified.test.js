@@ -10,6 +10,84 @@ const {compatible, groupEntries, baseRecord, loadSources} = require('../scripts/
 const {enrichWorld} = require('../scripts/enrich');
 const {run, worldInput} = require('../scripts/pipeline');
 const {verify} = require('../scripts/verify');
+const ready = async record=>({info:record.info,episodes:[],enrichment:{status:'ready'}});
+
+test('missing membership without confirmed retirement remains unknown and active',async t=>{
+  const config=fixture(t);await run({...config,enrich:ready});
+  const aw=read(path.join(config.awRoot,'manifest.json'));delete aw.itemHashes['3'];
+  write(path.join(config.awRoot,'manifest.json'),aw);await run({...config,enrich:ready});
+  const item=read(path.join(config.output,'items/work-2.json'));
+  assert.equal(item.active,true);assert.equal(item.availability.animeworld,'unknown');
+  assert.equal(read(path.join(config.output,'manifest.json')).complete,false);
+  assert.equal(verify(config.output).count,2);
+});
+
+test('retiring one provider preserves primary metadata and another provider availability',async t=>{
+  const config=fixture(t);await run({...config,enrich:ready});
+  const before=read(path.join(config.output,'items/work-1.json'));
+  write(path.join(config.auRoot,'raw/index.json'),{expectedIds:[],inactiveIds:[1],baseUrl:'https://www.animeunity.co'});
+  await run({...config,enrich:ready});
+  const after=read(path.join(config.output,'items/work-1.json'));
+  assert.equal(after.active,true);assert.equal(after.availability.animeunity,'unavailable');
+  assert.equal(after.availability.animeworld,'present');
+  for (const [key,value] of Object.entries(before.info)) assert.deepEqual(after.info[key],value);
+  assert.deepEqual(after.providers.animeunity[0].episodes,before.providers.animeunity[0].episodes);
+  assert.equal(verify(config.output).count,2);
+});
+
+test('legacy orphan item migrates to inactive hashed item and preserves origins',async t=>{
+  const config=fixture(t);await run({...config,enrich:ready});
+  const manifest=read(path.join(config.output,'manifest.json'));delete manifest.itemHashes['work-2'];manifest.schemaVersion=1;
+  write(path.join(config.output,'manifest.json'),manifest);
+  const aw=read(path.join(config.awRoot,'manifest.json'));delete aw.itemHashes['3'];aw.inactiveIds=[3];
+  write(path.join(config.awRoot,'manifest.json'),aw);await run({...config,enrich:ready});
+  const current=read(path.join(config.output,'manifest.json'));
+  assert(current.itemHashes['work-2']);assert.equal(current.inactiveCount,1);
+  assert.equal(read(path.join(config.output,'items/work-2.json')).active,false);
+  assert.equal(verify(config.output).count,2);
+  const hashes=current.itemHashes;await run({...config,enrich:ready});
+  assert.deepEqual(read(path.join(config.output,'manifest.json')).itemHashes,hashes);
+  assert.deepEqual(read(path.join(config.output,'changes.json')).deactivated,[]);
+});
+
+test('corrupt retained checkpoint aborts before publication',async t=>{
+  const config=fixture(t);await run({...config,enrich:ready});
+  const file=path.join(config.output,'items/work-2.json'),item=read(file);item.info.title='corrupt';write(file,item);
+  await assert.rejects(run({...config,enrich:ready}),/Corrupt retained item/);
+});
+
+test('all providers can retire and reactivate without losing inventories or origins',async t=>{
+  const config=fixture(t);await run({...config,enrich:ready});
+  const aw=read(path.join(config.awRoot,'manifest.json'));
+  write(path.join(config.auRoot,'raw/index.json'),{expectedIds:[],inactiveIds:[1],baseUrl:'https://www.animeunity.co'});
+  write(path.join(config.awRoot,'manifest.json'),{...aw,itemHashes:{},inactiveIds:[2,3]});
+  await run({...config,enrich:ready});
+  const m=read(path.join(config.output,'manifest.json'));
+  assert.equal(m.activeCount,0);assert.equal(m.inactiveCount,2);
+  assert.equal(read(path.join(config.output,'items/work-1.json')).providers.animeunity[0].availability,'unavailable');
+  assert.equal(verify(config.output).count,2);
+  write(path.join(config.awRoot,'manifest.json'),aw);await run({...config,enrich:ready});
+  assert.equal(read(path.join(config.output,'manifest.json')).activeCount,2);
+  assert.equal(read(path.join(config.output,'items/work-1.json')).availability.animeunity,'unavailable');
+  assert.equal(verify(config.output).count,2);
+});
+
+test('reassigned variants do not keep old identities falsely available',async t=>{
+  const config=fixture(t);await run({...config,enrich:ready});
+  const old=read(path.join(config.output,'items/work-2.json'));
+  old.id='work-99';write(path.join(config.output,'items/work-99.json'),old);
+  await run({...config,enrich:ready});
+  const retired=read(path.join(config.output,'items/work-99.json'));
+  assert.equal(retired.active,false);assert.equal(retired.providers.animeworld[0].availability,'reassigned');
+  assert.equal(verify(config.output).count,3);
+});
+
+test('verification rejects an active flag inconsistent with provider status',async t=>{
+  const config=fixture(t);await run({...config,enrich:ready});
+  const file=path.join(config.output,'items/work-2.json'),item=read(file);item.active=false;write(file,item);
+  const m=read(path.join(config.output,'manifest.json'));m.itemHashes[item.id]=hash(item);write(path.join(config.output,'manifest.json'),m);
+  assert.throws(()=>verify(config.output),/active membership/);
+});
 const anime = (id, anilist, mal = null) => ({id, path: `/play/test.${id}`, sourceIds: {anilist, mal},
   info: {title: `Anime ${id}`, type: 'TV'}, images: [{kind: 'poster', url: {base: 'img', path: '/cover.jpg'}}], episodes: []});
 const entry = (provider, record, enriched = false) => ({provider, id: record.id, record, enriched});
@@ -112,12 +190,16 @@ test('different formats are not silently merged',()=>{
   const result=groupEntries([entry('animeunity',movie),entry('animeworld',series)]);
   assert.equal(result.groups.length,2);assert.equal(result.conflicts.length,1);
 });
-test('deactivation removes only catalog membership and reactivation reuses identity',async t=>{
+test('deactivation retains hashed metadata and reactivation reuses identity',async t=>{
   const config=fixture(t);const enrich=async record=>({info:record.info,episodes:[],enrichment:{status:'ready'}});
   await run({...config,enrich});const first=read(path.join(config.output,'manifest.json'));
   const aw=read(path.join(config.awRoot,'manifest.json'));const saved=aw.itemHashes['3'];delete aw.itemHashes['3'];aw.inactiveIds=[3];
   write(path.join(config.awRoot,'manifest.json'),aw);await run({...config,enrich});
-  const removed=read(path.join(config.output,'changes.json')).removed;assert.equal(removed.length,1);
+  const changes=read(path.join(config.output,'changes.json'));assert.deepEqual(changes.removed,[]);
+  const removed=changes.deactivated;assert.equal(removed.length,1);
+  const dormant=read(path.join(config.output,`items/${removed[0]}.json`));assert.equal(dormant.active,false);
+  assert.equal(dormant.availability.animeworld,'unavailable');
+  assert.equal(verify(config.output).count,2);
   assert(fs.existsSync(path.join(config.output,`items/${removed[0]}.json`)));
   aw.itemHashes['3']=saved;aw.inactiveIds=[];write(path.join(config.awRoot,'manifest.json'),aw);
   await run({...config,enrich:async()=>{throw new Error('Should reuse saved enrichment');}});
