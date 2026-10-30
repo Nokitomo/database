@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tvdb","kind":"episodes","input":{"tvdbShowId":85310,"seasonNumber":1},"checkedAt":1793357605186,"status":"ok","value":[{"episodeNumber":44,"title":"Il piccolo Gino","titleLanguage":"ita"}],"fields":{},"episodes":{"44":{"checkedAt":1793357605186,"status":"missing"}}}
