@@ -6,6 +6,7 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const {ROOT, hash, readJson, writeJson} = require('./lib');
 const {episodeBounds} = require('./source');
+const {needsEpisodeIdentity, protectSourceEpisodes} = require('./episode-safety');
 const {assertWarp} = require('./warp');
 const {createPacedGet} = require('./rate-limit');
 const {createTmdbGet} = require('./tmdb-http');
@@ -61,6 +62,7 @@ function createContext(providerRoot, baseUrl, raw = null, contextOptions = {}) {
           const start = Number(parsed.searchParams.get('start_range') || 0);
           const end = Number(parsed.searchParams.get('end_range') || Infinity);
           const episodes = raw.episodes.filter(value => {
+            if (needsEpisodeIdentity(value.number)) return false;
             const number = Number.parseFloat(String(value.number));
             return Number.isFinite(number) && number >= start && number <= end;
           });
@@ -155,6 +157,7 @@ async function enrichAnime(providerRoot, baseUrl, raw, mapped, options = {}) {
   const byId = new Map((options.progress?.episodes ||
     (plan.reuseEpisodes ? structuredClone(options.previousFinal.episodes) : [])).map(episode => [String(episode.link), episode]));
   const groups = info.linkList.filter(group => group.episodesLink);
+  protectSourceEpisodes(byId, raw.episodes);
   const startGroup = options.progress?.nextGroup ?? (plan.reuseEpisodes ? groups.length : 0);
   const maxGroups = options.maxGroups ?? Infinity;
   const endGroup = Math.min(groups.length, startGroup + maxGroups);
@@ -167,6 +170,7 @@ async function enrichAnime(providerRoot, baseUrl, raw, mapped, options = {}) {
       byId.set(String(episode.link), episode);
       groupEpisodes.set(String(episode.link), episode);
     }
+    protectSourceEpisodes(groupEpisodes, raw.episodes);
     applySourceEpisodeMetadata(groupEpisodes, raw.episodes);
     await fillGaps(providerRoot, context, groupEpisodes, raw);
     options.signal?.throwIfAborted();
@@ -183,6 +187,7 @@ async function enrichAnime(providerRoot, baseUrl, raw, mapped, options = {}) {
     sourceStatus: mergeSourceStatus(options.progress?.sourceStatus, context.externalStatus),
   }};
   mergeSourceEpisodes(byId, raw.episodes);
+  protectSourceEpisodes(byId, raw.episodes);
   applySourceEpisodeMetadata(byId, raw.episodes);
   if (groups.length === 0 && !plan.reuseEpisodes) await fillGaps(providerRoot, context, byId, raw);
   const artworkCandidates = await getArtwork(providerRoot, context, raw, mapped, info);
@@ -192,7 +197,7 @@ async function enrichAnime(providerRoot, baseUrl, raw, mapped, options = {}) {
   info.extra.artworkFallbacks = buildArtworkFallbacks(info, artworkCandidates);
   options.signal?.throwIfAborted();
   return {id: raw.id, path: raw.path, linkSchemaVersion: 2, enrichmentSchemaVersion: ENRICHMENT_SCHEMA_VERSION,
-    updatedAt: new Date().toISOString(), info,
+    updatedAt: new Date().toISOString(), episodeSafetyVersion: 1, info,
     episodes: [...byId.values()], sourceIds: mapped.sourceIds, mappings: mapped.mappings,
     sourceMetadata: {info: raw.info, embedded: raw.embeddedAnime, archive: raw.archiveRecord},
     sourceEpisodes: raw.episodes, artworkInventory: artworkCandidates,
@@ -266,6 +271,7 @@ async function fillTvdbEpisodeGaps(providerRoot, context, byId, raw, resolveFall
   const resolveTvdbEpisodeFallbacks = resolveFallbacks || requireProvider(providerRoot, 'tvdb/index.js').resolveTvdbEpisodeFallbacks;
   const groups = new Map();
   for (const episode of byId.values()) {
+    if (episode.metadataMappingStatus === 'unresolved') continue;
     const primary = episode.metadataSources?.tmdb || episode;
     if (primary.synopsis && primary.thumbnail && primary.title && !/^Episodes? \d/i.test(primary.title)) continue;
     const mapping = episode.externalMappings?.find(value => value.provider === 'tvdb_show' && value.seasonNumber != null && value.episodeNumbers?.length);

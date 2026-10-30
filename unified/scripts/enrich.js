@@ -3,6 +3,7 @@
 const {createContext, requireProvider, collectArtwork, fillTvdbEpisodeGaps} = require('../../scripts/vega');
 const {ids} = require('./catalog');
 const {hash} = require('../../providers/animeworld/scripts/store');
+const {needsEpisodeIdentity, providerOnlyEpisode} = require('../../scripts/episode-safety');
 
 // Only external resolvers are reused. No AnimeUnity source endpoint is called.
 async function enrichWorld(record, {providerRoot, cacheRoot, signal, previous, services = {}}) {
@@ -31,6 +32,7 @@ async function enrichWorld(record, {providerRoot, cacheRoot, signal, previous, s
   const episodes = [], seasons = new Map();
   const episodeMappings = new Map();
   for (const source of record.episodes) {
+    if (needsEpisodeIdentity(source.number)) continue;
     const number = /^\d+(?:\.\d+)?$/.test(String(source.number)) ? Number(source.number) : null;
     const resolved = number == null ? null : mapping.resolveAniBridgeEpisodeMappings(resolution, number);
     episodeMappings.set(source.id, resolved);
@@ -51,6 +53,10 @@ async function enrichWorld(record, {providerRoot, cacheRoot, signal, previous, s
   // A task cache persists individual season requests, including partial failures.
   // Identity includes the episode mapping, so changed ranges invalidate only affected tasks.
   for (const source of record.episodes) {
+    if (needsEpisodeIdentity(source.number)) {
+      episodes.push(providerOnlyEpisode({link: String(source.id), sourcePath: source.path}, source));
+      continue;
+    }
     signal?.throwIfAborted();
     const number = /^\d+(?:\.\d+)?$/.test(String(source.number)) ? Number(source.number) : null;
     const resolved = episodeMappings.get(source.id);
@@ -78,7 +84,8 @@ async function enrichWorld(record, {providerRoot, cacheRoot, signal, previous, s
   await (services.fillGaps || fillTvdbEpisodeGaps)(providerRoot, context,
     new Map(episodes.map(episode => [episode.link, episode])), raw);
   if (!services.skipAniZip) {
-    const missing = episodes.filter(episode => !episode.synopsis || !episode.thumbnail || /^Episode /i.test(episode.title));
+    const missing = episodes.filter(episode => episode.metadataMappingStatus !== 'unresolved' &&
+      (!episode.synopsis || !episode.thumbnail || /^Episode /i.test(episode.title)));
     if (missing.length) {
       const fallbacks = await load('anizip/index.js').resolveAniZipEpisodeFallbacks({providerContext: context,
         anilistId: sourceIds.anilist || undefined, malId: sourceIds.mal || undefined,

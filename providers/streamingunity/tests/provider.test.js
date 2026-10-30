@@ -14,6 +14,19 @@ const card=id=>({id,slug:'title-'+id,name:'Title '+id,type:'movie'});
 const listing=(cards,total,page=1)=>JSON.stringify({data:cards,total,current_page:page,per_page:60,last_page:Math.max(1,Math.ceil(total/60))});
 function page(id=1,seasons=[],number=undefined){return JSON.stringify({props:{cdn_url:'https://cdn.streamingunity.fun',title:{...card(id),type:seasons.length?'tv':'movie',seasons,tmdb_id:42,images:[{filename:'a.webp',type:'poster'}]},loadedSeason:number===undefined?null:{id:number+100,title_id:id,number,episodes:[{id:number+200,number:1,season_id:number+100,name:'Episode',plot:'Plot',images:[{filename:'e.webp'}]}]}}});}
 function tmp(t){const root=fs.mkdtempSync(path.join(os.tmpdir(),'streamingunity-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));return root;}
+
+test('season zero checkpoints and resumes without renumbering zero or fractional episodes',async t=>{
+  const root=tmp(t),state=initialState(),seasons=[{id:100,number:0,episodes_count:1},{id:101,number:1,episodes_count:1}];
+  observe(state,card(1),1);const calls=[];
+  const client={async get(url){calls.push(url);const number=url.endsWith('season-0')?0:url.endsWith('season-1')?1:undefined;
+    const data=JSON.parse(page(1,seasons,number));if(number!==undefined)data.props.loadedSeason.episodes[0].number=number===0?0:3.5;
+    return {html:JSON.stringify(data)};}};
+  await collect(client,state,root,1,{now:100,save(){},maxSeasons:1});assert(!state.records[1]?.complete);
+  await collect(client,state,root,1,{now:101,save(){},maxSeasons:1});
+  const result=read(itemFile(root,1));assert.deepEqual(result.seasons.map(s=>s.number),[0,1]);
+  assert.deepEqual(result.seasons.map(s=>s.episodes[0].number),[0,3.5]);
+  assert.equal(calls.filter(p=>p.endsWith('season-0')).length,1);
+});
 test('archive rejects truncated inventories and wrong pagination',()=>{
   assert.equal(archive(listing([card(1)],1)).total,1);
   assert.throws(()=>archive(listing([],1)),/Incomplete/);

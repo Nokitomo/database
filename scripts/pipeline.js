@@ -1,4 +1,5 @@
 'use strict';
+const {needsEpisodeIdentity} = require('./episode-safety');
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -276,6 +277,7 @@ async function runFinal(options, providerRoot) {
     return (options.full && (!options.fullSince || Date.parse(final?.updatedAt || 0) < options.fullSince)) ||
       !final || final.providerRef !== revision ||
       final.enrichmentSchemaVersion !== ENRICHMENT_SCHEMA_VERSION ||
+      (final.episodeSafetyVersion !== 1 && raw.episodes.some(episode => needsEpisodeIdentity(episode.number))) ||
       final.rawFingerprint !== raw.fingerprint || !matchesMapping(final, mapped) ||
       final.path !== raw.path ||
       enrichmentDue(final);

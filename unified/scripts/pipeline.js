@@ -3,6 +3,7 @@ const path = require('node:path');
 const {read, write, hash} = require('../../providers/animeworld/scripts/store');
 const {loadSources, groupEntries, baseRecord, namespace, publish} = require('./catalog');
 const {enrichSource} = require('./enrich');
+const {needsEpisodeIdentity, protectSourceEpisodes} = require('../../scripts/episode-safety');
 function worldInput(group) {
   const provider = group.entries.some(entry=>entry.provider==='animeworld')?'animeworld':'animesaturn';
   const variants = group.entries.filter(entry => entry.provider === provider)
@@ -30,7 +31,7 @@ async function run({auRoot, awRoot, output, providerRoot, limit = 10, budgetMs =
     const exclusive = !group.entries.some(entry => entry.provider === 'animeunity');
     if (exclusive) {
       const input = worldInput(group);
-      const fingerprint = hash({version: 2, provider: input.provider, sourceIds: input.sourceIds,
+      const fingerprint = hash({version: input.episodes.some(episode => needsEpisodeIdentity(episode.number)) ? 3 : 2, provider: input.provider, sourceIds: input.sourceIds,
         title: input.info.title, type: input.info.type,
         episodes: input.episodes.map(({id,number,title,synopsis,thumbnail}) => ({id,number,title,synopsis,thumbnail}))});
       const file = path.join(output, 'enriched', `${group.id}.json`), previous = read(file);
@@ -54,6 +55,12 @@ async function run({auRoot, awRoot, output, providerRoot, limit = 10, budgetMs =
           }
           write(path.join(output, 'state.json'), state);
         } else hasImmediateWork = true;
+      }
+      if (enriched) {
+        enriched = structuredClone(enriched);
+        const safeEpisodes = new Map((enriched.episodes || []).map(episode => [String(episode.link), episode]));
+        protectSourceEpisodes(safeEpisodes, input.episodes);
+        enriched.episodes = [...safeEpisodes.values()];
       }
       if (enriched) record = {...record, ...namespace(enriched, input.provider), metadataProvider:input.provider,
         info: {...namespace(enriched.info, input.provider), title: input.info.title,

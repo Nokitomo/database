@@ -1,6 +1,7 @@
 'use strict';
 
 const path = require('node:path');
+const {protectSourceEpisodes} = require('../../scripts/episode-safety');
 const {read, write, hash} = require('../../providers/animeworld/scripts/store');
 const {hash: legacyHash} = require('../../scripts/lib');
 const validId = value => Number.isSafeInteger(Number(value)) && Number(value) > 0 ? Number(value) : null;
@@ -103,6 +104,11 @@ function baseRecord(group) {
     .sort((a,b) => (b.record.episodes?.length || 0)-(a.record.episodes?.length || 0))[0] ||
     group.entries.find(entry => entry.provider === 'animeunity') || group.entries[0];
   const result = structuredClone(primary.record);
+  if (primary.provider === 'animeunity' && primary.enriched) {
+    const episodes = new Map((result.episodes || []).map(episode => [String(episode.link), episode]));
+    protectSourceEpisodes(episodes, primary.raw?.episodes || result.sourceEpisodes || []);
+    result.episodes = [...episodes.values()];
+  }
   if(primary.provider==='animeunity'&&!primary.enriched){
     result.info={...result.info,title:result.info.title_eng||result.info.title||result.info.title_it,
       synopsis:result.info.plot||result.info.synopsis,poster:result.info.imageurl||result.info.cover,
