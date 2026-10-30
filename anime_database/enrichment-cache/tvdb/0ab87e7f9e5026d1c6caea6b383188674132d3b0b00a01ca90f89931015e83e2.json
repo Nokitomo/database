@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tvdb","kind":"episodes","input":{"tvdbShowId":289884,"seasonNumber":0},"checkedAt":1793342733770,"status":"ok","value":[{"episodeNumber":20,"title":"Welcome to the Pool!","titleLanguage":"eng"}],"fields":{},"episodes":{"20":{"checkedAt":1793342733770,"status":"missing"}}}
