@@ -1,8 +1,19 @@
 # Unified anime catalog
 
-This independent pipeline reads committed AnimeUnity, AnimeWorld and AnimeSaturn snapshots.
+This independent pipeline reads committed AnimeUnity, AnimeWorld, AnimeSaturn and AnimeTop snapshots.
 It does not scrape source pages, change either source pipeline, or implement
 playback in Vega. AnimeWorld source scraping remains a separate workflow.
+
+AnimeTop is optional until its first published snapshot. Its own animated-series
+and animated-film catalogs are collected by an independent workflow. Direct
+AniList/MAL IDs can establish identity; records without them stay separate and
+explicitly `unmapped`, with their complete source metadata retained. No title-only
+or poster-filename match is used. Its original season/episode inventories remain
+under `providers.animetop`, and images under `providerImages.animetop`.
+AnimeTop episode numbering is marked unresolved until a verified correspondence
+exists; external series artwork does not authorize guessing episode mappings.
+Unmapped AnimeTop records require no external resolver calls, and refresh locally
+on source changes or weekly. Other providers retain their existing behavior.
 
 ## Output and consumption
 

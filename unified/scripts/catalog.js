@@ -53,13 +53,15 @@ function loadSources(auRoot, awRoot, additionalSources = {}) {
   const manifests={animeunity:auManifest,animeworld:awManifest};
   const origins={animeunity:{site:auIndex.baseUrl},animeworld:awManifest.origins};
   for(const [provider,root] of Object.entries(additionalSources)){
-    if(provider!=='animesaturn')throw new Error('Unsupported additional provider');
+    if(!['animesaturn','animetop'].includes(provider))throw new Error('Unsupported additional provider');
     const manifest=read(path.join(root,'manifest.json'));
+    if(provider==='animetop'&&!manifest)continue;
+    if(provider==='animetop')require('../../providers/animetop/scripts/verify').verify(root);
     if(!manifest||manifest.provider!==provider)throw new Error(`Missing ${provider} snapshot; refusing to drop its membership`);
     for(const [id,expected] of Object.entries(manifest.itemHashes)){
-      if(!/^[A-Za-z0-9]{5}$/.test(id))throw new Error('Invalid AnimeSaturn identity');
+      if(!(provider==='animetop'?/^[1-9]\d*$/:/^[A-Za-z0-9]{5}$/).test(id))throw new Error('Invalid provider identity');
       const record=read(path.join(root,'items',id+'.json'));
-      if(!record||record.id!==id||hash(record)!==expected)throw new Error(`${provider} snapshot hash mismatch: ${id}`);
+      if(!record||String(record.id)!==id||hash(record)!==expected)throw new Error(`${provider} snapshot hash mismatch: ${id}`);
       entries.push({provider,id,record,enriched:false});
     }
     manifests[provider]=manifest;origins[provider]=manifest.origins;
@@ -102,7 +104,7 @@ function groupEntries(entries, registry = {members: {}, nextId: 1}, overrides = 
 function baseRecord(group) {
   const primary = group.entries.filter(entry => entry.provider === 'animeunity' && entry.enriched)
     .sort((a,b) => (b.record.episodes?.length || 0)-(a.record.episodes?.length || 0))[0] ||
-    group.entries.find(entry => entry.provider === 'animeunity') || group.entries[0];
+    group.entries.find(entry => entry.provider === 'animeunity') || group.entries.find(entry=>entry.provider!=='animetop') || group.entries[0];
   const result = structuredClone(primary.record);
   if (primary.provider === 'animeunity' && primary.enriched) {
     const episodes = new Map((result.episodes || []).map(episode => [String(episode.link), episode]));
@@ -115,14 +117,18 @@ function baseRecord(group) {
       background:result.info.imageurl_cover};
   }
   result.info.title ||= group.entries.map(entry=>entry.record.info?.title).find(Boolean);
-  const providers = {animeunity: [], animeworld: [], animesaturn: []};
-  const providerImages = {animeworld: [], animesaturn: []};
+  const providers = {animeunity: [], animeworld: [], animesaturn: [], animetop: []};
+  const providerImages = {animeworld: [], animesaturn: [], animetop: []};
   for (const entry of group.entries) {
     providers[entry.provider].push({id: entry.id, path: entry.record.path,
       audio: entry.record.info?.audio ?? (entry.raw?.info?.dub ? 'Italiano' : null),
       dubbed: entry.record.info?.dubbed ?? Boolean(entry.raw?.info?.dub),
-      episodes: namespace(entry.record.sourceEpisodes || entry.record.episodes || [], entry.provider)});
-    if (providerImages[entry.provider]) providerImages[entry.provider].push(...namespace(entry.record.images || [], entry.provider));
+      episodes: namespace(entry.record.sourceEpisodes || entry.record.episodes || [], entry.provider),
+      ...(entry.provider==='animetop'?{seasons:namespace(entry.record.seasons||[],entry.provider),sourceRows:namespace(entry.record.sourceRows||[],entry.provider),playback:namespace(entry.record.playback||[],entry.provider),info:namespace(entry.record.info,entry.provider),sourceIds:entry.record.sourceIds,warnings:entry.record.warnings}: {})});
+    if (providerImages[entry.provider]) {
+      const images=entry.provider==='animetop'?(entry.record.images||[]).map(({role,reference,...rest})=>({kind:role,url:reference,...rest})):entry.record.images||[];
+      providerImages[entry.provider].push(...namespace(images, entry.provider));
+    }
   }
   return {id: group.id, sourceIds: ids(primary.record), info: namespace(result.info, primary.provider),
     episodes: namespace(result.episodes || [], primary.provider), mappings: result.mappings,
@@ -159,9 +165,9 @@ function publish(root, records, source, registry, conflicts) {
         artworkLibrary: prior.artworkLibrary, metadataProvider: prior.metadataProvider,
         enrichment: prior.enrichment};
     }
-    record.providers = Object.fromEntries(['animeunity','animeworld','animesaturn'].map(provider => {
+    record.providers = Object.fromEntries(['animeunity','animeworld','animesaturn','animetop'].map(provider => {
       const live = fresh ? record.providers[provider] || [] : [];
-      const variants = new Map(live.map(value => [String(value.id), {...value, availability:'present'}]));
+      const variants = new Map(live.map(value => [String(value.id), {...value, availability:(source.inactiveIds?.[provider]||[]).some(id=>String(id)===String(value.id))?'unavailable':'present'}]));
       for (const value of prior?.providers?.[provider] || []) if (!variants.has(String(value.id))) {
         const reassigned = registry.members[`${provider}:${value.id}`] && registry.members[`${provider}:${value.id}`] !== record.id;
         const unavailable = (source.inactiveIds?.[provider] || []).some(id => String(id) === String(value.id));

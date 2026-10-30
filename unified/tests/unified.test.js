@@ -125,6 +125,39 @@ function fixture(t) {
   write(path.join(config.awRoot,'manifest.json'),{complete:true,origins:{site:'https://www.animeworld.ac',img:'https://img.animeworld.ac'},itemHashes:Object.fromEntries(aw.map(value=>[value.id,hash(value)]))});
   return config;
 }
+
+function topSnapshot(config,sourceIds={}){
+  const store=require('../../providers/animetop/scripts/store'),root=path.join(path.dirname(config.output),'animetop'),s=store.initialState();
+  const episodes=[1,2].map(season=>({id:`101:${season}:1`,path:'/anime-e-cartoni/test/',number:1,seasonNumber:season,title:'Provider title',metadataMappingStatus:'unresolved'}));
+  const r={id:101,provider:'animetop',locale:'it',active:true,path:'/anime-e-cartoni/test/',sourceIds,
+    info:{name:'AnimeTop title',title:'AnimeTop title',type:'TV',synopsis:'Original plot',poster:{base:'site',path:'/poster.jpg'}},images:[{role:'poster',reference:{base:'site',path:'/poster.jpg'}}],episodes,
+    seasons:episodes.map(e=>({id:e.seasonNumber,number:e.seasonNumber,episodes:[e]})),seasonIndex:[{id:1,number:1},{id:2,number:2}],sourceRows:[],playback:[{reference:{url:'https://host.invalid/movie'}}],warnings:[]};
+  store.observe(s,{id:101,path:r.path,name:r.info.title,kind:'tv_show'},1);s.origins={site:'https://animetop.net'};s.archive={completedAt:1,total:1};
+  write(store.itemFile(root,101),r);store.publish(root,s,{complete:true});config.additionalSources={animetop:root};return {store,root,state:s,record:r};
+}
+
+test('AnimeTop optional snapshot preserves existing catalog and direct IDs merge without overriding AU',async t=>{
+  const config=fixture(t);config.additionalSources={animetop:path.join(path.dirname(config.output),'missing')};await run({...config,enrich:ready});
+  topSnapshot(config,{anilistId:10});const r=await run({...config,enrich:ready});assert.equal(r.count,2);
+  const item=read(path.join(config.output,'items/work-1.json'));assert.equal(item.metadataProvider,'animeunity');assert.equal(item.providers.animetop.length,1);assert.equal(item.providers.animetop[0].seasons.length,2);assert.equal(item.providerImages.animetop[0].url.base,'animetop:site');assert.equal(item.providers.animetop[0].playback[0].reference.url,'https://host.invalid/movie');verify(config.output);
+});
+test('AnimeTop without direct IDs stays separate, keeps seasons and never requests guessed mappings',async t=>{
+  const config=fixture(t);topSnapshot(config);let topCalls=0;
+  const r=await run({...config,enrich:async input=>{if(input.provider!=='animetop')return ready(input);topCalls++;assert.equal(input.episodes.length,2);return enrichWorld(input,{providerRoot:'missing-build-must-not-be-used'});}});
+  assert.equal(r.count,3);assert.equal(topCalls,1);const all=Object.keys(read(path.join(config.output,'manifest.json')).itemHashes).map(id=>read(path.join(config.output,'items',id+'.json'))),item=all.find(r=>r.metadataProvider==='animetop');
+  assert.equal(item.enrichment.status,'unmapped');assert.equal(item.episodes.length,2);assert.equal(item.info.poster.base,'animetop:site');assert(item.episodes.every(e=>e.metadataMappingStatus==='unresolved'));verify(config.output);
+});
+test('AnimeTop source metadata updates invalidate source-only cache, and retirement retains original data',async t=>{
+  const config=fixture(t),top=topSnapshot(config);const enrich=input=>input.provider==='animetop'?enrichWorld(input,{}):ready(input);await run({...config,enrich});
+  top.record.info.synopsis='Updated plot';write(top.store.itemFile(top.root,101),top.record);top.store.publish(top.root,top.state,{complete:true});await run({...config,enrich});
+  const registry=read(path.join(config.output,'registry.json')),id=registry.members['animetop:101'];assert.equal(read(path.join(config.output,'items',id+'.json')).info.synopsis,'Updated plot');
+  top.state.known[101].active=false;top.store.publish(top.root,top.state,{complete:true});await run({...config,enrich});const r=read(path.join(config.output,'items',id+'.json'));assert.equal(r.active,false);assert.equal(r.providers.animetop[0].availability,'unavailable');assert.equal(r.providers.animetop[0].seasons.length,2);verify(config.output);
+});
+test('AnimeTop explicit unresolved numbering never enters AniBridge episode mapping even with direct identity',async()=>{
+  const r={provider:'animetop',id:1,sourceIds:{anilistId:10},info:{title:'Test',type:'TV'},episodes:[{id:'1:2:1',number:1,path:'/x/',title:'Source',metadataMappingStatus:'unresolved'}]};
+  const result=await enrichWorld(r,{services:{context:{},skipAniZip:true,'mappings/index.js':{resolveAnimeMappings:async()=>({schemaVersion:'3',targets:[],metadataTargets:[]}),buildAniBridgeExtra:()=>({}),resolveAniBridgeEpisodeMappings:()=>assert.fail('unsafe mapping')},'tmdb/index.js':{},fillGaps:async()=>{},artwork:async()=>({})}});
+  assert.equal(result.episodes[0].metadataMappingStatus,'unresolved');assert.equal(result.episodes[0].title,'Source');
+});
 test('merge, enrichment, no-op rerun and manifest verification', async t => {
   const config=fixture(t); let calls=0;
   const enrich=async record=>{calls++;return {info:record.info,episodes:[],enrichment:{status:'ready'}};};

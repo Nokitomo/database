@@ -7,6 +7,7 @@ const {needsEpisodeIdentity, providerOnlyEpisode} = require('../../scripts/episo
 
 // Only external resolvers are reused. No AnimeUnity source endpoint is called.
 async function enrichWorld(record, {providerRoot, cacheRoot, signal, previous, services = {}}) {
+  if(record.provider==='animetop'&&!ids(record).anilist&&!ids(record).mal)return {info:record.info,episodes:record.episodes.map(source=>providerOnlyEpisode({link:String(source.id),sourcePath:source.path},source)),enrichment:{status:'unmapped',reason:'provider-external-identity-missing'}};
   const load = name => services[name] || requireProvider(providerRoot, name);
   const context = services.context || createContext(providerRoot, 'https://source.invalid', null,
     {durableMetadata: true, componentCacheRoot: cacheRoot, signal});
@@ -32,7 +33,7 @@ async function enrichWorld(record, {providerRoot, cacheRoot, signal, previous, s
   const episodes = [], seasons = new Map();
   const episodeMappings = new Map();
   for (const source of record.episodes) {
-    if (needsEpisodeIdentity(source.number)) continue;
+    if ((needsEpisodeIdentity(source.number)||source.metadataMappingStatus==='unresolved')) continue;
     const number = /^\d+(?:\.\d+)?$/.test(String(source.number)) ? Number(source.number) : null;
     const resolved = number == null ? null : mapping.resolveAniBridgeEpisodeMappings(resolution, number);
     episodeMappings.set(source.id, resolved);
@@ -53,7 +54,7 @@ async function enrichWorld(record, {providerRoot, cacheRoot, signal, previous, s
   // A task cache persists individual season requests, including partial failures.
   // Identity includes the episode mapping, so changed ranges invalidate only affected tasks.
   for (const source of record.episodes) {
-    if (needsEpisodeIdentity(source.number)) {
+    if ((needsEpisodeIdentity(source.number)||source.metadataMappingStatus==='unresolved')) {
       episodes.push(providerOnlyEpisode({link: String(source.id), sourcePath: source.path}, source));
       continue;
     }

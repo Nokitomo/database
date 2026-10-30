@@ -33,7 +33,11 @@
     "eurostreaming": "node providers/eurostreaming/scripts/pipeline.js",
     "verify:eurostreaming": "node --test providers/eurostreaming/tests/provider.test.js providers/eurostreaming/tests/workflow.test.js",
     "verify:eurostreaming:data": "node providers/eurostreaming/scripts/verify.js",
-    "verify:eurostreaming:live": "node providers/eurostreaming/scripts/smoke.js"
+    "verify:eurostreaming:live": "node providers/eurostreaming/scripts/smoke.js",
+    "animetop": "node providers/animetop/scripts/pipeline.js",
+    "verify:animetop": "node --test providers/animetop/tests/provider.test.js providers/animetop/tests/workflow.test.js",
+    "verify:animetop:data": "node providers/animetop/scripts/verify.js",
+    "verify:animetop:live": "node providers/animetop/scripts/smoke.js"
   },
   "dependencies": {
     "axios": "^1.10.0",

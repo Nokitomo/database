@@ -44,6 +44,11 @@ else if(args[0].endsWith('/pipeline.js')) {
 } else if(!args[0].endsWith('/verify.js')) throw new Error('Unexpected command');
 `);
   for(let run=1;run<=2;run++) {
+    if(run===2){
+      git(['checkout','--orphan','animetop-data'],seed);git(['rm','-rf','.'],seed);
+      fs.mkdirSync(path.join(seed,'providers/animetop/data'),{recursive:true});fs.writeFileSync(path.join(seed,'providers/animetop/data/manifest.json'),'{}');
+      git(['add','.'],seed);git(['commit','-m','AnimeTop snapshot'],seed);git(['push','origin','animetop-data'],seed);
+    }
     const work=path.join(tmp,`work-${run}`);fs.mkdirSync(path.join(work,'shared','warp'),{recursive:true});
     git(['init','-b','main',work]);git(['remote','add','origin',remote],work);
     fs.copyFileSync(path.join(repo,'shared/warp/check.sh'),path.join(work,'shared/warp/check.sh'));
@@ -53,6 +58,7 @@ else if(args[0].endsWith('/pipeline.js')) {
       env:{...env,PATH:bin+path.delimiter+env.PATH,GH_REPO:'test/unified',
         UNIFIED_TEST_NODE:slash(process.execPath),UNIFIED_TEST_STUB:slash(stub),UNIFIED_TEST_RUN:String(run),UNIFIED_TEST_BIN:binPath}});
     assert.equal(r.status,0,r.stdout+'\n'+r.stderr);
+    assert.equal(fs.existsSync(path.join(work,'providers/animetop/data/manifest.json')),run===2);
   }
   assert.equal(git(['rev-parse','main'],remote),mainBefore);
   assert.deepEqual(JSON.parse(git(['show','unified-data:unified/data/state.json'],remote)),{counter:2});

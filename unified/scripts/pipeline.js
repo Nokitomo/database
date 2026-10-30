@@ -5,12 +5,12 @@ const {loadSources, groupEntries, baseRecord, namespace, publish} = require('./c
 const {enrichSource} = require('./enrich');
 const {needsEpisodeIdentity, protectSourceEpisodes} = require('../../scripts/episode-safety');
 function worldInput(group) {
-  const provider = group.entries.some(entry=>entry.provider==='animeworld')?'animeworld':'animesaturn';
+  const provider = group.entries.some(entry=>entry.provider==='animeworld')?'animeworld':group.entries.some(entry=>entry.provider==='animesaturn')?'animesaturn':'animetop';
   const variants = group.entries.filter(entry => entry.provider === provider)
     .map(entry => entry.record).sort((a,b)=>b.episodes.length-a.episodes.length);
   const primary = structuredClone(variants[0]), byNumber = new Map();
   for (const variant of variants) for (const episode of variant.episodes) {
-    const key = String(episode.number);
+    const key = provider==='animetop'?String(episode.id):String(episode.number);
     if (!byNumber.has(key)) byNumber.set(key, episode);
   }
   primary.episodes = [...byNumber.values()];
@@ -33,6 +33,7 @@ async function run({auRoot, awRoot, output, providerRoot, limit = 10, budgetMs =
       const input = worldInput(group);
       const fingerprint = hash({version: input.episodes.some(episode => needsEpisodeIdentity(episode.number)) ? 3 : 2, provider: input.provider, sourceIds: input.sourceIds,
         title: input.info.title, type: input.info.type,
+        ...(input.provider==='animetop'?{providerInfo:input.info,sourceRows:input.sourceRows}:{}),
         episodes: input.episodes.map(({id,number,title,synopsis,thumbnail}) => ({id,number,title,synopsis,thumbnail}))});
       const file = path.join(output, 'enriched', `${group.id}.json`), previous = read(file);
       const status = state[group.id];
@@ -47,7 +48,7 @@ async function run({auRoot, awRoot, output, providerRoot, limit = 10, budgetMs =
               signal: AbortSignal.timeout(Math.max(1, budgetMs-(now()-start)))});
             write(file, enriched);
             const taskDue = Object.values(enriched.metadataTasks || {}).map(value => value.nextCheckAt).filter(Number.isFinite);
-            state[group.id] = {fingerprint, nextCheckAt: Math.min(now() + (enriched.enrichment.status === 'retry' ? 3600000 : 86400000), ...taskDue)};
+            state[group.id] = {fingerprint, nextCheckAt: Math.min(now() + (enriched.enrichment.status === 'retry' ? 3600000 : input.provider==='animetop'&&enriched.enrichment.status==='unmapped'?7*86400000:86400000), ...taskDue)};
           } catch (error) {
             state[group.id] = {fingerprint, error: String(error.message).slice(0,200), nextCheckAt: now()+3600000};
             record.enrichment = {status: 'retry'};
@@ -76,7 +77,7 @@ if (require.main === module) {
   const root = path.resolve(__dirname, '../..');
   run({auRoot: path.join(root, 'anime_database'), awRoot: path.join(root, 'providers/animeworld/data'),
     output: path.join(root, 'unified/data'), providerRoot: path.join(root, '.cache/vega-providers'),
-    additionalSources: {animesaturn:path.join(root,'providers/animesaturn/data')},
+    additionalSources: {animesaturn:path.join(root,'providers/animesaturn/data'),animetop:path.join(root,'providers/animetop/data')},
     stage: process.env.RUN_STAGE || 'all'})
     .then(result => console.log(`UNIFIED_BATCH ${JSON.stringify(result)}`))
     .catch(error => {console.error(error); process.exitCode = 1;});
