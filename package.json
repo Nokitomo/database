@@ -6,7 +6,11 @@
   "scripts": {
     "pipeline": "node scripts/pipeline.js",
     "verify": "node --test tests/artwork-fallbacks.test.js tests/discovery-state.test.js tests/image-health.test.js tests/incremental.test.js tests/metadata-tasks.test.js tests/migrate-links.test.js tests/pipeline.test.js tests/provider-links.test.js tests/quality.test.js tests/rate-limit.test.js tests/record-deadline.test.js tests/tmdb-http.test.js tests/warp.test.js",
-    "verify:data": "node scripts/verify-database.js"
+    "verify:data": "node scripts/verify-database.js",
+    "animeworld": "node providers/animeworld/scripts/pipeline.js",
+    "verify:animeworld": "node --test providers/animeworld/tests/parse.test.js providers/animeworld/tests/http.test.js providers/animeworld/tests/pipeline.test.js providers/animeworld/tests/workflow.test.js",
+    "verify:animeworld:data": "node providers/animeworld/scripts/verify.js",
+    "verify:animeworld:live": "node providers/animeworld/scripts/smoke.js"
   },
   "dependencies": {
     "axios": "^1.10.0",

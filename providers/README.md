@@ -8,6 +8,7 @@ AnimeUnity remains in the existing root-level `scripts/`, `tests/`, and
 `anime_database/` directories while its current database build continues.
 It can be moved into this layout after that build is complete.
 
-The `animeworld/` directories are reserved for the next provider. Its source
-resolution, WARP-enabled workflow, data format, and update policy will be
-implemented when those requirements are defined.
+`animeworld/` is an independent provider-only scraper; see its README for the
+schema, WARP-enabled workflow, validation and incremental update policy. Its
+generated output uses the dedicated `animeworld-data` branch, while code stays
+on `main`, so its checkpoints do not contend with AnimeUnity's publication.

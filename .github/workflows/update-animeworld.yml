@@ -1,0 +1,63 @@
+name: Update AnimeWorld database
+
+on:
+  schedule:
+    - cron: '43 */2 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Update due titles, or start/resume a full refresh'
+        type: choice
+        options: [update, full]
+        default: update
+      stage:
+        description: 'All steps, discovery only, details only, or rebuild exports'
+        type: choice
+        options: [all, discover, details, publish]
+        default: all
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: animeworld-database-main
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    env:
+      WARP_REQUIRED: '1'
+      HTTP_PROXY: ''
+      HTTPS_PROXY: ''
+      ALL_PROXY: ''
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          sparse-checkout: |
+            providers/animeworld
+            shared/warp
+      - name: Install and verify Cloudflare WARP
+        timeout-minutes: 15
+        run: bash shared/warp/setup.sh
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Install dependencies
+        run: |
+          bash shared/warp/check.sh
+          npm ci
+      - name: Verify AnimeWorld logic
+        run: npm run verify:animeworld
+      - name: Scrape AnimeWorld with durable checkpoints
+        env:
+          RUN_MODE: ${{ inputs.mode || 'update' }}
+          RUN_STAGE: ${{ inputs.stage || 'all' }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: bash providers/animeworld/scripts/run-workflow.sh
