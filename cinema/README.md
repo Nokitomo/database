@@ -1,9 +1,24 @@
 # Unified film and series catalog
 
-This separate pipeline combines committed StreamingUnity and Altadefinizione
+This separate pipeline combines committed StreamingUnity, Altadefinizione and Eurostreaming
 snapshots. Output is `cinema/data/` on branch `cinema-data`. It does not modify
 source scrapers, the anime unifier, Vega providers or the app. Global anime/cinema
 unification and app downloading/playback integration remain separate work.
+
+Eurostreaming is optional until its first snapshot: existing sources continue
+publishing and `awaitingProviders` reports the missing first snapshot. Once
+present it is verified like every other source. `complete` refers to the loaded
+sources; inspect `awaitingProviders` and `identityIssues` for remaining coverage
+and identification limitations. The runner reads each source from its own branch.
+
+Eurostreaming identities use existing shared IDs first, then verified IMDb/TMDB
+backlinks through the shared paced API/web transport. Title/year matches are
+review candidates only; unresolved records remain separate. Identity results
+and retry schedules persist in `identity.json`; merge-only runs reuse them.
+Source episode blocks/ITA/SUB ITA versions remain available under the provider.
+Standalone Eurostreaming episode numbering is unverified, so external episode
+metadata is not assigned automatically. Other providers retain their existing
+metadata behavior and priority.
 
 ## Identity and metadata
 

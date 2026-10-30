@@ -12,9 +12,16 @@ async function smoke(){
       for(const card of samples[provider]){store.observe(state,card,Date.now());await collect(client,state,roots[provider],card.id,{now:Date.now(),save(){},maxSeasons:100});}
       store.publish(roots[provider],state,{complete:false,pendingCount:0});
     }
+    {
+      const {Client}=require('../../providers/eurostreaming/scripts/http'),{collect}=require('../../providers/eurostreaming/scripts/pipeline'),store=require('../../providers/eurostreaming/scripts/store');
+      const client=new Client({signal:AbortSignal.timeout(120000)}),d=await client.discover(),state=store.initialState();state.origins={site:d.baseUrl};
+      roots.eurostreaming=path.join(root,'eurostreaming');await collect(client,state,roots.eurostreaming,'/yaga/',null,{now:Date.now(),save(){}});
+      store.publish(roots.eurostreaming,state,{complete:false,pendingCount:0});
+    }
     const output=path.join(root,'cinema');const result=await run({roots,output,stage:'merge'});assert.equal(result.count,3);verify(output);
     const manifest=read(path.join(output,'manifest.json')),items=Object.keys(manifest.itemHashes).map(id=>read(path.join(output,'items',id+'.json'))),yaga=items.find(r=>r.sourceIds.tmdb==='314360');
     assert(yaga.providers.streamingunity?.length&&yaga.providers.altadefinizione?.length);
+    assert(yaga.providers.eurostreaming?.length);
     assert(yaga.seasons[0].episodes.some(e=>e.metadataSources['streamingunity:66402']&&e.metadataSources['altadefinizione:45321']));
     console.log(JSON.stringify({ok:true,records:result.count,matched:{title:yaga.info.title,ids:yaga.sourceIds},sacrifices:items.filter(r=>r.info.title==='Sacrifice').map(r=>r.sourceIds),episodes:yaga.seasons[0].episodes.map(e=>({number:e.number,title:e.title,synopsis:!!e.synopsis,thumbnail:!!e.thumbnail}))}));
   }finally{fs.rmSync(root,{recursive:true,force:true});}

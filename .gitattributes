@@ -4,4 +4,5 @@ providers/streamingunity/scripts/*.sh text eol=lf
 shared/warp/*.sh text eol=lf
 unified/scripts/*.sh text eol=lf
 providers/altadefinizione/scripts/*.sh text eol=lf
+providers/eurostreaming/scripts/*.sh text eol=lf
 cinema/scripts/*.sh text eol=lf

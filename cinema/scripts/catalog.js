@@ -1,16 +1,17 @@
 'use strict';
 const path=require('node:path');
 const {read,write,hash}=require('../../shared/storage/json');
-const PROVIDERS=['streamingunity','altadefinizione'];
+const PROVIDERS=['streamingunity','altadefinizione','eurostreaming'];
 function loadSources(roots){
-  const entries=[],snapshots={},origins={};
+  const entries=[],snapshots={},origins={},missingProviders=[];
   for(const provider of PROVIDERS){
+    if(provider==='eurostreaming'&&(!roots[provider]||!require('node:fs').existsSync(path.join(roots[provider],'manifest.json')))){missingProviders.push(provider);continue;}
     require(`../../providers/${provider}/scripts/verify`).verify(roots[provider]);
     const m=read(path.join(roots[provider],'manifest.json'));snapshots[provider]={hash:hash(m),complete:m.complete,expectedCount:m.expectedCount};
     for(const [key,value]of Object.entries(m.origins))origins[provider+':'+key]=value;
     for(const id of Object.keys(m.itemHashes)){const r=read(path.join(roots[provider],'items',id+'.json'));entries.push({key:provider+':'+id,provider,record:r});}
   }
-  return {entries,snapshots,origins};
+  return {entries,snapshots,origins,missingProviders};
 }
 function ids(record){const s=record.sourceIds||{};return {tmdb:positive(s.tmdb_id),imdb:/^tt\d+$/.test(s.imdb_id||'')?s.imdb_id:null,tvdb:positive(s.tvdb_id)};}
 function positive(v){return Number.isSafeInteger(Number(v))&&Number(v)>0?String(v):null;}
@@ -38,12 +39,12 @@ function namespace(v,p){if(Array.isArray(v))return v.map(x=>namespace(x,p));if(v
 const meaningful=v=>typeof v==='string'&&v.trim()&&!/^(?:episode|episodio)\s*[\d.]+$/i.test(v.trim());
 function episodeData(e){return {title:e.name||e.title||null,synopsis:e.plot||e.synopsis||null,thumbnail:e.thumbnail||e.still||e.images?.find(x=>/still|thumbnail/i.test(x.type||''))?.reference||e.images?.[0]?.reference||null};}
 function mergeGroup(g){
-  const ordered=[...g.entries].sort((a,b)=>(a.provider==='streamingunity'?0:1)-(b.provider==='streamingunity'?0:1)||Number(a.record.id)-Number(b.record.id));
+  const ordered=[...g.entries].sort((a,b)=>PROVIDERS.indexOf(a.provider)-PROVIDERS.indexOf(b.provider)||Number(a.record.id)-Number(b.record.id));
   const primary=ordered[0],r=primary.record,external={tmdb:null,imdb:null,tvdb:null},providers={},images=[],seasons=new Map(),warnings=[];
   const info={...namespace(r.info,primary.provider),title:r.info.name,type:r.info.type,year:r.info.year||Number(String(r.info.release_date||'').slice(0,4))||null,synopsis:r.info.plot||r.info.synopsis||null};const provenance={};
   for(const entry of ordered){const record=namespace(entry.record,entry.provider);for(const [k,v]of Object.entries(ids(entry.record)))if(v)external[k]=v;
     warnings.push(...(record.warnings||[]).map(reason=>({source:entry.key,reason})));
-    (providers[entry.provider]||=[]).push({id:record.id,path:record.path,availability:record.active?'present':'unavailable',seasons:record.seasons,info:record.info});
+    (providers[entry.provider]||=[]).push({id:record.id,path:record.path,availability:record.active?'present':'unavailable',seasons:record.seasons,info:record.info,...(record.episodeBlocks?{episodeBlocks:record.episodeBlocks}:{}),...(record.identity?{identity:record.identity}:{})});
     images.push(...record.images.map(x=>({...x,provider:entry.provider})));if(!info.synopsis&&(record.info.plot||record.info.synopsis))info.synopsis=record.info.plot||record.info.synopsis;
     for(const [key,value]of Object.entries(record.info))if((info[key]==null||info[key]===''||Array.isArray(info[key])&&!info[key].length)&&value!=null)info[key]=value;
     for(const field of ['poster','background','logo'])if(!info[field])info[field]=record.images.find(x=>(x.role||x.type)===field)?.reference;
@@ -53,6 +54,7 @@ function mergeGroup(g){
       }
       if(!season){season={number:s.number,episodes:[],images:s.images||[]};seasons.set(s.number,season);}
       for(const ep of s.episodes){let e=season.episodes.find(x=>String(x.number)===String(ep.number));const data=episodeData(ep);
+        if(entry.provider==='eurostreaming'&&primary!==entry&&(!e||!meaningful(e.title)||!meaningful(data.title)||e.title.toLowerCase()!==data.title.toLowerCase()))continue;
         if(!e){e={number:ep.number,...data,metadataSources:{}};season.episodes.push(e);}
         e.metadataSources[entry.key]=data;
         if(meaningful(e.title)&&meaningful(data.title)&&e.title.toLowerCase()!==data.title.toLowerCase()){warnings.push({season:s.number,episode:ep.number,source:entry.key,reason:'episode-title-conflict'});continue;}
@@ -62,7 +64,7 @@ function mergeGroup(g){
   }
   const active=ordered.some(x=>x.record.active);
   return {id:g.id,active,sourceIds:external,info,providers,images,
-    episodeMappingUncertain:(r.warnings||[]).some(w=>/count-mismatch/.test(w)),
+    episodeMappingUncertain:!!r.episodeMappingUncertain||(r.warnings||[]).some(w=>/count-mismatch/.test(w)),
     seasons:[...seasons.values()].sort((a,b)=>a.number-b.number).map(s=>({...s,episodes:s.episodes.sort((a,b)=>Number(a.number)-Number(b.number))})),provenance,warnings};
 }
 function publish(root,records,source,registry,conflicts,aliases,status){
@@ -89,7 +91,8 @@ function publish(root,records,source,registry,conflicts,aliases,status){
   shards.forEach((v,i)=>{const key=String(i).padStart(2,'0');write(path.join(root,'shards',key+'.json'),v);shardHashes[key]=hash(v);});
   const catalog=all.filter(r=>r.active).map(r=>({id:r.id,title:r.info.title,type:r.info.type,year:r.info.year,poster:r.info.poster,background:r.info.background,logo:r.info.logo,sourceIds:r.sourceIds}));write(path.join(root,'catalog.json'),catalog);write(path.join(root,'registry.json'),registry);
   const unknown=all.some(r=>Object.values(r.providers).flat().some(v=>v.availability==='unknown'));
-  const m={schemaVersion:1,kind:'cinema',count:all.length,activeCount:catalog.length,itemHashes,shardHashes,catalogHash:hash(catalog),origins:{...old.origins,...source.origins},sources:source.snapshots,conflicts,aliases,...status};
+  const identityIssues=all.flatMap(r=>Object.entries(r.providers).flatMap(([provider,variants])=>variants.filter(v=>v.identity&&v.identity.status!=='verified').map(v=>({workId:r.id,provider,id:v.id,...v.identity}))));
+  const m={schemaVersion:1,kind:'cinema',count:all.length,activeCount:catalog.length,itemHashes,shardHashes,catalogHash:hash(catalog),origins:{...old.origins,...source.origins},sources:source.snapshots,awaitingProviders:source.missingProviders||[],identityIssues,conflicts,aliases,...status};
   m.complete=Object.values(source.snapshots).every(s=>s.complete)&&!conflicts.length&&!unknown&&!m.pendingCount;
   write(path.join(root,'changes.json'),{changed:Object.keys(itemHashes).filter(id=>old.itemHashes[id]!==itemHashes[id]),removed:[]});write(path.join(root,'manifest.json'),m);return m;
 }
