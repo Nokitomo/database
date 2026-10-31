@@ -163,10 +163,15 @@ async function fetchAnime(item, baseUrl, fetch = request, signal) {
   const absolute = Number.isFinite(minimum) && (count ? minimum > count * 1.5 : minimum > 1);
   const from = absolute ? minimum : 0;
   const to = absolute ? maximum : count;
+  // This path segment selects an existing episode; it is not a page number.
+  // Special-only titles may have episode 0 (or a fractional/range label) but no 1.
+  const knownEpisodes = embedded.episodes.filter(episode => episode?.id != null && episodeBounds(episode.number));
+  const anchor = knownEpisodes.find(episode => String(episode.number).trim() === '1') || knownEpisodes[0];
+  const episodeLabel = anchor ? String(anchor.number).trim() : '1';
   if (count > 0 || embedded.episodes.length > 0) {
     for (let start = from; start <= to; start += 120) {
       const end = Math.min(to, start + 119);
-      const response = await fetch('get', `${baseUrl}/info_api/${item.id}/1?start_range=${start}&end_range=${end}`, null, {Referer: `${baseUrl}/`, signal});
+      const response = await fetch('get', `${baseUrl}/info_api/${item.id}/${encodeURIComponent(episodeLabel)}?start_range=${start}&end_range=${end}`, null, {Referer: `${baseUrl}/`, signal});
       signal?.throwIfAborted();
       if (!Array.isArray(response.data?.episodes)) throw new Error(`Invalid episodes payload for anime ${item.id}`);
       response.data.episodes.forEach(append);

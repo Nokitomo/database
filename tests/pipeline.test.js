@@ -184,6 +184,55 @@ test('refresh policy revisits dynamic titles daily and completed titles monthly'
     info: {status: 'Terminato'}}, false, null, '/anime/7-new'), true);
 });
 
+test('episode API anchor uses an existing provider label without rounding', async t => {
+  for (const label of ['0', '3.5', '12.5', '1245', '1245-1246']) {
+    await t.test(label, async () => {
+      const episode = {id: 77, number: label}, requests = [];
+      const raw = await fetchAnime({id: 9, path: '/anime/9-special'}, 'https://www.animeunity.co', async (_method, url) => {
+        if (url.endsWith('/info_api/9/')) return {data: {id: 9, episodes_count: 0}};
+        if (url.includes('/anime/')) return {data: `<video-player anime='{"episodes_count":1}' episodes='${JSON.stringify([episode])}'></video-player>`};
+        requests.push(url);
+        assert.equal(new URL(url).pathname, '/info_api/9/' + encodeURIComponent(label));
+        return {data: {episodes: [episode]}};
+      });
+      assert.equal(requests.length, 1);
+      assert.deepEqual(raw.episodes, [episode]);
+    });
+  }
+});
+
+test('known episode one remains preferred and all long-series ranges are collected', async () => {
+  const episodes = [{id: 5, number: '0'}, {id: 6, number: '1'}], ranges = [];
+  const raw = await fetchAnime({id: 9, path: '/anime/9-long'}, 'https://www.animeunity.co', async (_method, url) => {
+    if (url.endsWith('/info_api/9/')) return {data: {id: 9, episodes_count: 250}};
+    if (url.includes('/anime/')) return {data: `<video-player anime='{"episodes_count":250}' episodes='${JSON.stringify(episodes)}'></video-player>`};
+    const u = new URL(url); assert.equal(u.pathname, '/info_api/9/1');
+    ranges.push([Number(u.searchParams.get('start_range')), Number(u.searchParams.get('end_range'))]);
+    return {data: {episodes: [{id: 100 + ranges.length, number: String(ranges.length * 80)}]}};
+  });
+  assert.deepEqual(ranges, [[0,119],[120,239],[240,250]]);
+  assert.equal(raw.episodes.length, 5);
+});
+
+test('episode payload errors remain errors even when the page has an episode', async () => {
+  await assert.rejects(fetchAnime({id: 9, path: '/anime/9-special'}, 'https://www.animeunity.co', async (_method, url) => {
+    if (url.endsWith('/info_api/9/')) return {data: {id: 9, episodes_count: 0}};
+    if (url.includes('/anime/')) return {data: '<video-player anime="{}" episodes="[{&quot;id&quot;:77,&quot;number&quot;:&quot;0&quot;}]"></video-player>'};
+    return {data: {error: "Episode doesn't exist"}};
+  }), /Invalid episodes payload/);
+});
+
+test('missing page keeps the legacy episode-one API fallback', async () => {
+  const raw = await fetchAnime({id: 9, path: '/anime/9-missing-page'}, 'https://www.animeunity.co', async (_method, url) => {
+    if (url.endsWith('/info_api/9/')) return {data: {id: 9, episodes_count: 1}};
+    if (url.includes('/anime/')) throw new Error('Page unavailable');
+    assert.equal(new URL(url).pathname, '/info_api/9/1');
+    return {data: {episodes: [{id: 77, number: '1'}]}};
+  });
+  assert.equal(raw.episodes.length, 1);
+  assert.equal(raw.htmlError, 'Page unavailable');
+});
+
 test('full refresh cutoff processes each record once and backs off failed records', () => {
   const cutoff = Date.now() - 1000;
   const before = new Date(cutoff - 1000).toISOString();
