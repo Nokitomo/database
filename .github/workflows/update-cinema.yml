@@ -1,7 +1,6 @@
 name: Update cinema film and series database
 on:
-  schedule:
-    - cron: '49 */2 * * *'
+  # Scheduled runs paused while the primary catalogs are built. Manual runs remain available.
   workflow_dispatch:
     inputs:
       stage:

@@ -1,8 +1,7 @@
 name: Update Altadefinizione database
 
 on:
-  schedule:
-    - cron: '37 */2 * * *'
+  # Scheduled runs paused while the primary catalogs are built. Manual runs remain available.
   workflow_dispatch:
     inputs:
       mode:
