@@ -1,6 +1,7 @@
 'use strict';
 const path=require('node:path');
 const {Client}=require('./http');
+const {cardFingerprint}=require('./card-fingerprint');
 const {archive,detail,sitemap}=require('./parse');
 const {read,write,hash,DEFAULT_DATA,itemFile,initialState,observe,publish}=require('./store');
 const HOUR=3600000,DAY=24*HOUR,WEEK=7*DAY;
@@ -81,18 +82,33 @@ async function collect(client,state,root,id,{now,save,maxSeasons=10}){
   const k=state.known[id],draftFile=path.join(root,'drafts',id+'.json');
   let draft=read(draftFile);
   if(!draft||draft.finished||now-draft.startedAt>DAY){const parsed=detail((await client.get(k.path)).html,id,state.origins);
-    const {season,...record}=parsed;draft={record,seasons:{},startedAt:now};if(season)draft.seasons[season.number]=season;write(draftFile,draft);}
+    const {season,...record}=parsed;
+    const previous=read(itemFile(root,id)),timestamps=state.records[id]?.seasonCheckedAt||{};
+    draft={record,seasons:{},seasonCheckedAt:{},startedAt:now};
+    const latest=Math.max(...record.seasonIndex.map(s=>s.number));
+    for(const descriptor of record.seasonIndex){
+      const oldDescriptor=previous?.seasonIndex?.find(s=>s.id===descriptor.id&&s.number===descriptor.number);
+      const saved=previous?.seasons?.find(s=>s.id===descriptor.id&&s.number===descriptor.number);
+      const checked=timestamps[descriptor.number];
+      if(descriptor.number!==latest&&saved&&oldDescriptor&&Number.isFinite(checked)&&now-checked<30*DAY&&
+        (!state.fullSince||checked>=state.fullSince)&&Number.isInteger(descriptor.episodes_count)&&
+        saved.episodes?.length===descriptor.episodes_count&&cardFingerprint(oldDescriptor)===cardFingerprint(descriptor)){
+        draft.seasons[descriptor.number]=saved;draft.seasonCheckedAt[descriptor.number]=checked;
+      }
+    }
+    if(season){draft.seasons[season.number]=season;draft.seasonCheckedAt[season.number]=now;}
+    write(draftFile,draft);}
   const wanted=draft.record.seasonIndex;
   for(const season of wanted.filter(s=>!draft.seasons[s.number]).slice(0,maxSeasons)){
     const parsed=detail((await client.get(draft.record.path+'/season-'+season.number)).html,id,state.origins,season.number);
     if(hash(parsed.seasonIndex)!==hash(wanted)) {write(draftFile,null);throw new Error('Season inventory changed during collection');}
-    draft.seasons[season.number]=parsed.season;write(draftFile,draft);
+    draft.seasons[season.number]=parsed.season;draft.seasonCheckedAt ||= {};draft.seasonCheckedAt[season.number]=now;write(draftFile,draft);
   }
   if(wanted.some(s=>!draft.seasons[s.number]))return;
   const record={...draft.record,active:true,seasons:wanted.map(s=>draft.seasons[s.number])};
   write(itemFile(root,id),record);draft.finished=true;write(draftFile,draft);
   const stable=record.info.type==='movie'||/ended|canceled|cancelled/i.test(record.info.status||'');
-  state.records[id]={complete:true,checkedAt:now,missingScans:k.missingScans||0,nextCheckAt:now+(stable?30*DAY:DAY)};k.refresh=false;delete state.errors['item:'+id];save();
+  state.records[id]={complete:true,seasonCheckedAt:draft.seasonCheckedAt||{},checkedAt:now,missingScans:k.missingScans||0,nextCheckAt:now+(stable?30*DAY:DAY)};k.refresh=false;delete state.errors['item:'+id];save();
 }
 async function run({root=DEFAULT_DATA,client=new Client(),mode='update',stage='all',now=Date.now(),budgetMs=180000,maxRequests=20,maxItems=20,minYear,maxYear}={}){
   if(!['update','full'].includes(mode)||!['all','discover','details','publish'].includes(stage))throw new Error('Invalid run options');

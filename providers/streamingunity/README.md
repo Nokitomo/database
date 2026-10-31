@@ -120,3 +120,17 @@ legacy match upgrades without fetching details. A changed legacy card schedules
 one conservative refresh to avoid hiding a real metadata change; subsequent
 counter-only observations do not schedule new refreshes. Existing pending work
 is never cleared merely by observing an unchanged card.
+
+## Reusing season details
+
+Each detail update still reads the title page. The latest season, new seasons,
+changed season descriptors and inventories without an explicit episode count
+are fetched. Older seasons can be reused only when ID, number, meaningful
+season descriptor and episode count match the saved inventory and their own
+last fetch is less than 30 days old. Season zero is included in these checks.
+
+Per-season timestamps survive checkpoint drafts and are not renewed by reuse.
+A full refresh bypasses reuse for seasons checked before its cutoff. Legacy
+records without these timestamps receive one complete validation. Removed
+seasons are excluded from the new record. This optimizes season requests, not
+individual episode requests within a fetched season.

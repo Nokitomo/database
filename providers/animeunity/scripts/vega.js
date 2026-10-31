@@ -16,6 +16,7 @@ const {normalizeRelatedLinks} = require('./provider-links');
 const {buildArtworkFallbacks} = require('./artwork-fallbacks');
 const {createMetadataTasks} = require('./metadata-tasks');
 const {refreshPlan, ENRICHMENT_SCHEMA_VERSION} = require('./incremental');
+const {reusableEpisodes} = require('./episode-reuse');
 
 const pacedGet = createPacedGet((url, options) => axios.get(url, options), {check: assertWarp});
 const tmdbGet = createTmdbGet(pacedGet);
@@ -194,13 +195,20 @@ async function enrichAnime(providerRoot, baseUrl, raw, mapped, options = {}) {
       metadataTargets: mapped.metadataTargets || [], ids: mapped.ids || {}, imdbId: mapped.imdbId},
   };
   const plan = refreshPlan(options.previousFinal, raw, mapped);
+  const knownEpisodes = reusableEpisodes(options.previousFinal, raw, mapped);
+  const knownIds = new Set(knownEpisodes.map(e => String(e.link)));
+  plan.reuseEpisodes = plan.reuseEpisodes && knownEpisodes.length === raw.episodes.length;
+  if (knownEpisodes.length) plan.retainedTasks = Object.fromEntries(Object.entries(options.previousFinal.metadataTasks || {})
+    .filter(([,t]) => t.kind === 'episodes' || t.kind === 'season-layout'));
+  const episodeCheckedAt = {...options.progress?.episodeCheckedAt};
+  for (const e of knownEpisodes) episodeCheckedAt[e.link] = options.previousFinal.episodeCheckedAt?.[e.link] || options.previousFinal.updatedAt;
   if (options.previousFinal && !options.progress) console.log(`[enrichment] anime=${raw.id} reason=${plan.reason} reuseInfo=${plan.reuseInfo} reuseEpisodes=${plan.reuseEpisodes}`);
   const link = new URL(raw.path, baseUrl).href;
   const info = normalizeRelatedLinks(options.progress?.info ||
     (plan.reuseInfo ? structuredClone(options.previousFinal.info) : await getMeta({link, providerContext: context})));
   if (!info?.title || !Array.isArray(info.linkList)) throw new Error(`Vega metadata incomplete for ${raw.id}`);
   const byId = new Map((options.progress?.episodes ||
-    (plan.reuseEpisodes ? structuredClone(options.previousFinal.episodes) : [])).map(episode => [String(episode.link), episode]));
+    (plan.reuseEpisodes ? structuredClone(options.previousFinal.episodes) : knownEpisodes)).map(episode => [String(episode.link), episode]));
   const groups = info.linkList.filter(group => group.episodesLink);
   protectSourceEpisodes(byId, raw.episodes);
   const startGroup = options.progress?.nextGroup ?? (plan.reuseEpisodes ? groups.length : 0);
@@ -209,11 +217,14 @@ async function enrichAnime(providerRoot, baseUrl, raw, mapped, options = {}) {
   for (let groupIndex = startGroup; groupIndex < endGroup; groupIndex++) {
     options.signal?.throwIfAborted();
     const group = groups[groupIndex];
-    const episodes = await getEpisodes({url: group.episodesLink, providerContext: context});
+    const episodes = await getEpisodes({url: group.episodesLink, providerContext: context, knownEpisodes});
     const groupEpisodes = new Map();
     for (const episode of episodes) {
       byId.set(String(episode.link), episode);
-      groupEpisodes.set(String(episode.link), episode);
+      if (!knownIds.has(String(episode.link))) {
+        groupEpisodes.set(String(episode.link), episode);
+        episodeCheckedAt[episode.link] = new Date().toISOString();
+      }
     }
     protectSourceEpisodes(groupEpisodes, raw.episodes);
     applySourceEpisodeMetadata(groupEpisodes, raw.episodes);
@@ -221,20 +232,24 @@ async function enrichAnime(providerRoot, baseUrl, raw, mapped, options = {}) {
     options.signal?.throwIfAborted();
     for (const [id, episode] of groupEpisodes) byId.set(id, episode);
     if (options.checkpoint) await options.checkpoint({info, nextGroup: groupIndex + 1,
-      episodes: [...byId.values()],
+      episodes: [...byId.values()], episodeCheckedAt,
       metadataTasks: {...plan.retainedTasks, ...options.progress?.metadataTasks, ...context.metadataTasks?.snapshot()},
       sourceStatus: mergeSourceStatus(options.progress?.sourceStatus, context.externalStatus)});
   }
   options.signal?.throwIfAborted();
   if (endGroup < groups.length) return {partial: true, progress: {
-    info, nextGroup: endGroup, episodes: [...byId.values()],
+    info, nextGroup: endGroup, episodes: [...byId.values()], episodeCheckedAt,
     metadataTasks: {...plan.retainedTasks, ...options.progress?.metadataTasks, ...context.metadataTasks?.snapshot()},
     sourceStatus: mergeSourceStatus(options.progress?.sourceStatus, context.externalStatus),
   }};
   mergeSourceEpisodes(byId, raw.episodes);
   protectSourceEpisodes(byId, raw.episodes);
   applySourceEpisodeMetadata(byId, raw.episodes);
-  if (groups.length === 0 && !plan.reuseEpisodes) await fillGaps(providerRoot, context, byId, raw);
+  if (groups.length === 0 && !plan.reuseEpisodes) {
+    const pending = new Map([...byId].filter(([id]) => !knownIds.has(id)));
+    await fillGaps(providerRoot, context, pending, raw);
+    for (const [id, episode] of pending) { byId.set(id, episode); episodeCheckedAt[id] = new Date().toISOString(); }
+  }
   const artworkCandidates = await getArtwork(providerRoot, context, effectiveRaw, mapped, info);
   info.extra ||= {};
   info.extra.artworkCandidates = Object.fromEntries(Object.entries(artworkCandidates).map(
@@ -243,7 +258,7 @@ async function enrichAnime(providerRoot, baseUrl, raw, mapped, options = {}) {
   options.signal?.throwIfAborted();
   return {id: raw.id, path: raw.path, linkSchemaVersion: 2, enrichmentSchemaVersion: ENRICHMENT_SCHEMA_VERSION,
     updatedAt: new Date().toISOString(), episodeSafetyVersion: 1, info,
-    episodes: [...byId.values()], sourceIds: mapped.sourceIds, mappings: mapped.mappings,
+    episodes: [...byId.values()], episodeCheckedAt, sourceIds: mapped.sourceIds, mappings: mapped.mappings,
     sourceMetadata: {info: raw.info, embedded: raw.embeddedAnime, archive: raw.archiveRecord},
     sourceEpisodes: raw.episodes, artworkInventory: artworkCandidates,
     artworkLibrary: context.artworkLibrary,

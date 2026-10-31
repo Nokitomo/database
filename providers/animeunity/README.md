@@ -105,3 +105,19 @@ error "Episode doesn't exist", retry the same range with ordinal 1 and reuse it
 for subsequent ranges. Invalid payloads and HTTP failures remain errors. Conan
 Simulcast currently returns 32 video records covering labels 1245-1246 to 1277;
 the combined label is preserved and is not split into invented episode IDs.
+
+## Reusing episode metadata
+
+The pinned Vega getEpisodes adapter receives knownEpisodes for source records
+whose identity, label, position and meaningful fields are unchanged, with the
+same mapping fingerprint and provider revision. The full ordered source list
+is retained, protecting record-aligned mappings. Reused episodes skip external
+metadata resolution and TVDB gap filling. New/changed episodes are resolved as
+usual; a changed mapping or a due season/episode service task conservatively
+invalidates reuse. Source page/list acquisition still checks the whole anime.
+
+Each episode keeps its original episodeCheckedAt across publication and partial
+checkpoints. Complete metadata expires after 90 days; missing metadata after 30.
+Those deadlines also schedule enrichment independently of the record updatedAt,
+so frequently added episodes cannot postpone validation of older episodes forever.
+Legacy records use their existing updatedAt until individual dates are saved.

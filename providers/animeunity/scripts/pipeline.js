@@ -1,5 +1,6 @@
 'use strict';
 const {needsEpisodeIdentity} = require('./episode-safety');
+const {episodeRefreshDue} = require('./episode-reuse');
 
 const fs = require('node:fs');
 const {sourceFingerprint, migrateStoredSources, finishMigration} = require('./source-fingerprint');
@@ -55,6 +56,7 @@ function due(raw, full, fullSince = null, expectedPath = null) {
 }
 function enrichmentDue(final, now = Date.now()) {
   if (!final) return true;
+  if (episodeRefreshDue(final, now)) return true;
   if (Object.values(final.metadataTasks || {}).some(task =>
     Number.isFinite(task.nextCheckAt) && now >= task.nextCheckAt)) return true;
   const age = now - Date.parse(final.updatedAt || 0);

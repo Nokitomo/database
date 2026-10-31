@@ -171,3 +171,48 @@ test('counter-only observations leave periodic checks and error retries intact',
   assert.equal(state.records[1].nextCheckAt,900);assert.equal(state.errors['item:1'].retryAt,500);
   assert.equal(state.known[1].refresh,false);
 });
+
+test('season refresh reuses unchanged older seasons, checks latest, and expires independently',async t=>{
+  const root=tmp(t),state=initialState(),start=1000000000000;
+  let seasons=[{id:100,number:0,episodes_count:1},{id:101,number:1,episodes_count:1},{id:102,number:2,episodes_count:1}],calls=[];
+  observe(state,card(1),start);
+  const client={async get(url){calls.push(url);const match=url.match(/season-(\d+)$/);return {html:page(1,seasons,match?Number(match[1]):undefined)};}};
+  await collect(client,state,root,1,{now:start,save(){}});assert.equal(calls.length,4);
+  calls=[];await collect(client,state,root,1,{now:start+86400000,save(){}});
+  assert.equal(calls.length,2);assert(calls[1].endsWith('season-2'));
+  assert.equal(state.records[1].seasonCheckedAt[0],start);
+  calls=[];seasons[0]={...seasons[0],name:'Corrected special season'};
+  await collect(client,state,root,1,{now:start+2*86400000,save(){}});
+  assert.equal(calls.length,3);assert(calls.some(p=>p.endsWith('season-0')));
+  calls=[];await collect(client,state,root,1,{now:start+32*86400000,save(){}});assert.equal(calls.length,4);
+  calls=[];state.fullSince=start+33*86400000;
+  await collect(client,state,root,1,{now:state.fullSince,save(){}});assert.equal(calls.length,4);
+  seasons=seasons.filter(s=>s.number!==0);calls=[];
+  await collect(client,state,root,1,{now:start+34*86400000,save(){}});
+  assert.deepEqual(read(itemFile(root,1)).seasons.map(s=>s.number),[1,2]);
+});
+test('new season is acquired while old seasons are reused and legacy timestamps force validation',async t=>{
+  const root=tmp(t),state=initialState(),start=1000000000000;let seasons=[{id:101,number:1,episodes_count:1}],calls=[];
+  observe(state,card(1),start);
+  const client={async get(url){calls.push(url);const match=url.match(/season-(\d+)$/);return {html:page(1,seasons,match?Number(match[1]):undefined)};}};
+  await collect(client,state,root,1,{now:start,save(){}});
+  seasons.push({id:102,number:2,episodes_count:1});calls=[];
+  await collect(client,state,root,1,{now:start+86400000,save(){}});
+  assert.equal(calls.length,2);assert(calls[1].endsWith('season-2'));
+  delete state.records[1].seasonCheckedAt;calls=[];
+  await collect(client,state,root,1,{now:start+2*86400000,save(){}});assert.equal(calls.length,3);
+});
+
+test('older season episode-count changes and unknown counts are never treated as unchanged',async t=>{
+  const root=tmp(t),state=initialState(),start=1000000000000;let seasons=[{id:101,number:1,episodes_count:1},{id:102,number:2,episodes_count:1}],calls=[];
+  observe(state,card(1),start);
+  const client={async get(url){calls.push(url);const m=url.match(/season-(\d+)$/),n=m?Number(m[1]):undefined;
+    const data=JSON.parse(page(1,seasons,n));if(n!==undefined&&seasons.find(s=>s.number===n).episodes_count===2)
+      data.props.loadedSeason.episodes.push({id:500,number:2,season_id:n+100,images:[]});
+    return {html:JSON.stringify(data)};}};
+  await collect(client,state,root,1,{now:start,save(){}});
+  seasons[0].episodes_count=2;calls=[];await collect(client,state,root,1,{now:start+1,save(){}});
+  assert.equal(calls.length,3);assert.equal(read(itemFile(root,1)).seasons[0].episodes.length,2);
+  delete seasons[0].episodes_count;calls=[];await collect(client,state,root,1,{now:start+2,save(){}});
+  assert.equal(calls.length,3);
+});
