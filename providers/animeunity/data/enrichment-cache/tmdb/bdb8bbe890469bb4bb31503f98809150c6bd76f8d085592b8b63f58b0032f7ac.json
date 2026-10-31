@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tmdb","kind":"season-poster","input":{"mediaId":93483,"seasonNumber":1},"checkedAt":1793479000133,"status":"ok","retryCount":0,"value":{"id":93483,"type":"tv","source":"tmdb-api","sourceUrl":"https://www.themoviedb.org/tv/93483/season/1","originalLanguage":"ja-JP","seasonNumber":1},"failure":null,"fields":{},"episodes":{}}
