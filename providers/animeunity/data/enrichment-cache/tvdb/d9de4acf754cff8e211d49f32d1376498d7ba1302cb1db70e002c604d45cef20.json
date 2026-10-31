@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tvdb","kind":"season-image","input":{"tvdbId":333239,"mediaType":"series","seasonNumber":1,"field":"poster","inventoryVersion":1},"checkedAt":1793438217955,"status":"ok","retryCount":0,"value":["https://artworks.thetvdb.com/banners/seasons/333239-1.jpg"],"failure":null,"fields":{},"episodes":{}}
