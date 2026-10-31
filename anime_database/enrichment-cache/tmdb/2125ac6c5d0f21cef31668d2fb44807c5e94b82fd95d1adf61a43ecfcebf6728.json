@@ -1,1 +1,1 @@
-{"schemaVersion":1,"source":"tmdb","kind":"season-poster","input":{"mediaId":22104,"seasonNumber":0},"checkedAt":1793398913944,"status":"error","value":null,"fields":{},"episodes":{}}
+{"schemaVersion":1,"source":"tmdb","kind":"season-poster","input":{"mediaId":22104,"seasonNumber":0},"checkedAt":1793406400180,"status":"error","value":{"id":22104,"type":"tv","source":"tmdb-web","sourceUrl":"https://www.themoviedb.org/tv/22104/season/0","originalLanguage":"ja-JP","seasonNumber":0},"fields":{},"episodes":{}}
