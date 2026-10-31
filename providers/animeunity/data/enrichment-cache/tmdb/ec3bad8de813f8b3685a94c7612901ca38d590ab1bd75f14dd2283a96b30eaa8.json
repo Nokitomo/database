@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tmdb","kind":"season-poster","input":{"mediaId":42444,"seasonNumber":12},"checkedAt":1793433994780,"status":"ok","retryCount":0,"value":{"id":42444,"type":"tv","source":"tmdb-web","sourceUrl":"https://www.themoviedb.org/tv/42444/season/12","originalLanguage":"ja-JP","seasonNumber":12},"failure":null,"fields":{},"episodes":{}}
