@@ -1,6 +1,7 @@
 'use strict';
 
 const fs = require('node:fs');
+const {validFingerprint} = require('./source-fingerprint');
 const path = require('node:path');
 const {DATA, file, hash, readJson} = require('./lib');
 const {normalizeRelatedLinks} = require('./provider-links');
@@ -47,7 +48,7 @@ function verifyDatabase(stage = 'all') {
     const raw = readJson(file('raw', id));
     if (!raw) continue;
     rawCount++;
-    if (raw.id !== id || raw.fingerprint !== hash({info: raw.info, embeddedAnime: raw.embeddedAnime, episodes: raw.episodes}))
+    if (raw.id !== id || !validFingerprint(raw))
       throw new Error(`Raw record ${id} invalid`);
     const mapped = readJson(file('mapped', id));
     const mappingCurrent = mapped && mapped.rawFingerprint === raw.fingerprint && mapped.providerRef === providerRef &&

@@ -82,3 +82,19 @@ force-push or erase checkpoint history. Returning to the original snapshot may
 repeat work after that snapshot. Do not resume old root-path scripts against only
 the new directory layout, or a new resolver revision against old fingerprints
 without an intentional migration.
+
+## Source counters and incremental updates
+
+Source fingerprint version 2 excludes only AnimeUnity visite, favorites and
+members counters (including episode visits). Raw snapshots still save those
+values; changes to episode availability, titles, scores, IDs and other metadata
+continue to invalidate enrichment. Counter-only changes do not refresh the
+final consumer record or its external metadata.
+
+At pipeline startup, legacy fingerprints and dependent references are migrated
+from saved snapshots without provider requests. A stale final record is
+reconciled only if its saved source is semantically identical to the current raw
+record. Unrelated mapping changes, schema backfills and metadata retry schedules
+remain pending. Existing enrichment progress and timestamps are preserved when
+its source matches. The migration is repeatable after interruption and logs
+SOURCE_FINGERPRINT_MIGRATION. Verification accepts both legacy and v2 snapshots.

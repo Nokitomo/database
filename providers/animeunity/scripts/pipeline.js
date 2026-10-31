@@ -2,6 +2,7 @@
 const {needsEpisodeIdentity} = require('./episode-safety');
 
 const fs = require('node:fs');
+const {sourceFingerprint, migrateStoredSources, finishMigration} = require('./source-fingerprint');
 const {selectFinalBatch} = require('./final-queue');
 const {needsMappingRepair} = require('./mapping-policy');
 const path = require('node:path');
@@ -174,9 +175,9 @@ async function runRaw(options) {
       const source = await withRecordDeadline(`raw ${id}`,
         signal => fetchAnime(item, discovery.baseUrl, undefined, signal));
       const previous = readJson(file('raw', id));
-      const fingerprint = hash({info: source.info, embeddedAnime: source.embeddedAnime, episodes: source.episodes});
+      const fingerprint = sourceFingerprint(source);
       writeJson(file('raw', id), {...source, archiveRecord: item.archiveRecord || previous?.archiveRecord || null,
-        checkedAt: iso(), fingerprint, changedAt: previous?.fingerprint === fingerprint ? previous.changedAt : iso()});
+        checkedAt: iso(), fingerprint, fingerprintVersion: 2, changedAt: previous?.fingerprint === fingerprint ? previous.changedAt : iso()});
       delete index.errors[id];
       delete nextState.reactivationPending[id];
     } catch (error) {
@@ -398,6 +399,24 @@ function rebuildFinalArtifacts(source, mappingIndex, manifest, revision, root = 
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
+  if (migrateStoredSources()) {
+    // Publish coherent indexes even when the user runs just one stage.
+    const source = readJson(stageIndex('raw'));
+    const mappedIndex = readJson(stageIndex('mapped'));
+    const manifest = readJson(path.join(DATA, 'final', 'manifest.json'));
+    if (source && mappedIndex) {
+      mappedIndex.availableCount = source.expectedIds.filter(id => {
+        const raw = readJson(file('raw', id)), mapped = readJson(file('mapped', id));
+        return raw && mapped?.rawFingerprint === raw.fingerprint &&
+          mapped.providerRef === mappedIndex.providerRef && mapped.mappingSourceHash === mappedIndex.sourceHash;
+      }).length;
+      mappedIndex.complete = source.complete && mappedIndex.availableCount === source.expectedIds.length &&
+        Object.keys(mappedIndex.errors || {}).length === 0;
+      writeJson(stageIndex('mapped'), mappedIndex);
+      if (manifest) rebuildFinalArtifacts(source, mappedIndex, manifest, mappedIndex.providerRef);
+    }
+  }
+  finishMigration();
   const providerRoot = options.stage === 'raw' ? null : requireProviderRoot(options);
   let result;
   const selected = {};
