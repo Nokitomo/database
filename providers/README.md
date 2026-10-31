@@ -4,9 +4,9 @@ New providers live in their own directory. Each provider keeps its scripts,
 tests, and generated data separate from the others. GitHub Actions workflows
 belong in `.github/workflows/` at the repository root.
 
-AnimeUnity remains in the existing root-level `scripts/`, `tests/`, and
-`anime_database/` directories while its current database build continues.
-It can be moved into this layout after that build is complete.
+`animeunity/` contains its scripts and tests. Its complete persisted snapshot,
+including partial progress and caches, lives at `providers/animeunity/data/` on
+`animeunity-data`. See its README for migration verification and recovery refs.
 
 `animeworld/` is an independent provider-only scraper; see its README for the
 schema, WARP-enabled workflow, validation and incremental update policy. Its

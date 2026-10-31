@@ -1,1 +1,0 @@
-{"schemaVersion":1,"source":"tvdb","kind":"episodes","input":{"tvdbShowId":295892,"seasonNumber":0},"checkedAt":1793394464843,"status":"ok","value":[{"episodeNumber":1,"title":"Petit Uchiage","titleLanguage":"eng"}],"fields":{},"episodes":{"1":{"checkedAt":1793394464843,"status":"missing"}}}

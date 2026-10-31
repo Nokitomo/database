@@ -1,1 +1,0 @@
-{"schemaVersion":1,"source":"tvdb","kind":"episodes","input":{"tvdbShowId":141751,"seasonNumber":0},"checkedAt":1793312550863,"status":"ok","value":[{"episodeNumber":1,"title":"Great War with Genma","titleLanguage":"eng"}],"fields":{},"episodes":{"1":{"checkedAt":1793312550863,"status":"missing"}}}

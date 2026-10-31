@@ -1,9 +1,9 @@
 'use strict';
 
 const path = require('node:path');
-const {protectSourceEpisodes} = require('../../scripts/episode-safety');
+const {protectSourceEpisodes} = require('../../providers/animeunity/scripts/episode-safety');
 const {read, write, hash} = require('../../providers/animeworld/scripts/store');
-const {hash: legacyHash} = require('../../scripts/lib');
+const {hash: legacyHash} = require('../../providers/animeunity/scripts/lib');
 const validId = value => Number.isSafeInteger(Number(value)) && Number(value) > 0 ? Number(value) : null;
 function format(record) {
   const value = String(record.sourceMetadata?.info?.type || record.info?.type || '').toLowerCase();

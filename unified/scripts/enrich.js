@@ -1,9 +1,9 @@
 'use strict';
 
-const {createContext, requireProvider, collectArtwork, fillTvdbEpisodeGaps} = require('../../scripts/vega');
+const {createContext, requireProvider, collectArtwork, fillTvdbEpisodeGaps} = require('../../providers/animeunity/scripts/vega');
 const {ids} = require('./catalog');
 const {hash} = require('../../providers/animeworld/scripts/store');
-const {needsEpisodeIdentity, providerOnlyEpisode} = require('../../scripts/episode-safety');
+const {needsEpisodeIdentity, providerOnlyEpisode} = require('../../providers/animeunity/scripts/episode-safety');
 
 // Only external resolvers are reused. No AnimeUnity source endpoint is called.
 async function enrichWorld(record, {providerRoot, cacheRoot, signal, previous, services = {}}) {

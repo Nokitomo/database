@@ -1,1 +1,0 @@
-{"schemaVersion":1,"source":"tvdb","kind":"episodes","input":{"tvdbShowId":262093,"seasonNumber":0},"checkedAt":1793408734769,"status":"ok","value":[{"episodeNumber":1,"title":"Operation Chocolate / Operation Marshmallow / Electric Bird / Nyanmaru Theater","titleLanguage":"eng"}],"fields":{},"episodes":{"1":{"checkedAt":1793408734769,"status":"missing"}}}

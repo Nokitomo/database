@@ -4,9 +4,9 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
-    "pipeline": "node scripts/pipeline.js",
-    "verify": "node --test tests/episode-safety.test.js tests/artwork-fallbacks.test.js tests/discovery-state.test.js tests/image-health.test.js tests/incremental.test.js tests/metadata-tasks.test.js tests/migrate-links.test.js tests/pipeline.test.js tests/provider-links.test.js tests/quality.test.js tests/rate-limit.test.js tests/record-deadline.test.js tests/tmdb-http.test.js tests/warp.test.js",
-    "verify:data": "node scripts/verify-database.js",
+    "pipeline": "node providers/animeunity/scripts/pipeline.js",
+    "verify": "node --test providers/animeunity/tests/episode-safety.test.js providers/animeunity/tests/artwork-fallbacks.test.js providers/animeunity/tests/discovery-state.test.js providers/animeunity/tests/image-health.test.js providers/animeunity/tests/incremental.test.js providers/animeunity/tests/metadata-tasks.test.js providers/animeunity/tests/migrate-links.test.js providers/animeunity/tests/pipeline.test.js providers/animeunity/tests/provider-links.test.js providers/animeunity/tests/quality.test.js providers/animeunity/tests/rate-limit.test.js providers/animeunity/tests/record-deadline.test.js providers/animeunity/tests/tmdb-http.test.js providers/animeunity/tests/warp.test.js",
+    "verify:data": "node providers/animeunity/scripts/verify-database.js",
     "animeworld": "node providers/animeworld/scripts/pipeline.js",
     "verify:animeworld": "node --test providers/animeworld/tests/parse.test.js providers/animeworld/tests/http.test.js providers/animeworld/tests/pipeline.test.js providers/animeworld/tests/workflow.test.js",
     "verify:animeworld:data": "node providers/animeworld/scripts/verify.js",
@@ -41,7 +41,8 @@
     "filmez": "node providers/filmez/scripts/pipeline.js",
     "verify:filmez": "node --test providers/filmez/tests/provider.test.js providers/filmez/tests/workflow.test.js",
     "verify:filmez:data": "node providers/filmez/scripts/verify.js",
-    "verify:filmez:live": "node providers/filmez/scripts/smoke.js"
+    "verify:filmez:live": "node providers/filmez/scripts/smoke.js",
+    "verify:all": "node shared/testing/all.js"
   },
   "dependencies": {
     "axios": "^1.10.0",

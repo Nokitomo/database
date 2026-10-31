@@ -1,1 +1,0 @@
-{"schemaVersion":1,"source":"tvdb","kind":"episodes","input":{"tvdbShowId":291565,"seasonNumber":0},"checkedAt":1793319989149,"status":"ok","value":[{"episodeNumber":1,"title":"Pretty Cure All Stars: Spring Carnival♪","titleLanguage":"eng"}],"fields":{},"episodes":{"1":{"checkedAt":1793319989149,"status":"missing"}}}

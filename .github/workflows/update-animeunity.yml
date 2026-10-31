@@ -18,6 +18,14 @@ on:
       full_since:
         description: 'Internal continuation timestamp; leave blank when starting manually'
         required: false
+      single_batch:
+        description: Validate one saved batch without automatic continuation
+        type: boolean
+        default: false
+      verify_only:
+        description: Validate restored snapshot without scraping or publishing
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -39,26 +47,36 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
-          fetch-depth: 0
+          ref: ${{ github.sha }}
+          fetch-depth: 1
       - name: Install and verify Cloudflare WARP
         timeout-minutes: 15
-        run: bash scripts/setup-warp.sh
+        run: bash providers/animeunity/scripts/setup-warp.sh
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: npm
       - name: Install pipeline dependencies
         run: |
-          bash scripts/check-warp.sh
+          bash providers/animeunity/scripts/check-warp.sh
           npm ci
       - name: Check pipeline logic
-        run: npm run verify
-      - name: Check out current Vega provider
+        run: npm run verify:all
+      - name: Restore and verify AnimeUnity snapshot
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
-          bash scripts/check-warp.sh
+          bash providers/animeunity/scripts/checkpoint.sh restore
+          npm run verify:data
+      - name: Check out pinned Vega provider
+        if: ${{ !inputs.verify_only }}
+        run: |
+          bash providers/animeunity/scripts/check-warp.sh
           git clone --filter=blob:none https://github.com/Nokitomo/vega-providers.git .cache/vega-providers
-          git -C .cache/vega-providers rev-parse HEAD > vega-providers.ref
+          revision=$(cat providers/animeunity/data/vega-providers.ref)
+          [[ "$revision" =~ ^[0-9a-f]{40}$ ]]
+          git -C .cache/vega-providers checkout "$revision"
           npm --prefix .cache/vega-providers ci
           npm --prefix .cache/vega-providers run build
           node .cache/vega-providers/tests/animeunity-tmdb.js
@@ -67,14 +85,16 @@ jobs:
           node .cache/vega-providers/tests/animeunity-anibridge.js
           node --test .cache/vega-providers/tests/animeunity-artwork-library.js
       - name: Update database with checkpoints
+        if: ${{ !inputs.verify_only }}
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
           RUN_MODE: ${{ inputs.mode || 'update' }}
           RUN_STAGE: ${{ inputs.stage || 'all' }}
           RUN_FULL_SINCE: ${{ inputs.full_since || '' }}
           RUN_EVENT: ${{ github.event_name }}
+          RUN_SINGLE_BATCH: ${{ inputs.single_batch || false }}
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          bash scripts/check-warp.sh
-          bash scripts/run-workflow.sh
+          bash providers/animeunity/scripts/check-warp.sh
+          bash providers/animeunity/scripts/run-workflow.sh

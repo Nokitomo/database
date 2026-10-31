@@ -3,7 +3,7 @@ const path = require('node:path');
 const {read, write, hash} = require('../../providers/animeworld/scripts/store');
 const {loadSources, groupEntries, baseRecord, namespace, publish} = require('./catalog');
 const {enrichSource} = require('./enrich');
-const {needsEpisodeIdentity, protectSourceEpisodes} = require('../../scripts/episode-safety');
+const {needsEpisodeIdentity, protectSourceEpisodes} = require('../../providers/animeunity/scripts/episode-safety');
 function worldInput(group) {
   const provider = group.entries.some(entry=>entry.provider==='animeworld')?'animeworld':group.entries.some(entry=>entry.provider==='animesaturn')?'animesaturn':'animetop';
   const variants = group.entries.filter(entry => entry.provider === provider)
@@ -75,7 +75,7 @@ async function run({auRoot, awRoot, output, providerRoot, limit = 10, budgetMs =
 }
 if (require.main === module) {
   const root = path.resolve(__dirname, '../..');
-  run({auRoot: path.join(root, 'anime_database'), awRoot: path.join(root, 'providers/animeworld/data'),
+  run({auRoot: path.join(root, 'providers/animeunity/data'), awRoot: path.join(root, 'providers/animeworld/data'),
     output: path.join(root, 'unified/data'), providerRoot: path.join(root, '.cache/vega-providers'),
     additionalSources: {animesaturn:path.join(root,'providers/animesaturn/data'),animetop:path.join(root,'providers/animetop/data')},
     stage: process.env.RUN_STAGE || 'all'})

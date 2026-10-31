@@ -1,1 +1,0 @@
-{"schemaVersion":1,"source":"tvdb","kind":"episodes","input":{"tvdbShowId":367277,"seasonNumber":0},"checkedAt":1793343360998,"status":"ok","value":[{"episodeNumber":5,"title":"Episode 6.5 - Mini Drama","titleLanguage":"eng"}],"fields":{},"episodes":{"5":{"checkedAt":1793343360998,"status":"missing"}}}

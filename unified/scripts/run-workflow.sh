@@ -8,7 +8,7 @@ mkdir -p "$cache"
 bash shared/warp/check.sh
 gh auth setup-git
 # Fetch committed snapshots once; a source workflow may keep publishing meanwhile.
-for provider in animeworld animesaturn animetop; do
+for provider in animeunity animeworld animesaturn animetop; do
 if git ls-remote --exit-code --heads origin "refs/heads/$provider-data" > "$cache/$provider-ref"; then
   git fetch --depth=1 origin "$provider-data"
   git archive FETCH_HEAD "providers/$provider/data" | tar -x

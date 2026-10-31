@@ -1,1 +1,0 @@
-{"schemaVersion":1,"source":"tvdb","kind":"episodes","input":{"tvdbShowId":355542,"seasonNumber":1},"checkedAt":1793316023436,"status":"ok","value":[{"episodeNumber":1,"title":"OVA 01","titleLanguage":"eng"}],"fields":{},"episodes":{"1":{"checkedAt":1793316023436,"status":"missing"}}}

@@ -15,6 +15,10 @@ test('the actual runner creates and resumes its own data branch without changing
   git(['init','--bare',remote]);git(['init','-b','main',seed]);fs.writeFileSync(path.join(seed,'sentinel.txt'),'AnimeUnity unchanged');
   git(['add','.'],seed);git(['commit','-m','main sentinel'],seed);git(['remote','add','origin',remote],seed);git(['push','origin','main'],seed);
   const mainBefore=git(['rev-parse','main'],remote);
+  git(['checkout','--orphan','animeunity-data'],seed);git(['rm','-rf','.'],seed);
+  fs.mkdirSync(path.join(seed,'providers/animeunity/data'),{recursive:true});
+  fs.writeFileSync(path.join(seed,'providers/animeunity/data/sentinel.json'),'{"preserved":true}');
+  git(['add','.'],seed);git(['commit','-m','AU snapshot'],seed);git(['push','origin','animeunity-data'],seed);
   git(['checkout','--orphan','animeworld-data'],seed);git(['rm','-rf','.'],seed);
   fs.mkdirSync(path.join(seed,'providers/animeworld/data'),{recursive:true});
   fs.writeFileSync(path.join(seed,'providers/animeworld/data/manifest.json'),'{}');
@@ -36,6 +40,7 @@ const fs=require('fs'),path=require('path'),cp=require('child_process'),args=pro
 if(args[0]==='--copy') {fs.cpSync(args.at(-2),args.at(-1),{recursive:true,filter:src=>!src.endsWith('.tmp')});}
 else if(args[0]==='-e') {const r=cp.spawnSync(process.execPath,args,{stdio:'inherit'});process.exitCode=r.status;}
 else if(args[0].endsWith('/pipeline.js')) {
+  if(!JSON.parse(fs.readFileSync('providers/animeunity/data/sentinel.json')).preserved)throw Error('AnimeUnity snapshot not imported');
   const root='unified/data',file=path.join(root,'state.json');fs.mkdirSync(path.join(root,'items'),{recursive:true});
   const prior=fs.existsSync(file)?JSON.parse(fs.readFileSync(file)).counter:0;
   if(prior!==Number(process.env.UNIFIED_TEST_RUN)-1)throw new Error('Checkpoint not restored');

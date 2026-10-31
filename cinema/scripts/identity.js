@@ -2,7 +2,7 @@
 const path=require('node:path');
 const cheerio=require('cheerio');
 const {read,write,hash}=require('../../shared/storage/json');
-const {createContext}=require('../../scripts/vega');
+const {createContext}=require('../../providers/animeunity/scripts/vega');
 const norm=s=>String(s||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\(\d{4}\)/g,'').replace(/[^\p{L}\p{N}]/gu,'');
 async function resolve(record,{context,apiKey=process.env.TMDB_API_KEY}={}){
   const type=record.info.type==='movie'?'movie':'tv',imdb=record.sourceIds.imdb_id;

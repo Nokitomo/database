@@ -4,3 +4,5 @@ node_modules/
 .env
 *.tmp
 anime_database/**/.state.json
+
+/providers/animeunity/data/

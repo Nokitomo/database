@@ -41,7 +41,7 @@ jobs:
             .github/workflows
             providers/filmez
             shared
-            scripts
+            providers/animeunity/scripts
             cinema/scripts
             providers/streamingunity/scripts
             providers/altadefinizione/scripts

@@ -1,7 +1,7 @@
 'use strict';
-const {createContext,requireProvider}=require('../../scripts/vega');
+const {createContext,requireProvider}=require('../../providers/animeunity/scripts/vega');
 const {meaningful}=require('./catalog');
-const {needsEpisodeIdentity}=require('../../scripts/episode-safety');
+const {needsEpisodeIdentity}=require('../../providers/animeunity/scripts/episode-safety');
 async function enrich(record,{providerRoot,cacheRoot,signal,progress={},save=()=>{},services={}}){
   const load=name=>services[name]||requireProvider(providerRoot,name),context=services.context||createContext(providerRoot,'https://source.invalid',null,{durableMetadata:true,componentCacheRoot:cacheRoot,signal});
   const out=structuredClone(record),tmdb=load('tmdb/index.js'),tvdb=load('tvdb/index.js');

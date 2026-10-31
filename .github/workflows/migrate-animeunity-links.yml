@@ -22,11 +22,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
-          fetch-depth: 0
+          ref: ${{ github.sha }}
+          fetch-depth: 1
       - name: Install and verify Cloudflare WARP
         timeout-minutes: 15
-        run: bash scripts/setup-warp.sh
+        run: bash providers/animeunity/scripts/setup-warp.sh
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -35,20 +35,22 @@ jobs:
         run: npm ci
       - name: Check migration logic
         run: npm run verify
+      - name: Restore AnimeUnity snapshot
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          bash providers/animeunity/scripts/checkpoint.sh restore
+          npm run verify:data
       - name: Migrate existing final records
         run: |
-          bash scripts/check-warp.sh
-          node scripts/migrate-links.js
-          node scripts/migrate-links.js --apply
-          node -e "const r=require('./scripts/migrate-links').migrateLinks(); console.log(r); if(r.changed) throw new Error('Link migration is incomplete');"
+          bash providers/animeunity/scripts/check-warp.sh
+          node providers/animeunity/scripts/migrate-links.js
+          node providers/animeunity/scripts/migrate-links.js --apply
+          node -e "const r=require('./providers/animeunity/scripts/migrate-links').migrateLinks(); console.log(r); if(r.changed) throw new Error('Link migration is incomplete');"
           npm run verify:data
       - name: Publish migrated database
-        run: |
-          git add anime_database/final
-          if ! git diff --cached --quiet; then
-            git config user.name 'github-actions[bot]'
-            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git commit -m "Migrate saved AnimeUnity page links"
-            git pull --rebase origin main
-            git push origin main
-          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: bash providers/animeunity/scripts/checkpoint.sh publish
