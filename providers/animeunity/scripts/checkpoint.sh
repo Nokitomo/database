@@ -25,7 +25,7 @@ case "${1:-}" in
     bash providers/animeunity/scripts/check-warp.sh
     rsync -a --delete --exclude='*.tmp' "$data_dir/" "$publish_dir/$data_dir/"
     git -C "$publish_dir" config user.name 'github-actions[bot]'
-    git -C "$publish_dir" config user.email '41898282+github-actions[bot]'
+    git -C "$publish_dir" config user.email '41898282+github-actions[bot]@users.noreply.github.com'
     git -C "$publish_dir" add -A -- "$data_dir"
     if ! git -C "$publish_dir" diff --cached --quiet; then
       git -C "$publish_dir" commit -m "Update AnimeUnity database checkpoint"
