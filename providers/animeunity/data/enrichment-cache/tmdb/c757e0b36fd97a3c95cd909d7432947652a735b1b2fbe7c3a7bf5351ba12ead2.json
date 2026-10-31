@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tmdb","kind":"episodes","input":{"mediaId":1575337,"seasonNumber":1},"checkedAt":1793416260479,"status":"error","value":{"seasonNumber":1,"episodeCount":0,"posters":[],"backgrounds":[],"episodes":[],"sourceUrl":"https://www.themoviedb.org/tv/1575337/season/1"},"fields":{},"episodes":{"1":{"checkedAt":1793416260479,"status":"error"}}}

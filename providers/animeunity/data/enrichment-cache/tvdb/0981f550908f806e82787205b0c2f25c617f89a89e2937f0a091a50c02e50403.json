@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tvdb","kind":"episodes","input":{"tvdbShowId":342601,"seasonNumber":1},"checkedAt":1793331037992,"status":"ok","value":[{"episodeNumber":1,"title":"Episode 1","titleLanguage":"eng"}],"fields":{},"episodes":{"1":{"checkedAt":1793331037992,"status":"missing"}}}

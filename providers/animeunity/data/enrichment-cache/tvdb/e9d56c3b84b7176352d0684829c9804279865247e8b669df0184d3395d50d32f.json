@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tvdb","kind":"episodes","input":{"tvdbShowId":352569,"seasonNumber":0},"checkedAt":1793413704864,"status":"ok","value":[{"episodeNumber":1,"title":"Farewell, Beloved Dancho","synopsis":"Included in the BD Vol. 6.","titleLanguage":"eng","synopsisLanguage":"eng"}],"fields":{},"episodes":{"1":{"checkedAt":1793413704864,"status":"missing"}}}
