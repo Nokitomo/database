@@ -133,3 +133,41 @@ test('pipeline exports verified data and does not repeat fresh details',async t=
   await run({root,client});assert.equal(details,1);
   const state=read(path.join(root,'state.json'));state.known[1].active=false;write(path.join(root,'state.json'),state);await run({root,stage:'publish'});assert.equal(verify(root).active,0);assert.equal(read(itemFile(root,1)).info.name,'Title 1');
 });
+
+test('activity counters including translated views do not schedule detail refresh',()=>{
+  const state=initialState(),value={...card(1),views:10,favorites:3,members:4,translations:[
+    {id:1,locale:'it',key:'views',value:'100'}, {id:2,locale:'it',key:'daily_views',value:'10'},
+    {id:3,locale:'it',key:'plot',value:'Plot'}]};
+  observe(state,value,1);const changed=structuredClone(value);
+  changed.views++;changed.favorites++;changed.members++;changed.translations[0].value='101';changed.translations[1].value='11';
+  observe(state,changed,2);assert.equal(state.known[1].refresh,false);
+  assert.equal(state.known[1].activityCounters['/translations/it/views'],'101');
+  assert.equal(state.known[1].activityCounters['/favorites'],4);
+  assert.equal(value.translations[0].value,'100');assert.equal(state.known[1].fingerprintVersion,2);
+});
+test('real catalog metadata changes and reactivation still schedule refresh',()=>{
+  for(const mutate of [c=>c.name='Other',c=>c.slug='other',c=>c.score=8,c=>c.last_air_date='2026-11-01',
+    c=>c.seasons_count=2,c=>c.images=[{filename:'new.webp'}],c=>c.translations[0].value='New plot']){
+    const state=initialState(),value={...card(1),translations:[{locale:'it',key:'plot',value:'Old plot'}]};
+    observe(state,value,1);const next=structuredClone(value);mutate(next);observe(state,next,2);
+    assert.equal(state.known[1].refresh,true);
+  }
+  const state=initialState();observe(state,card(1),1);state.known[1].active=false;observe(state,card(1),2);
+  assert.equal(state.known[1].refresh,true);
+});
+test('legacy fingerprints migrate unchanged cards without scheduling a full refresh',()=>{
+  const state=initialState(),value=card(1),{hash}=require('../scripts/store');
+  state.known[1]={id:1,active:true,fingerprint:hash(value),refresh:false};
+  observe(state,value,2);assert.equal(state.known[1].refresh,false);assert.equal(state.known[1].fingerprintVersion,2);
+  const other=initialState();other.known[1]={id:1,active:true,fingerprint:hash(value),refresh:false};
+  observe(other,{...value,name:'New title'},2);assert.equal(other.known[1].refresh,true);
+  observe(other,{...value,name:'New title',views:10},3);assert.equal(other.known[1].refresh,true);
+  other.known[1].refresh=false;observe(other,{...value,name:'New title',views:11},4);assert.equal(other.known[1].refresh,false);
+});
+test('counter-only observations leave periodic checks and error retries intact',()=>{
+  const state=initialState();observe(state,{...card(1),views:1},1);
+  state.records[1]={complete:true,checkedAt:1,nextCheckAt:900};state.errors['item:1']={retryAt:500};
+  observe(state,{...card(1),views:2},2);
+  assert.equal(state.records[1].nextCheckAt,900);assert.equal(state.errors['item:1'].retryAt,500);
+  assert.equal(state.known[1].refresh,false);
+});

@@ -106,3 +106,17 @@ temporary directory that was removed afterwards. The provider slug containing
 `?` for title 6156 was also checked successfully with URL encoding.
 These checks validate archive discovery and representative metadata collection;
 they are not a full production metadata build for all 19,162 titles.
+
+## Activity counters and refresh decisions
+
+Catalog fingerprints (version 2) exclude views, daily/weekly/monthly/total views,
+visite, favorites and members counters, including translation entries whose key
+names a counter. Observed counters are retained separately in state.known[id].activityCounters.
+Titles, plots, scores, season counts, dates and image metadata still trigger refresh.
+Periodic deadlines, retry state and already-pending refreshes are preserved.
+
+Legacy state only contains a hash of the old card, not the card itself. An exact
+legacy match upgrades without fetching details. A changed legacy card schedules
+one conservative refresh to avoid hiding a real metadata change; subsequent
+counter-only observations do not schedule new refreshes. Existing pending work
+is never cleared merely by observing an unchanged card.
