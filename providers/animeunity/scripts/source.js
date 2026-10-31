@@ -163,15 +163,25 @@ async function fetchAnime(item, baseUrl, fetch = request, signal) {
   const absolute = Number.isFinite(minimum) && (count ? minimum > count * 1.5 : minimum > 1);
   const from = absolute ? minimum : 0;
   const to = absolute ? maximum : count;
-  // This path segment selects an existing episode; it is not a page number.
+  // Some titles accept a displayed label here; others require ordinal 1.
+  // Keep range bounds separate from this API selector.
   // Special-only titles may have episode 0 (or a fractional/range label) but no 1.
   const knownEpisodes = embedded.episodes.filter(episode => episode?.id != null && episodeBounds(episode.number));
   const anchor = knownEpisodes.find(episode => String(episode.number).trim() === '1') || knownEpisodes[0];
-  const episodeLabel = anchor ? String(anchor.number).trim() : '1';
+  let episodeLabel = anchor ? String(anchor.number).trim() : '1';
   if (count > 0 || embedded.episodes.length > 0) {
     for (let start = from; start <= to; start += 120) {
       const end = Math.min(to, start + 119);
-      const response = await fetch('get', `${baseUrl}/info_api/${item.id}/${encodeURIComponent(episodeLabel)}?start_range=${start}&end_range=${end}`, null, {Referer: `${baseUrl}/`, signal});
+      const getRange = label => fetch('get', `${baseUrl}/info_api/${item.id}/${encodeURIComponent(label)}?start_range=${start}&end_range=${end}`, null, {Referer: `${baseUrl}/`, signal});
+      let response = await getRange(episodeLabel);
+      signal?.throwIfAborted();
+      if (episodeLabel !== '1' && !Array.isArray(response.data?.episodes) &&
+          response.data?.error === "Episode doesn't exist") {
+        // Conan Simulcast accepts ordinal 1, not its absolute/range labels.
+        // Do not convert an HTTP failure or malformed payload into success.
+        response = await getRange('1');
+        if (Array.isArray(response.data?.episodes)) episodeLabel = '1';
+      }
       signal?.throwIfAborted();
       if (!Array.isArray(response.data?.episodes)) throw new Error(`Invalid episodes payload for anime ${item.id}`);
       response.data.episodes.forEach(append);

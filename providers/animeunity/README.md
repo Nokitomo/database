@@ -98,3 +98,10 @@ record. Unrelated mapping changes, schema backfills and metadata retry schedules
 remain pending. Existing enrichment progress and timestamps are preserved when
 its source matches. The migration is repeatable after interruption and logs
 SOURCE_FINGERPRINT_MIGRATION. Verification accepts both legacy and v2 snapshots.
+
+Episode collection keeps displayed labels (including combined episodes) separate
+from API selectors. If a displayed selector returns the explicit application
+error "Episode doesn't exist", retry the same range with ordinal 1 and reuse it
+for subsequent ranges. Invalid payloads and HTTP failures remain errors. Conan
+Simulcast currently returns 32 video records covering labels 1245-1246 to 1277;
+the combined label is preserved and is not split into invented episode IDs.

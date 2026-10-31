@@ -306,3 +306,41 @@ test('catalog card retains fields needed for archive, calendar and latest sortin
   assert.equal(card.dubbed, true);
   assert.equal(card.artworkHints.anilistId, 42);
 });
+
+
+test('Conan absolute ranges fall back to ordinal 1 without changing combined episode labels', async () => {
+  const episodes = [{id: 10, number: '1245-1246'}, ...Array.from({length: 31}, (_, i) => ({id: i + 11, number: String(1247+i)}))];
+  const calls = [];
+  const raw = await fetchAnime({id: 7402, path: '/anime/7402-conan'}, 'https://www.animeunity.co', async (_method, url) => {
+    if (url.endsWith('/info_api/7402/')) return {data: {id: 7402, episodes_count: 33}};
+    if (url.includes('/anime/')) return {data: `<video-player anime='{"episodes_count":33}' episodes='${JSON.stringify(episodes)}'></video-player>`};
+    const u = new URL(url); calls.push(u.pathname);
+    assert.equal(u.searchParams.get('start_range'), '1245'); assert.equal(u.searchParams.get('end_range'), '1277');
+    return {data: u.pathname.endsWith('/1') ? {episodes} : {error: "Episode doesn't exist"}};
+  });
+  assert.deepEqual(calls, ['/info_api/7402/1245-1246','/info_api/7402/1']);
+  assert.deepEqual(raw.episodes, episodes); assert.equal(raw.episodes.length, 32);
+});
+
+test('successful ordinal fallback is reused across subsequent ranges', async () => {
+  const episodes = [{id: 1, number: '1245-1246'}, {id: 2, number: '1500'}], calls = [];
+  await fetchAnime({id: 9, path: '/anime/9-x'}, 'https://www.animeunity.co', async (_method, url) => {
+    if (url.endsWith('/info_api/9/')) return {data: {id: 9, episodes_count: 256}};
+    if (url.includes('/anime/')) return {data: `<video-player episodes='${JSON.stringify(episodes)}'></video-player>`};
+    const u = new URL(url); calls.push(u.pathname);
+    return {data: u.pathname.endsWith('/1') ? {episodes} : {error: "Episode doesn't exist"}};
+  });
+  assert.deepEqual(calls, ['/info_api/9/1245-1246','/info_api/9/1','/info_api/9/1','/info_api/9/1']);
+});
+
+test('malformed payload and network errors never silently use fallback', async () => {
+  for (const broken of [() => ({data: '<html>blocked</html>'}), () => {throw new Error('HTTP 429');}]) {
+    let calls=0;
+    await assert.rejects(fetchAnime({id:9,path:'/anime/9-x'}, 'https://www.animeunity.co', async (_method,url) => {
+      if(url.endsWith('/info_api/9/'))return {data:{id:9,episodes_count:1}};
+      if(url.includes('/anime/'))return {data:'<video-player episodes="[{&quot;id&quot;:1,&quot;number&quot;:&quot;0&quot;}]"></video-player>'};
+      calls++;return broken();
+    }));
+    assert.equal(calls,1);
+  }
+});
