@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tvdb","kind":"episodes","input":{"tvdbShowId":82847,"seasonNumber":1},"checkedAt":1793437615638,"status":"ok","retryCount":0,"value":[{"episodeNumber":10,"title":"I due","titleLanguage":"ita"}],"failure":null,"fields":{},"episodes":{"10":{"checkedAt":1793437615638,"status":"missing","retryCount":0}}}
