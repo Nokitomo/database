@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tvdb","kind":"episodes","input":{"tvdbShowId":249939,"seasonNumber":0},"checkedAt":1793448551517,"status":"ok","retryCount":0,"value":[{"episodeNumber":1,"title":"Shirogane no Tsubasa","titleLanguage":"eng"}],"failure":null,"fields":{},"episodes":{"1":{"checkedAt":1793448551517,"status":"missing","retryCount":0}}}
