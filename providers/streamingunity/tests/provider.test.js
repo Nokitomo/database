@@ -125,6 +125,7 @@ test('workflow requires WARP, manual stages and no push trigger',()=>{
   const yaml=fs.readFileSync(path.join(__dirname,'../../..','.github/workflows/update-streamingunity.yml'),'utf8');
   assert.match(yaml,/workflow_dispatch:/);assert.match(yaml,/options: \[all, discover, details, publish\]/);
   assert.match(yaml,/WARP_REQUIRED: '1'/);assert(!/^\s+push:/m.test(yaml));
+  assert.match(yaml,/sparse-checkout: \|\s+\.github\/workflows\s+providers\/streamingunity/);
 });
 test('pipeline exports verified data and does not repeat fresh details',async t=>{
   const root=tmp(t);let details=0;const client={baseUrl:base,async discover(){return {baseUrl:base,cdn:'https://cdn.streamingunity.fun',genres:[]};},async get(url){if(url.includes('/titles/')){details++;return {html:page()};}return {html:listing([card(1)],1)};}};

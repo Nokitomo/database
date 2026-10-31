@@ -39,6 +39,7 @@ jobs:
           ref: main
           fetch-depth: 1
           sparse-checkout: |
+            .github/workflows
             providers/streamingunity
             shared/storage
             shared/warp
