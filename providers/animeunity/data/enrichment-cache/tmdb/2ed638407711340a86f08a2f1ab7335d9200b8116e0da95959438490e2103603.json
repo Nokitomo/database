@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tmdb","kind":"season-poster","input":{"mediaId":34730,"seasonNumber":1},"checkedAt":1793440448997,"status":"ok","retryCount":0,"value":{"id":34730,"type":"tv","source":"tmdb-api","sourceUrl":"https://www.themoviedb.org/tv/34730/season/1","originalLanguage":"ja-JP","seasonNumber":1},"failure":null,"fields":{},"episodes":{}}
