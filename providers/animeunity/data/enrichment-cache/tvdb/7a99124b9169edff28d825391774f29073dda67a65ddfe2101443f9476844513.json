@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tvdb","kind":"episodes","input":{"tvdbShowId":87881,"seasonNumber":0},"checkedAt":1793428507920,"status":"ok","retryCount":0,"value":[{"episodeNumber":17,"title":"Mini Sengoku Basara Two 7","titleLanguage":"eng"}],"fields":{},"episodes":{"17":{"checkedAt":1793428507920,"status":"missing","retryCount":0}}}

@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tvdb","kind":"episodes","input":{"tvdbShowId":255717,"seasonNumber":1},"checkedAt":1793428596108,"status":"ok","retryCount":0,"value":[{"episodeNumber":1,"title":"Professor Dan Petory's Blues","titleLanguage":"eng"}],"fields":{},"episodes":{"1":{"checkedAt":1793428596108,"status":"missing","retryCount":0}}}
