@@ -281,6 +281,8 @@ async function runFinal(options, providerRoot) {
     if (!raw || !mapped || mapped.rawFingerprint !== raw.fingerprint || mapped.providerRef !== revision ||
       mapped.mappingSourceHash !== mappingIndex.sourceHash) return false;
     const final = readJson(file('final', id));
+    // Do not enrich a known legacy suspect while its selective mapping repair is queued.
+    if (needsMappingRepair(mapped, raw, final)) return false;
     if (!errorDue(manifest.errors[id])) return false;
     return (options.full && (!options.fullSince || Date.parse(final?.updatedAt || 0) < options.fullSince)) ||
       !final || final.providerRef !== revision ||
