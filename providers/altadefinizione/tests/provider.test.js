@@ -85,3 +85,11 @@ test('retirement requires two full omissions plus 404; reactivation keeps identi
   present=true;r=await run({root,client,now:24*86400000});assert(r.state.known[1].active);assert.equal(verify(root).active,2);
 });
 module.exports={fixture};
+
+test('selective collection retains source metadata and avoids repeated detail requests',async t=>{
+ const root=tmp(t),s=initialState();s.origins.site=base;const sample=detail(fixture(),1,s.origins);observe(s,card(1),100);
+ let calls=0;const client={coverage:require('../../../shared/catalog/tests/fixtures').coverageFor(sample,'altadefinizione',root),get:async()=>{calls++;return {html:fixture()}}};
+ await collect(client,s,root,1,{now:100,save(){}});assert.equal(read(itemFile(root,1)).collection.mode,'linked');
+ await collect(client,s,root,1,{now:101,save(){}});assert.equal(calls,1);
+ client.coverage=null;require('../../../shared/catalog/collection').configure(client,'altadefinizione',root,s,102);await collect(client,s,root,1,{now:102,save(){}});assert.equal(calls,2);assert.equal(read(itemFile(root,1)).collection.mode,'full');
+});

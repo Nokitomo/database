@@ -93,3 +93,12 @@ test('manual full refresh persists across batches and completes through update c
  let r=await run({root,client:mock(),now:200,mode:'full',maxRequests:1,maxItems:0});assert.equal(r.state.fullSince,200);assert(r.hasImmediateWork);
  r=await run({root,client:mock(),now:201,maxRequests:10});assert(r.complete);assert.equal(r.state.fullSince,undefined);assert.equal(verify(root).count,3);
 });
+
+test('selective collection reuses verified records but archive changes force a page check',async t=>{
+ const root=tmp(t),s=initialState(),client=mock();s.origins.site=base;observe(s,{id:1,path:'/1/',kind:'tv_show'},100);
+ const sample=detail(fixture(),1,s.origins,'/1/','tv_show');client.coverage=require('../../../shared/catalog/tests/fixtures').coverageFor(sample,'animetop',root);
+ let calls=0,get=client.get;client.get=async p=>{calls++;return get(p)};
+ await collect(client,s,root,1,{now:100,save(){}});assert.equal(read(itemFile(root,1)).collection.mode,'linked');
+ await collect(client,s,root,1,{now:101,save(){}});assert.equal(calls,1);
+ s.known[1].refresh=true;await collect(client,s,root,1,{now:102,save(){}});assert.equal(calls,2);
+});

@@ -3,6 +3,7 @@ const path=require('node:path'),{read,hash}=require('../../shared/storage/json')
 function verify(root=path.resolve(__dirname,'../data')){
   const m=read(path.join(root,'manifest.json')),catalog=read(path.join(root,'catalog.json'));
   if(!m||m.kind!=='cinema'||hash(catalog)!==m.catalogHash||catalog.length!==m.activeCount)throw Error('Invalid cinema manifest');
+  require('../../shared/catalog/coverage').verifyPublication(root,m.coverageHash,'cinema');
   const active=new Set(catalog.map(x=>x.id));if(active.size!==catalog.length||Object.keys(m.itemHashes).length!==m.count)throw Error('Invalid counts');
   function walk(v){if(!v||typeof v!=='object')return;if(v.base&&v.path&&!m.origins[v.base])throw Error('Unknown origin');Object.values(v).forEach(walk);}
   for(const [id,expected]of Object.entries(m.itemHashes)){const r=read(path.join(root,'items',id+'.json'));if(!r||r.id!==id||hash(r)!==expected||r.active!==active.has(id))throw Error('Invalid cinema item');walk(r);}

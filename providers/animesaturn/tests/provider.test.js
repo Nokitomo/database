@@ -113,3 +113,15 @@ test('feed and newest scans preserve old heads until their previous boundary is 
   await scanNewest(client,state,{now:100000,pagesPerBatch:1,save:()=>{}});
   assert.equal(state.newest.head[0],'00001');assert(!state.newest.scan);
 });
+
+test('selective collection avoids per-episode requests but exclusive records still collect them',async t=>{
+ const root=temp(t),store=require('../scripts/store'),state=store.initialState(),client=f.client(1,2),now=100;
+ state.origins.site=f.BASE;observe(state,{id:f.id(1),path:f.route(1)},now);
+ const sample=parseAnime(f.anime(1,2),f.BASE,state.known[f.id(1)],state.origins);
+ client.coverage=require('../../../shared/catalog/tests/fixtures').coverageFor(sample,'animesaturn',root,now);
+ await require('../scripts/pipeline').details(client,state,root,{now,requestLimit:20,save(){}});
+ assert.equal(read(itemFile(root,f.id(1))).collection.mode,'linked');assert(!client.calls.some(p=>p.startsWith('/episode/')));
+ client.coverage=null;require('../../../shared/catalog/collection').configure(client,'animesaturn',root,state,now+1);
+ await require('../scripts/pipeline').details(client,state,root,{now:now+1,requestLimit:20,save(){}});
+ assert.equal(read(itemFile(root,f.id(1))).collection.mode,'full');assert.equal(client.calls.filter(p=>p.startsWith('/episode/')).length,2);
+});

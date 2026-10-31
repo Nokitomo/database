@@ -102,3 +102,12 @@ test('alias discovery is deduplicated and old provider image domains resolve thr
  assert.deepEqual(reference('https://eurostreamings.old/wp-content/a.jpg',{site:base}),{base:'site',path:'/wp-content/a.jpg'});
 });
 module.exports={fixture,block,index,list};
+
+test('selective collection skips the connected episode page only for verified covered series',async t=>{
+ const root=tmp(t),s=initialState();s.origins.site=base;observe(s,{id:1,path:'/show-1/'},100);
+ const sample=detail(fixture(),1,s.origins,'/show-1/');const calls=[],client={baseUrl:base,coverage:require('../../../shared/catalog/tests/fixtures').coverageFor(sample,'eurostreaming',root),get:async p=>{calls.push(p);return {html:p==='/yaga-episodi/'?fixture():fixture({connected:true}),url:base+p}}};
+ await collect(client,s,root,'/show-1/',1,{now:100,save(){}});assert.deepEqual(calls,['/show-1/']);assert.equal(read(itemFile(root,1)).collection.mode,'linked');
+ s.known[1].refresh=true;await collect(client,s,root,'/show-1/',1,{now:101,save(){}});assert(calls.includes('/yaga-episodi/'));assert.equal(read(itemFile(root,1)).collection.reason,'provider-reported-change');
+ client.coverage=null;require('../../../shared/catalog/collection').configure(client,'eurostreaming',root,s,102);
+ await collect(client,s,root,'/show-1/',1,{now:101,save(){}});assert(calls.includes('/yaga-episodi/'));assert.equal(read(itemFile(root,1)).seasons[0].episodes.length,2);
+});

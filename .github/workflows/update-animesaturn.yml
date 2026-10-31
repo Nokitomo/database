@@ -39,9 +39,9 @@ jobs:
           ref: main
           fetch-depth: 1
           sparse-checkout: |
+            .github/workflows
             providers/animesaturn
-            shared/storage
-            shared/warp
+            shared
       - name: Install and verify Cloudflare WARP
         timeout-minutes: 15
         run: bash shared/warp/setup.sh
@@ -55,6 +55,11 @@ jobs:
           npm ci
       - name: Verify AnimeSaturn logic
         run: npm run verify:animesaturn
+      - name: Load verified primary catalog coverage
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: bash shared/catalog/fetch-coverage.sh anime
       - name: Scrape AnimeSaturn with durable checkpoints
         env:
           RUN_MODE: ${{ inputs.mode || 'update' }}

@@ -202,3 +202,7 @@ TMDB/TVDB/AniList images are outside this AnimeUnity-specific health check.
 ## Filmez source
 
 The independent Filmez scraper, data contract and verification commands are documented in [providers/filmez/README.md](providers/filmez/README.md). Its snapshot on `filmez-data` is consumed by the cinema unifier, with safe external-ID matching and separate records for unresolved identities.
+
+## Selective secondary-provider collection
+
+AnimeUnity and StreamingUnity remain complete primary sources. Other providers use verified coverage to avoid redundant requests while retaining exclusive works and acquired metadata. See [the collection contract](shared/catalog/README.md) for matching, fallback, migration and checkpoint behavior.

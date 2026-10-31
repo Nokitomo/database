@@ -30,3 +30,12 @@ test('cinema identity indexes large catalogs and preserves title-only candidates
 test('featured-media poster becomes selected artwork when HTML has none',async()=>{const {supplement}=require('../scripts/metadata');const r=detail(fixture.replace(/<meta[^>]+>/g,''),1,{site:base},'/film/movie/','movie');assert.equal(r.info.poster,null);await supplement({get:async p=>({html:JSON.stringify(p.includes('/media/')?{id:2,media_type:'image',source_url:base+'/api-only.jpg'}:{id:1,type:'movie',link:base+'/film/movie/',featured_media:2})})},r,{site:base});assert.deepEqual(r.info.poster,{base:'site',path:'/api-only.jpg'});});
 
 test('deleted featured media preserves HTML artwork, while network errors remain retryable',async()=>{const {supplement}=require('../scripts/metadata');const r=detail(fixture,1,{site:base},'/film/movie/','movie');let status=404;const client={get:async p=>{if(p.includes('/media/'))throw Object.assign(Error('HTTP '+status),{status});return {html:JSON.stringify({id:1,type:'movie',link:base+'/film/movie/',featured_media:2})}}};await supplement(client,r,{site:base});assert.equal(r.sourceMetadata.featuredMediaStatus,'missing');assert(r.info.poster);status=503;await assert.rejects(supplement(client,r,{site:base}),/503/);});
+
+test('verified primary membership avoids artwork API calls and preserves prior source artwork',async t=>{
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'filmez-selective-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+ const store=require('../scripts/store'),s=store.initialState();s.origins.site=base;store.observe(s,{id:1,path:'/film/movie/',kind:'movie'},100);
+ const record=detail(fixture,1,s.origins,'/film/movie/','movie');record.images.push({role:'poster',reference:{base:'site',path:'/retained.jpg'}});store.write(store.itemFile(root,1),record);
+ const calls=[],client={coverage:require('../../../shared/catalog/tests/fixtures').coverageFor(record,'filmez',root),get:async p=>{calls.push(p);assert(!p.startsWith('/wp-json/'));return {html:fixture}}};
+ await require('../scripts/pipeline').collect(client,s,root,1,{now:100,save(){}});assert.equal(calls.length,1);assert.equal(store.read(store.itemFile(root,1)).collection.mode,'linked');assert.equal(store.read(store.itemFile(root,1)).images.length,2);
+ await require('../scripts/pipeline').collect(client,s,root,1,{now:101,save(){}});assert.equal(calls.length,1);
+});

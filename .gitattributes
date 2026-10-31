@@ -9,3 +9,5 @@ cinema/scripts/*.sh text eol=lf
 providers/animetop/scripts/*.sh text eol=lf
 
 providers/filmez/scripts/*.sh text eol=lf
+
+shared/catalog/*.sh text eol=lf

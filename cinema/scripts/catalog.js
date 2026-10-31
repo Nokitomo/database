@@ -95,6 +95,6 @@ function publish(root,records,source,registry,conflicts,aliases,status){
   const identityIssues=all.flatMap(r=>Object.entries(r.providers).flatMap(([provider,variants])=>variants.filter(v=>v.identity&&v.identity.status!=='verified').map(v=>({workId:r.id,provider,id:v.id,...v.identity}))));
   const m={schemaVersion:1,kind:'cinema',count:all.length,activeCount:catalog.length,itemHashes,shardHashes,catalogHash:hash(catalog),origins:{...old.origins,...source.origins},sources:source.snapshots,awaitingProviders:source.missingProviders||[],identityIssues,conflicts,aliases,...status};
   m.complete=Object.values(source.snapshots).every(s=>s.complete)&&!conflicts.length&&!unknown&&!m.pendingCount;
-  write(path.join(root,'changes.json'),{changed:Object.keys(itemHashes).filter(id=>old.itemHashes[id]!==itemHashes[id]),removed:[]});write(path.join(root,'manifest.json'),m);return m;
+  write(path.join(root,'changes.json'),{changed:Object.keys(itemHashes).filter(id=>old.itemHashes[id]!==itemHashes[id]),removed:[]});m.coverageHash=require('../../shared/catalog/coverage').publish(root,all,'cinema');write(path.join(root,'manifest.json'),m);return m;
 }
 module.exports={loadSources,ids,compatible,group,mergeGroup,publish,namespace,meaningful};

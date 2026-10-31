@@ -39,8 +39,9 @@ jobs:
           ref: main
           fetch-depth: 1
           sparse-checkout: |
+            .github/workflows
             providers/animeworld
-            shared/warp
+            shared
       - name: Install and verify Cloudflare WARP
         timeout-minutes: 15
         run: bash shared/warp/setup.sh
@@ -54,6 +55,11 @@ jobs:
           npm ci
       - name: Verify AnimeWorld logic
         run: npm run verify:animeworld
+      - name: Load verified primary catalog coverage
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: bash shared/catalog/fetch-coverage.sh anime
       - name: Scrape AnimeWorld with durable checkpoints
         env:
           RUN_MODE: ${{ inputs.mode || 'update' }}

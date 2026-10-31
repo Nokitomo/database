@@ -1,4 +1,5 @@
 'use strict';
+const collection=require('../../../shared/catalog/collection');
 const path=require('node:path');
 const {Client}=require('./http');
 const {parseArchive,parseAnime,parseEpisode,parseFeed,parseHomeImages}=require('./parse');
@@ -96,8 +97,9 @@ async function details(client,state,root,{now,requestLimit,save}){
     if(remaining<=0)break;
     if(!recordDue(state,known.id,now))continue;
     const status=state.records[known.id]||={episodeChecks:{}};
+    if(collection.reuse(client,state,root,known.id,now,save))continue;
     try{
-      let record=read(itemFile(root,known.id));
+      let record=read(itemFile(root,known.id));const previous=record,sourceChanged=!!known.refresh;
       if(!record||!status.pageAt||status.complete||known.refresh){
         remaining--;
         let response;
@@ -115,17 +117,19 @@ async function details(client,state,root,{now,requestLimit,save}){
         record=next;status.complete=false;status.pageAt=now;known.refresh=false;known.missingScans=0;
         delete status.missingConfirmedAt;write(itemFile(root,known.id),record);save();
       }
-      for(let index=0;index<record.episodes.length&&remaining>0;index++){
+      const selection=collection.annotate(record,client,now,previous,sourceChanged);
+      for(let index=0;selection.mode==='full'&&index<record.episodes.length&&remaining>0;index++){
         const episode=record.episodes[index],checked=status.episodeChecks[episode.id]||0;
         if(episode.sourceMetadata&&now-checked<30*DAY&&(!state.fullSince||checked>=state.fullSince))continue;
         remaining--;
         record.episodes[index]=parseEpisode((await client.get(episode.path)).html,client.baseUrl,record,episode,state.origins);
         status.episodeChecks[episode.id]=now;write(itemFile(root,known.id),record);save();
       }
-      status.complete=record.episodes.every(episode=>episode.sourceMetadata&&now-(status.episodeChecks[episode.id]||0)<30*DAY&&
+      status.complete=selection.mode==='linked'||record.episodes.every(episode=>episode.sourceMetadata&&now-(status.episodeChecks[episode.id]||0)<30*DAY&&
         (!state.fullSince||status.episodeChecks[episode.id]>=state.fullSince));
       if(status.complete){status.checkedAt=now;status.nextCheckAt=now+(['completed','dropped'].includes(record.info.status)&&record.episodes.length?30*DAY:12*HOUR);}
-      delete status.error;save();
+      if(selection.mode==='linked')status.nextCheckAt=Math.min(status.nextCheckAt,now+DAY);
+      write(itemFile(root,known.id),record);delete status.error;save();
     }catch(error){status.error=failure(error,now);save();if(client.signal?.aborted||/WARP_REQUIRED/.test(error.message))throw error;
       console.error(`animesaturn ${known.id}: ${error.message}`);}
   }
@@ -135,6 +139,7 @@ async function run({root=DEFAULT_DATA,mode='update',stage='all',requestLimit=50,
   const state=read(path.join(root,'state.json'),initialState()),save=()=>write(path.join(root,'state.json'),state);
   if(mode==='full'&&!state.fullSince)state.fullSince=now;
   client ||= new Client({signal:AbortSignal.timeout(budgetMs)});
+  collection.configure(client,'animesaturn',root,state,now);
   let interrupted=false;
   try{
     if(stage!=='publish'){

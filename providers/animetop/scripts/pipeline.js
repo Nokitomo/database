@@ -1,4 +1,5 @@
 'use strict';
+const collection=require('../../../shared/catalog/collection');
 const path=require('node:path');
 const {Client}=require('./http'),{apiArchive,htmlArchive,detail}=require('./parse');
 const {read,write,hash,DEFAULT_DATA,itemFile,initialState,observe,publish}=require('./store');
@@ -50,8 +51,10 @@ async function scanFeed(client,s,kind,{now,save,maxRequests=3}){
  }
 }
 async function collect(client,s,root,id,{now,save}){
+ const cached=collection.reuse(client,s,root,id,now,save);if(cached)return cached;
  const k=s.known[id],response=await client.get(k.path),origins={...s.origins};
  const record=detail(response.html,id,origins,k.path,k.card.kind),old=read(itemFile(root,id));
+ collection.annotate(record,client,now,old,!!k.refresh);
  if(!record.metadataComplete){
   if(!old||old.metadataComplete===false){s.origins=origins;write(itemFile(root,id),record);s.records[id]={complete:false,checkedAt:now,nextCheckAt:now+HOUR};save();}
   throw Error('Unparsed episode labels; previous complete record retained');
@@ -64,6 +67,7 @@ async function collect(client,s,root,id,{now,save}){
 async function run({root=DEFAULT_DATA,client=new Client(),mode='update',stage='all',now=Date.now(),budgetMs=180000,maxRequests=20,maxItems=20}={}){
  if(!['update','full'].includes(mode)||!['all','discover','details','publish'].includes(stage))throw Error('Invalid run options');
  const s=read(path.join(root,'state.json'))||initialState(),save=()=>write(path.join(root,'state.json'),s);if(mode==='full'&&!s.fullSince){s.fullSince=now;s.archive.completedAt=0;}
+ collection.configure(client,'animetop',root,s,now);
  const start=Date.now();client.signal||=AbortSignal.timeout(budgetMs);let fatal=null;
  const attempt=async(key,fn)=>{try{await fn();}catch(e){s.errors[key]={message:String(e.message).slice(0,250),retryAt:now+HOUR};
   if(key==='archive'&&/changed|repeated|coverage|Incomplete|Invalid/i.test(e.message))delete s.archive.scan;

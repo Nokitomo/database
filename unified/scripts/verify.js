@@ -5,6 +5,7 @@ function verify(root) {
   const manifest = read(path.join(root, 'manifest.json'));
   const catalog = read(path.join(root, 'catalog.json'));
   if (!manifest || !catalog || hash(catalog) !== manifest.catalogHash) throw new Error('Invalid catalog');
+  require('../../shared/catalog/coverage').verifyPublication(root,manifest.coverageHash,'anime');
   const seen = new Set();
   if (manifest.schemaVersion !== 2) throw new Error('Unsupported lifecycle schema');
   const activeIds = new Set(catalog.map(row=>row.id));

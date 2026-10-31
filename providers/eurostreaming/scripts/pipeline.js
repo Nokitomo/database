@@ -1,4 +1,5 @@
 'use strict';
+const collection=require('../../../shared/catalog/collection');
 const path=require('node:path');
 const {Client}=require('./http');
 const {ARCHIVE,archive,indexLinks,connectedPage,detail}=require('./parse');
@@ -52,11 +53,16 @@ async function scanFeed(client,s,{now,save}){
   links.forEach(p=>queue(s,p,now,true));s.feeds={checkedAt:now};delete s.errors.feed;save();
 }
 async function collect(client,s,root,p,id,{now,save}){
+  if(id!=null){const cached=collection.reuse(client,s,root,id,now,save);if(cached)return cached;}
   let page;try{page=await client.get(p);}catch(e){e.mainPageUnavailable=[404,410].includes(e.status);throw e;}
   const actual=localPath(page.url||p,client.baseUrl),connected=connectedPage(page.html,client.baseUrl);
   if(connected===actual)throw Error('Episode page cycle');
-  const episodePage=connected?await client.get(connected):null,origins={...s.origins};
-  const record=detail(page.html,id,origins,actual,episodePage?.html);
+  const origins={...s.origins},identity=detail(page.html,id,origins,actual,null,{identityOnly:true});
+  const previous=read(itemFile(root,identity.id)),sourceChanged=!!s.known[identity.id]?.refresh,selection=collection.annotate(identity,client,now,previous,sourceChanged);
+  const episodePage=connected&&selection.mode==='full'?await client.get(connected):null;
+  const record=selection.mode==='linked'?identity:detail(page.html,id,origins,actual,episodePage?.html);
+  if(selection.mode==='linked'&&connected&&previous){record.seasons=previous.seasons;record.seasonIndex=previous.seasonIndex;record.episodeBlocks=previous.episodeBlocks;}
+  collection.annotate(record,client,now,previous,sourceChanged);
   // Keep the archive's poster too; detail artwork may come from another CDN.
   const prior=s.known[record.id],cardImage=prior?.card?.image;
   if(cardImage){const ref=reference(cardImage,origins);if(!record.images.some(i=>hash(i.reference)===hash(ref)))record.images.push({role:'poster',reference:ref,language:null});}
@@ -76,7 +82,8 @@ async function run({root=DEFAULT_DATA,client=new Client(),mode='update',stage='a
   if(!['update','full'].includes(mode)||!['all','discover','details','publish'].includes(stage))throw Error('Invalid run options');
   const s=read(path.join(root,'state.json'))||initialState(),save=()=>write(path.join(root,'state.json'),s);
   s.paths||={};if(mode==='full'&&!s.fullSince){s.fullSince=now;s.archive.completedAt=0;}
-  const start=Date.now();client.signal||=AbortSignal.timeout(budgetMs);let fatal=null;
+  collection.configure(client,'eurostreaming',root,s,now);
+ const start=Date.now();client.signal||=AbortSignal.timeout(budgetMs);let fatal=null;
   const attempt=async(key,fn)=>{try{await fn();}catch(e){s.errors[key]={message:String(e.message).slice(0,250),retryAt:now+HOUR};
     if(key==='archive'&&/changed|repeated|Incomplete/i.test(e.message))delete s.archive.scan;save();
     if(client.signal.aborted||/WARP_REQUIRED/.test(e.message))throw e;}};

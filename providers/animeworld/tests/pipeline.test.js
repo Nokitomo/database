@@ -127,3 +127,13 @@ test('HTTP 200 missing-page templates only retire a title after a complete archi
   await scrapeRecord(client,state,root,1,NOW+2*HOUR);assert.equal(state.known[1].active,false);
   assert.deepEqual(read(itemFile(root,1)),saved);
 });
+
+test('selective collection skips tooltip and cached pages, then restores full collection without primary coverage',async t=>{
+ const root=temp(t),state=initialState(),client=fake(1);state.origins.site=f.BASE;observe(state,{...f.identity(1)},NOW);
+ const sample=require('../scripts/parse').parseAnime(f.anime(1),f.BASE,state.known[1],state.origins);
+ client.coverage=require('../../../shared/catalog/tests/fixtures').coverageFor(sample,'animeworld',root,NOW);
+ await scrapeRecord(client,state,root,1,NOW);assert.equal(read(itemFile(root,1)).collection.mode,'linked');assert(!client.calls.some(p=>p.includes('/tooltip/')));
+ const before=client.calls.length;await scrapeRecord(client,state,root,1,NOW+1);assert.equal(client.calls.length,before);
+ client.coverage=null;require('../../../shared/catalog/collection').configure(client,'animeworld',root,state,NOW+2);
+ await scrapeRecord(client,state,root,1,NOW+2);assert(client.calls.some(p=>p.includes('/tooltip/')));assert.equal(read(itemFile(root,1)).collection.mode,'full');
+});

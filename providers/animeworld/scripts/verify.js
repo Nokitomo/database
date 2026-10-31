@@ -29,7 +29,7 @@ function verify(root = DEFAULT_DATA) {
     checkReferences(record,manifest.origins);
     present.push(id);
     if (manifest.complete) {
-      assert.ok(state.records[id]?.pageAt && state.records[id]?.tooltipAt && record.tooltip);
+      assert.ok(state.records[id]?.pageAt && state.records[id]?.tooltipAt && (record.tooltip || record.collection?.mode==='linked'));
       assert.ok(!state.records[id].error);
     }
   }

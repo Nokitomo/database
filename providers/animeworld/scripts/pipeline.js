@@ -1,4 +1,5 @@
 'use strict';
+const collection=require('../../../shared/catalog/collection');
 
 const path = require('node:path');
 const {Client} = require('./http');
@@ -150,6 +151,8 @@ async function extras(client, state, home, {now, save}) {
 async function scrapeRecord(client, state, root, id, now) {
   const known = state.known[id], meta = state.records[id] ||= {};
   let record = read(itemFile(root, id));
+  if(collection.reuse(client,state,root,id,now))return;
+  const previous=record,sourceChanged=!!known.forceRefresh;
   try {
     const needPage = !record || !meta.pageAt || known.forceRefresh || known.missingScanAt ||
       state.full && meta.pageAt < state.full.since || now >= meta.nextCheckAt;
@@ -193,7 +196,9 @@ async function scrapeRecord(client, state, root, id, now) {
       meta.nextCheckAt = now + (record.episodes.length === 0 || ['ongoing','upcoming','unknown'].includes(record.info.status) ? 12 * HOUR : 30 * DAY);
       write(itemFile(root, id), record);
     }
-    if (!meta.tooltipAt || state.full && meta.tooltipAt < state.full.since) {
+    const selection=collection.annotate(record,client,now,previous,sourceChanged);
+    if(selection.mode==='linked'){meta.tooltipAt=now;meta.nextCheckAt=Math.min(meta.nextCheckAt,now+DAY);}
+    if (selection.mode==='full' && (!meta.tooltipAt || state.full && meta.tooltipAt < state.full.since)) {
       record.tooltip = parseTooltip((await client.get(`/api/tooltip/${id}`)).html, client.baseUrl, known, state.origins);
       meta.tooltipAt = now;
     }
@@ -219,6 +224,7 @@ async function runBatch({root = DEFAULT_DATA, mode = 'update', stage = 'all', ba
   if (state.schemaVersion !== 1 || state.provider !== 'animeworld') throw new Error('Unsupported state schema');
   const save = () => write(statePath, state);
   if (mode === 'full' && !state.full && stage !== 'publish') state.full = {since: now};
+  collection.configure(client,'animeworld',root,state,now);
   let processed = 0, fatal;
   try {
     if (stage !== 'publish') {

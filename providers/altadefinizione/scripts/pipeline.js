@@ -1,4 +1,5 @@
 'use strict';
+const collection=require('../../../shared/catalog/collection');
 const path=require('node:path');
 const {Client}=require('./http');
 const {archive,detail}=require('./parse');
@@ -49,8 +50,10 @@ async function scanFeed(client,state,key,{now,save,maxRequests=3}){
   }
 }
 async function collect(client,state,root,id,{now,save}){
+  const cached=collection.reuse(client,state,root,id,now,save);if(cached)return cached;
   const k=state.known[id],origins={...state.origins};
   const record=detail((await client.get(k.path)).html,id,origins);
+  collection.annotate(record,client,now,read(itemFile(root,id)),!!k.refresh);
   state.origins=origins;write(itemFile(root,id),record);
   const stable=!record.info.upcoming&&(record.info.type==='movie'||/ended|canceled|cancelled/i.test(record.info.status||''));
   state.records[id]={complete:true,checkedAt:now,missingScans:k.missingScans||0,nextCheckAt:now+(stable?30*DAY:DAY)};
@@ -60,6 +63,7 @@ async function run({root=DEFAULT_DATA,client=new Client(),mode='update',stage='a
   if(!['update','full'].includes(mode)||!['all','discover','details','publish'].includes(stage))throw Error('Invalid run options');
   const state=read(path.join(root,'state.json'))||initialState(),save=()=>write(path.join(root,'state.json'),state);
   if(mode==='full'&&!state.fullSince){state.fullSince=now;state.archive.completedAt=0;}
+  collection.configure(client,'altadefinizione',root,state,now);
   const started=Date.now();client.signal ||= AbortSignal.timeout(budgetMs);let fatal=null;
   const attempt=async(key,fn)=>{try{await fn();}catch(e){state.errors[key]={message:String(e.message).slice(0,300),retryAt:now+HOUR};
     if(key==='archive'&&/changed|repeated|mismatch|Incomplete|Empty/i.test(e.message))delete state.archive.scan;

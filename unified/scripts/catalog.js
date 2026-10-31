@@ -121,6 +121,7 @@ function baseRecord(group) {
   const providerImages = {animeworld: [], animesaturn: [], animetop: []};
   for (const entry of group.entries) {
     providers[entry.provider].push({id: entry.id, path: entry.record.path,
+      sourceIdentity:{title:entry.record.info?.title||entry.record.info?.name,type:entry.record.info?.type,year:entry.record.info?.year},sourceIds:entry.record.sourceIds,collection:entry.record.collection,
       audio: entry.record.info?.audio ?? (entry.raw?.info?.dub ? 'Italiano' : null),
       dubbed: entry.record.info?.dubbed ?? Boolean(entry.raw?.info?.dub),
       episodes: namespace(entry.record.sourceEpisodes || entry.record.episodes || [], entry.provider),
@@ -212,6 +213,7 @@ function publish(root, records, source, registry, conflicts) {
     deactivated: records.filter(value=>!value.active && previous.get(value.id)?.active !== false).map(value=>value.id),
     reactivated: records.filter(value=>value.active && previous.get(value.id)?.active === false).map(value=>value.id),
     removed: Object.keys(old.itemHashes).filter(id => !itemHashes[id])});
+  manifest.coverageHash = require('../../shared/catalog/coverage').publish(root, records, 'anime');
   write(path.join(root, 'manifest.json'), manifest);
   return manifest;
 }

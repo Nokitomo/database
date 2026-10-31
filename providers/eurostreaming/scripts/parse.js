@@ -53,14 +53,14 @@ function episodeBlocks($){
   });
   return blocks;
 }
-function detail(html,expected,origins,path,episodeHtml=null){
+function detail(html,expected,origins,path,episodeHtml=null,{identityOnly=false}={}){
   const $=cheerio.load(html),id=Number(($('body').attr('class')||'').match(/\bpostid-(\d+)\b/)?.[1]);
   const content=$('.post-entry .entry-content').first(),name=clean($('h1.entry-title').first().text());
   if(!id||expected&&id!==Number(expected)||!name||!content.length)throw Error('Invalid detail identity/HTML');
   const blocks=episodeBlocks(episodeHtml?cheerio.load(episodeHtml):$),warnings=[];
-  const connected=connectedPage(html,origins.site);if(connected&&!episodeHtml)throw Error('Connected episode page not loaded');
-  if(!blocks.length)throw Error('Episode layout not recognized');
-  if(blocks.some(b=>b.unparsed.length))throw Error('Unparsed episode rows');
+  const connected=connectedPage(html,origins.site);if(connected&&!episodeHtml&&!identityOnly)throw Error('Connected episode page not loaded');
+  if(!blocks.length&&!identityOnly)throw Error('Episode layout not recognized');
+  if(!identityOnly&&blocks.some(b=>b.unparsed.length))throw Error('Unparsed episode rows');
   const seasons=new Map();
   for(const b of blocks){let s=seasons.get(b.number);if(!s){s={id:b.number,number:b.number,images:[],episodes:[],blocks:[]};seasons.set(b.number,s);}s.blocks.push(b.id);
     for(const ep of b.episodes){if(ep.seasonNumber!==b.number)warnings.push('ambiguous-episode-numbering');

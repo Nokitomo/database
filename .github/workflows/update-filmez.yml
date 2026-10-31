@@ -39,6 +39,7 @@ jobs:
           ref: main
           fetch-depth: 1
           sparse-checkout: |
+            .github/workflows
             providers/filmez
             shared
             scripts
@@ -59,6 +60,11 @@ jobs:
           npm ci
       - name: Verify Filmez logic
         run: npm run verify:filmez
+      - name: Load verified primary catalog coverage
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: bash shared/catalog/fetch-coverage.sh cinema
       - name: Scrape Filmez with durable checkpoints
         env:
           RUN_MODE: ${{ inputs.mode || 'update' }}
