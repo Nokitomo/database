@@ -7,11 +7,11 @@ const DAY = 86400000;
 const DEFAULT_FIELDS = ['logo', 'poster', 'background'];
 
 function createMetadataTasks({root = path.join(DATA, 'enrichment-cache'), now = Date.now,
-  failures = () => 0, log = console.log, signal, initialTasks = {}} = {}) {
+  failures = () => 0, failureDetails = () => null, log = console.log, signal, initialTasks = {}} = {}) {
   const used = new Map(Object.entries(initialTasks));
   const inFlight = new Map();
   const ttl = entry => entry.status === 'error'
-    ? Math.min(DAY, 30 * 60000 * 2 ** Math.min(6, Math.max(0, (entry.retryCount || 1) - 1)))
+    ? Math.min(7 * DAY, 30 * 60000 * 2 ** Math.min(9, Math.max(0, (entry.retryCount || 1) - 1)))
     : entry.status === 'missing' ? 30 * DAY : 90 * DAY;
   const fresh = entry => entry && now() - entry.checkedAt < ttl(entry);
   const retryCount = (old, status) => status === 'error' ? Math.min(16, (old?.retryCount || 0) + 1) : 0;
@@ -37,7 +37,8 @@ function createMetadataTasks({root = path.join(DATA, 'enrichment-cache'), now = 
           episodeNumbers: usedNumbers, fields: usedFields,
           nextCheckAt: Math.min(...(parts.length ? parts : [entry])
             .map(part => part.checkedAt + ttl(part))),
-          retryCount: Math.max(0, ...parts.map(part => part.retryCount || 0))});
+          retryCount: Math.max(0, ...parts.map(part => part.retryCount || 0)),
+          failure: entry.failure || null});
       };
       const missingNumbers = numbers?.filter(number => !fresh(old?.episodes?.[number]));
       const reusable = numbers ? missingNumbers.length === 0 :
@@ -63,6 +64,8 @@ function createMetadataTasks({root = path.join(DATA, 'enrichment-cache'), now = 
       const status = failed ? 'error' : !value || (Array.isArray(value) && !value.length) ? 'missing' : 'ok';
       const entry = {schemaVersion: 1, source: task.source, kind: task.kind, input: task.input,
         checkedAt, status, retryCount: retryCount(old, status), value: value ?? old?.value ?? null,
+        failure: failed ? (failureDetails(task.source) || {httpStatus: Number(thrown?.response?.status) || null,
+          code: String(thrown?.code || 'REQUEST_FAILED').replace(/[^A-Z0-9_]/gi, '').slice(0, 40)}) : null,
         fields: {...old?.fields}, episodes: {...old?.episodes}};
       if (numbers) {
         const rows = Array.isArray(value) ? value : value?.episodes || [];

@@ -51,15 +51,15 @@ test('confirmed HTTP 404 is missing rather than a transient failure', async t =>
   assert.equal(entry.status, 'missing');
   assert.equal(entry.nextCheckAt, 1000 + 30 * DAY);
 });
-test('episode failure backoff persists independently and is capped at one day', async t => {
+test('episode failure backoff persists independently and is capped at one week', async t => {
   const f = fixture(t);
   const descriptor = {source: 'tmdb', kind: 'episodes', input: {id: 44}, episodeNumbers: [1]};
   let now = 1000;
-  for (let attempt = 1; attempt <= 9; attempt++) {
+  for (let attempt = 1; attempt <= 11; attempt++) {
     const cache = f.create();
     await cache.run(descriptor, async () => {f.fail(); return [episode(1)];});
     const item = Object.values(cache.snapshot())[0];
-    const delay = Math.min(DAY, 30 * 60000 * 2 ** (attempt - 1));
+    const delay = Math.min(7 * DAY, 30 * 60000 * 2 ** (attempt - 1));
     assert.equal(item.nextCheckAt, now + delay);
     assert.equal(item.retryCount, attempt);
     f.advance(delay + 1); now += delay + 1;

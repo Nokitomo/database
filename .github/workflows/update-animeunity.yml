@@ -79,6 +79,7 @@ jobs:
           git -C .cache/vega-providers checkout "$revision"
           npm --prefix .cache/vega-providers ci
           npm --prefix .cache/vega-providers run build
+          node providers/animeunity/scripts/check-provider-adapter.js .cache/vega-providers
           node .cache/vega-providers/tests/animeunity-tmdb.js
           node .cache/vega-providers/tests/animeunity-tvdb.js
           node .cache/vega-providers/tests/animeunity-anizip.js

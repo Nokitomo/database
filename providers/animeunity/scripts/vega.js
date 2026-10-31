@@ -5,6 +5,8 @@ const path = require('node:path');
 const axios = require('axios');
 const cheerio = require('cheerio');
 const {ROOT, hash, readJson, writeJson} = require('./lib');
+const {applyMappingPolicy, addTypedFallback, installMappingOverride, key: mappingKey} = require('./mapping-policy');
+const {createResourceCache, resourcePath, validateTarget} = require('./tmdb-resource');
 const {episodeBounds} = require('./source');
 const {protectSourceEpisodes} = require('./episode-safety');
 const {assertWarp} = require('./warp');
@@ -37,6 +39,11 @@ function createContext(providerRoot, baseUrl, raw = null, contextOptions = {}) {
   const memory = new Map();
   const externalStatus = {tmdbWeb: {attempts: 0, transientFailures: 0, lastFailureCode: null}};
   const failureCounts = {};
+  const failureDetails = {};
+  const resources = contextOptions.resources || createResourceCache({
+    ...(raw ? {} : {root: path.join(contextOptions.componentCacheRoot || cacheDir, 'tmdb-resources')}),
+    ...contextOptions.resourceCacheOptions,
+  });
   const sourceOf = url => {
     const host = new URL(url).hostname.toLowerCase();
     if (host.includes('themoviedb.org')) return 'tmdb';
@@ -71,14 +78,25 @@ function createContext(providerRoot, baseUrl, raw = null, contextOptions = {}) {
         }
       }
       const isTmdbWeb = new URL(url).hostname.toLowerCase() === 'www.themoviedb.org';
+      const absent = resources.missing(url);
+      if (absent) {
+        const error = new Error(`TMDB resource confirmed missing: ${absent.route}`);
+        error.response = {status: 404};
+        throw error;
+      }
       if (isTmdbWeb) externalStatus.tmdbWeb.attempts++;
       try {
         return await (contextOptions.httpGet || tmdbGet)(url, boundedRequestOptions(options, contextOptions.signal));
       } catch (error) {
         const status = Number(error?.response?.status) || 0;
+        const route = resourcePath(url);
+        if (status === 404 && route) resources.save(route, 'missing', {httpStatus: 404});
         if (status !== 404) {
           const source = sourceOf(url);
           failureCounts[source] = (failureCounts[source] || 0) + 1;
+          failureDetails[source] = {httpStatus: status || null,
+            code: status === 401 ? 'AUTHENTICATION' : status === 403 ? 'BLOCKED' : status === 429 ? 'RATE_LIMIT' :
+              String(error.code || 'REQUEST_FAILED').replace(/[^A-Z0-9_]/gi, '').slice(0, 40)};
         }
         if (isTmdbWeb && status !== 404) {
           externalStatus.tmdbWeb.transientFailures++;
@@ -103,9 +121,10 @@ function createContext(providerRoot, baseUrl, raw = null, contextOptions = {}) {
   };
   return {
     axios: client, cheerio, Aes: {}, commonHeaders: {}, getBaseUrl: async () => baseUrl,
-    externalStatus,
+    externalStatus, resources, signal: contextOptions.signal,
     metadataTasks: contextOptions.durableMetadata ? createMetadataTasks({
       root: contextOptions.componentCacheRoot, failures: source => failureCounts[source] || 0,
+      failureDetails: source => failureDetails[source] || null,
       signal: contextOptions.signal,
       initialTasks: contextOptions.initialTasks,
     }) : undefined,
@@ -131,24 +150,49 @@ async function mapAnime(providerRoot, baseUrl, raw, signal) {
   const context = createContext(providerRoot, baseUrl, raw, {signal});
   const anilistId = Number(raw.info.anilist_id || raw.embeddedAnime?.anilist_id) || undefined;
   const malId = Number(raw.info.mal_id || raw.embeddedAnime?.mal_id) || undefined;
-  const resolution = await resolveAnimeMappings({providerContext: context,
+  let resolution = await resolveAnimeMappings({providerContext: context,
     anilistId, malId,
     isMovie: /movie/i.test(raw.info.type || raw.embeddedAnime?.type || '')});
   if ((anilistId || malId) && !resolution.schemaVersion)
     throw new Error(`AniBridge index unavailable for ${raw.id}`);
+  const {getAniBridgeIndex} = requireProvider(providerRoot, 'mappings/anibridge.js');
+  const index = await getAniBridgeIndex(context);
+  let direct = (resolution.sourceDescriptors || []).flatMap(key => index?.records.get(key)?.targets || []);
+  // Typed AniZip fallback is allowed; ONA/SPECIAL/unknown never implies a TMDB show.
+  if ((resolution.metadataTargets || []).some(t => /^tmdb_/.test(t.provider) &&
+    !direct.some(d => mappingKey(d) === mappingKey(t)))) {
+    const {resolveAniZipMetadata} = requireProvider(providerRoot, 'anizip/client.js');
+    const zip = await resolveAniZipMetadata({providerContext: context, anilistId, malId});
+    ({resolution, directTargets: direct} = addTypedFallback(resolution, direct, zip));
+  }
+  resolution = await applyMappingPolicy(resolution, direct,
+    target => validateTarget(target, context, context.resources));
   return {id: raw.id, sourceIds: {anilistId: anilistId || null, malId: malId || null},
     ...buildAniBridgeExtra(resolution), metadataTargets: resolution.metadataTargets || [],
+    metadataMediaType: resolution.metadataMediaType, mappingPolicy: resolution.mappingPolicy,
     imdbId: resolution.imdbId || null, lookupSource: resolution.lookupSource || null};
 }
 
 async function enrichAnime(providerRoot, baseUrl, raw, mapped, options = {}) {
+  const effectiveRaw = mapped.metadataMediaType === 'movie' ? {...raw,
+    info: {...raw.info, type: 'Movie'}, embeddedAnime: {...raw.embeddedAnime, type: 'Movie'}} : raw;
+  if (!options.getMeta || !options.getEpisodes) {
+    installMappingOverride(requireProvider(providerRoot, 'mappings/resolver.js'));
+  }
   const getMeta = options.getMeta || requireProvider(providerRoot, 'meta.js').getMeta;
   const getEpisodes = options.getEpisodes || requireProvider(providerRoot, 'episodes.js').getEpisodes;
   const fillGaps = options.fillTvdbEpisodeGaps || fillTvdbEpisodeGaps;
   const getArtwork = options.collectArtwork || collectArtwork;
-  const context = createContext(providerRoot, baseUrl, raw,
+  const context = createContext(providerRoot, baseUrl, effectiveRaw,
     {durableMetadata: true, initialTasks: options.progress?.metadataTasks,
       ...options.contextOptions, signal: options.signal || options.contextOptions?.signal});
+  context.databaseMappingOverride = {
+    anilistId: Number(raw.info.anilist_id || raw.embeddedAnime?.anilist_id),
+    malId: Number(raw.info.mal_id || raw.embeddedAnime?.mal_id),
+    resolution: {schemaVersion: mapped.mappings?.schemaVersion, generatedOn: mapped.mappings?.generatedOn,
+      sourceDescriptors: mapped.mappings?.sourceDescriptors || [], targets: mapped.mappings?.targets || [],
+      metadataTargets: mapped.metadataTargets || [], ids: mapped.ids || {}, imdbId: mapped.imdbId},
+  };
   const plan = refreshPlan(options.previousFinal, raw, mapped);
   if (options.previousFinal && !options.progress) console.log(`[enrichment] anime=${raw.id} reason=${plan.reason} reuseInfo=${plan.reuseInfo} reuseEpisodes=${plan.reuseEpisodes}`);
   const link = new URL(raw.path, baseUrl).href;
@@ -191,7 +235,7 @@ async function enrichAnime(providerRoot, baseUrl, raw, mapped, options = {}) {
   protectSourceEpisodes(byId, raw.episodes);
   applySourceEpisodeMetadata(byId, raw.episodes);
   if (groups.length === 0 && !plan.reuseEpisodes) await fillGaps(providerRoot, context, byId, raw);
-  const artworkCandidates = await getArtwork(providerRoot, context, raw, mapped, info);
+  const artworkCandidates = await getArtwork(providerRoot, context, effectiveRaw, mapped, info);
   info.extra ||= {};
   info.extra.artworkCandidates = Object.fromEntries(Object.entries(artworkCandidates).map(
     ([field, candidates]) => [field, candidates.filter(value => value.source !== 'anilist')]));
@@ -203,6 +247,7 @@ async function enrichAnime(providerRoot, baseUrl, raw, mapped, options = {}) {
     sourceMetadata: {info: raw.info, embedded: raw.embeddedAnime, archive: raw.archiveRecord},
     sourceEpisodes: raw.episodes, artworkInventory: artworkCandidates,
     artworkLibrary: context.artworkLibrary,
+    mappingPolicy: mapped.mappingPolicy,
     metadataTasks: {...plan.retainedTasks, ...options.progress?.metadataTasks, ...context.metadataTasks?.snapshot()},
     sourceStatus: finalizeSourceStatus(mergeSourceStatus(options.progress?.sourceStatus, context.externalStatus),
       options.previousSourceStatus)};

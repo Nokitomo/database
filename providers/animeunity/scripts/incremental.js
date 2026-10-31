@@ -44,6 +44,7 @@ function mappingContent(mapped = {}) {
     targets: setValues(mapped.mappings?.targets),
     // The provider can choose the first metadata target: retain this meaningful order.
     metadataTargets: mapped.metadataTargets || [],
+    ...(mapped.metadataMediaType ? {metadataMediaType: mapped.metadataMediaType} : {}),
   });
 }
 function mappingFingerprint(mapped) { return hash(mappingContent(mapped)); }

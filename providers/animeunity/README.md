@@ -34,13 +34,37 @@ branch alongside its other source snapshots.
 Final batches reserve 80% of capacity for titles without a final record and 20%
 for existing records, filling unused capacity from the other queue. Existing
 records rotate oldest-first. Metadata errors persist per-task/per-field/per-episode
-retry counters with delays of 30 minutes, 1, 2, 4, 8, 16 hours, then at most one
-day. Success resets the counter. Existing cache entries remain usable; counters
+retry counters with delays of 30 minutes, 1, 2, 4 hours and progressively longer
+intervals up to one week. Success resets the counter. Existing cache entries remain usable; counters
 start on their next attempt. Confirmed HTTP 404 responses are treated as missing
 metadata (30 days), while blocked/network responses remain retryable. Task
 deadlines take precedence over the legacy record-wide TMDB retry timer.
 `FINAL_QUEUE` reports new versus refresh selections; `FINAL_RESULT` distinguishes
 new records, consumer changes and checks without consumer changes.
+
+## Typed mappings and confirmed missing resources
+
+The database adapter accepts typed AniBridge mappings and explicitly typed AniZip
+fallbacks. It does not infer TMDB series from ONA/SPECIAL or copy TVDB seasons and
+episode ranges to TMDB. Direct movie mappings take precedence over generic AniZip
+IDs. API validation (or canonical web-page validation without a key) checks typed
+TMDB resources and scoped seasons. Only a confirmed 404 excludes a target;
+transient errors retain source mappings. Rejected targets, reasons and check dates
+are preserved in `mappingPolicy` for provenance and later revalidation.
+
+Existing special-season mappings, non-movie records with movie targets and records
+with TMDB task errors receive a selective one-time mapping repair. Unaffected
+records and provider revision fingerprints stay unchanged. A movie view passed to
+Vega does not alter the original raw AnimeUnity type. The in-memory resolver adapter
+is scoped to this database context; it does not edit the Vega repository.
+
+Confirmed missing TMDB resources are cached for 30 days in
+`data/enrichment-cache/tmdb-resources/`, shared by API/web paths and their children.
+A missing gallery never invalidates an entire film, series or season. Network,
+authentication and blocking failures remain retryable with increasing delays;
+sanitized failure details are recorded in metadata tasks. No negative result
+permanently removes an anime. `MAPPING_REJECTED` and `FINAL_RESULT` expose rejected
+targets and unresolved metadata independently from fatal pipeline errors.
 
 ## Recovery reference
 

@@ -3,6 +3,7 @@ const {needsEpisodeIdentity} = require('./episode-safety');
 
 const fs = require('node:fs');
 const {selectFinalBatch} = require('./final-queue');
+const {needsMappingRepair} = require('./mapping-policy');
 const path = require('node:path');
 const {execFileSync} = require('node:child_process');
 const {DATA, file, hash, iso, listIds, parseArgs, readJson, sleep, writeJson} = require('./lib');
@@ -26,8 +27,10 @@ function matchingFinalProgress(progress, rawFingerprint, mappingFingerprint, rev
     progress.nextGroup <= progress.info.linkList.filter(group => group.episodesLink).length &&
     Array.isArray(progress.episodes);
 }
-function mappingDue(raw, mapped, revision, sourceHash, full = false, fullSince = null) {
-  return (full && (!fullSince || Date.parse(mapped?.checkedAt || mapped?.mappedAt || 0) < fullSince)) || !mapped ||
+function mappingDue(raw, mapped, revision, sourceHash, full = false, fullSince = null, final = null) {
+  return needsMappingRepair(mapped, raw, final) ||
+    (Number.isFinite(mapped?.mappingPolicy?.nextCheckAt) && mapped.mappingPolicy.nextCheckAt <= Date.now()) ||
+    (full && (!fullSince || Date.parse(mapped?.checkedAt || mapped?.mappedAt || 0) < fullSince)) || !mapped ||
     mapped.rawFingerprint !== raw.fingerprint || mapped.providerRef !== revision ||
     mapped.mappingSourceHash !== sourceHash;
 }
@@ -219,9 +222,10 @@ async function runMapped(options, providerRoot) {
     if (!raw) return false;
     const mapped = readJson(file('mapped', id));
     if (!errorDue(index.errors[id])) return false;
-    return mappingDue(raw, mapped, revision, sourceHash, options.full, options.fullSince);
+    return mappingDue(raw, mapped, revision, sourceHash, options.full, options.fullSince, readJson(file('final', id)));
   });
-  pending.sort((a, b) => b - a);
+  const repairIds = new Set(pending.filter(id => needsMappingRepair(readJson(file('mapped', id)), readJson(file('raw', id)), readJson(file('final', id)))));
+  pending.sort((a, b) => Number(repairIds.has(b)) - Number(repairIds.has(a)) || b - a);
   const selected = limited(pending, options.limit);
   console.log(`mapped: ${selected.length}/${pending.length} due`);
   for (const [position, id] of selected.entries()) {
@@ -239,6 +243,7 @@ async function runMapped(options, providerRoot) {
       if (migrated !== final) writeJson(file('final', id), migrated);
       writeJson(file('mapped', id), next);
       console.log(`mapped ${id}: ${unchanged ? 'content unchanged; final retained' : 'content changed; enrichment dependencies will be compared'}`);
+      if (next.mappingPolicy?.rejected.length) console.log(`MAPPING_REJECTED ${JSON.stringify({id, targets: next.mappingPolicy.rejected})}`);
       delete index.errors[id];
     } catch (error) { index.errors[id] = {at: iso(), message: error.message}; console.error(`mapped ${id}: ${error.message}`); }
     if ((position + 1) % 20 === 0) {writeJson(stageIndex('mapped'), index); console.log(`mapped: ${position + 1}/${selected.length}`);}
@@ -317,7 +322,8 @@ async function runFinal(options, providerRoot) {
         console.log(`final ${id}: episode groups ${result.progress.nextGroup}/${total} saved`);
       } else {
         console.log(`FINAL_RESULT ${JSON.stringify({id, kind: !previousFinal ? 'new' :
-          hash(consumerContent(previousFinal)) === hash(consumerContent(result)) ? 'unchanged' : 'changed'})}`);
+          hash(consumerContent(previousFinal)) === hash(consumerContent(result)) ? 'unchanged' : 'changed',
+          unresolvedMetadata: Object.values(result.metadataTasks || {}).filter(task => task.status === 'error').length})}`);
         writeJson(file('final', id), {...result, rawFingerprint: raw.fingerprint,
           mappingFingerprint: fingerprint, mappingFingerprintVersion: 2, providerRef: revision});
         if (result.sourceStatus?.tmdbWeb?.transientFailures) {

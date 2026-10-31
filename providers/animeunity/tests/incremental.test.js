@@ -120,3 +120,24 @@ test('an aborted group is not checkpointed as complete', async () => {
   }), {name: 'AbortError'});
   assert.equal(checkpoints, 0);
 });
+
+test('a confirmed movie uses a movie provider view but retains original ONA source data and TVDB fallback', async () => {
+  const raw = {id: 4995, path: '/anime/4995-test', info: {type: 'ONA', anilist_id: 169362},
+    embeddedAnime: {type: 'ONA'}, episodes: [{id: 1, number: '1'}]};
+  const mapped = {metadataMediaType: 'movie', sourceIds: {}, mappings: {targets: []}};
+  const result = await enrichAnime('.', 'https://www.animeunity.co', raw, mapped, {
+    getMeta: async ({providerContext}) => {
+      assert.equal((await providerContext.axios.get('https://www.animeunity.co/info_api/4995/')).data.type, 'Movie');
+      return {title: 'Test', linkList: [{episodesLink: 'source'}]};
+    },
+    getEpisodes: async () => [{link: '1', title: 'TVDB title', synopsis: 'TVDB synopsis', thumbnail: 'tvdb-image',
+      metadataSources: {tvdb: {title: 'TVDB title', synopsis: 'TVDB synopsis', thumbnail: 'tvdb-image'}}}],
+    fillTvdbEpisodeGaps: async () => {},
+    collectArtwork: async (_root, _context, view) => {
+      assert.equal(view.info.type, 'Movie'); return {poster: [], background: [], logo: []};
+    },
+  });
+  assert.equal(raw.info.type, 'ONA');
+  assert.equal(result.sourceMetadata.info.type, 'ONA');
+  assert.equal(result.episodes[0].metadataSources.tvdb.synopsis, 'TVDB synopsis');
+});
