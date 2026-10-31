@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tmdb","kind":"season-poster","input":{"mediaId":94936,"seasonNumber":1},"checkedAt":1793432687526,"status":"ok","retryCount":0,"value":{"id":94936,"type":"tv","source":"tmdb-api","sourceUrl":"https://www.themoviedb.org/tv/94936/season/1","originalLanguage":"ja-JP","seasonNumber":1},"failure":null,"fields":{},"episodes":{}}
