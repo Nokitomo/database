@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tvdb","kind":"episodes","input":{"tvdbShowId":361752,"seasonNumber":0},"checkedAt":1793402833937,"status":"ok","value":[{"episodeNumber":1,"title":"BEM: Become Human","titleLanguage":"ita"}],"fields":{},"episodes":{"1":{"checkedAt":1793402833937,"status":"missing"}}}

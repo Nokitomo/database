@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tvdb","kind":"episodes","input":{"tvdbShowId":307110,"seasonNumber":0},"checkedAt":1793398860108,"status":"ok","value":[{"episodeNumber":5,"title":"SERVAMP Alice in the Garden","titleLanguage":"eng"}],"fields":{},"episodes":{"5":{"checkedAt":1793398860108,"status":"missing"}}}
