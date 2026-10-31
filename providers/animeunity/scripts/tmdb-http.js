@@ -6,6 +6,12 @@ const {assertWarp} = require('./warp');
 
 const runFile = promisify(execFile);
 const reported = new Set();
+const STATUS_MARKER = '\n__TMDB_HTTP_STATUS__:';
+function curlResponse(stdout = '') {
+  const position = stdout.lastIndexOf(STATUS_MARKER);
+  return position < 0 ? {body: stdout, status: 0} :
+    {body: stdout.slice(0, position), status: Number(stdout.slice(position + STATUS_MARKER.length).trim()) || 0};
+}
 
 function credentialKind(value) {
   const key = String(value || '').trim();
@@ -31,15 +37,20 @@ async function curlTmdbHtml(url, options = {}, check = assertWarp) {
     throw new Error('TMDB web fallback only accepts HTTPS TMDB pages');
   const args = ['--silent', '--show-error', '--location', '--fail', '--compressed',
     '--proto', '=https', '--proto-redir', '=https', '--max-time', '15',
-    url];
+    '--write-out', `${STATUS_MARKER}%{http_code}`, url];
   check();
   try {
     const {stdout} = await runFile(process.platform === 'win32' ? 'curl.exe' : 'curl', args,
       {encoding: 'utf8', timeout: 20000, maxBuffer: 20 * 1024 * 1024, windowsHide: true,
         signal: options.signal});
-    if (!stdout || /<title>\s*Just a moment/i.test(stdout))
+    const {body} = curlResponse(stdout);
+    if (!body || /<title>\s*Just a moment/i.test(body))
       throw new Error('TMDB web fallback returned an empty or blocked page');
-    return stdout;
+    return body;
+  } catch (error) {
+    const {status} = curlResponse(error.stdout);
+    if (status >= 400) error.response = {status};
+    throw error;
   } finally {
     check();
   }
@@ -75,4 +86,4 @@ function createTmdbGet(get, {fallback = curlTmdbHtml, log = console.error} = {})
   };
 }
 
-module.exports = {createTmdbGet, credentialKind, curlTmdbHtml};
+module.exports = {createTmdbGet, credentialKind, curlTmdbHtml, curlResponse};

@@ -2,6 +2,7 @@
 const {needsEpisodeIdentity} = require('./episode-safety');
 
 const fs = require('node:fs');
+const {selectFinalBatch} = require('./final-queue');
 const path = require('node:path');
 const {execFileSync} = require('node:child_process');
 const {DATA, file, hash, iso, listIds, parseArgs, readJson, sleep, writeJson} = require('./lib');
@@ -54,7 +55,9 @@ function enrichmentDue(final, now = Date.now()) {
     Number.isFinite(task.nextCheckAt) && now >= task.nextCheckAt)) return true;
   const age = now - Date.parse(final.updatedAt || 0);
   if (!Number.isFinite(age)) return true;
-  if (final.sourceStatus?.tmdbWeb?.transientFailures > 0) {
+  const trackedTmdbErrors = Object.values(final.metadataTasks || {}).some(task =>
+    task.source === 'tmdb' && task.status === 'error' && Number.isFinite(task.nextCheckAt));
+  if (!trackedTmdbErrors && final.sourceStatus?.tmdbWeb?.transientFailures > 0) {
     const failures = Math.max(1, Number(final.sourceStatus.tmdbWeb.retryCount) || 1);
     const retryDelay = Math.min(24 * 3600000, 30 * 60000 * 2 ** Math.min(failures - 1, 6));
     if (age > retryDelay) return true;
@@ -282,11 +285,14 @@ async function runFinal(options, providerRoot) {
       final.path !== raw.path ||
       enrichmentDue(final);
   });
-  const episodeCounts = new Map(pending.map(id => [id, readJson(file('raw', id))?.episodes?.length || 0]));
-  pending.sort((a, b) => {
-    return episodeCounts.get(a) - episodeCounts.get(b) || b - a;
-  });
-  const selected = limited(pending, options.limit);
+  const batch = selectFinalBatch(pending.map(id => {
+    const final = readJson(file('final', id));
+    return {id, episodes: readJson(file('raw', id))?.episodes?.length || 0,
+      final: final ? {updatedAt: final.updatedAt} : null};
+  }), options.limit);
+  const selected = batch.map(row => row.id);
+  console.log(`FINAL_QUEUE ${JSON.stringify({pending: pending.length, new: batch.filter(row => !row.final).length,
+    refresh: batch.filter(row => row.final).length})}`);
   console.log(`final: ${selected.length}/${pending.length} due`);
   for (const [position, id] of selected.entries()) {
     console.log(`final ${id}: starting`);
@@ -310,6 +316,8 @@ async function runFinal(options, providerRoot) {
         const total = result.progress.info.linkList.filter(group => group.episodesLink).length;
         console.log(`final ${id}: episode groups ${result.progress.nextGroup}/${total} saved`);
       } else {
+        console.log(`FINAL_RESULT ${JSON.stringify({id, kind: !previousFinal ? 'new' :
+          hash(consumerContent(previousFinal)) === hash(consumerContent(result)) ? 'unchanged' : 'changed'})}`);
         writeJson(file('final', id), {...result, rawFingerprint: raw.fingerprint,
           mappingFingerprint: fingerprint, mappingFingerprintVersion: 2, providerRef: revision});
         if (result.sourceStatus?.tmdbWeb?.transientFailures) {

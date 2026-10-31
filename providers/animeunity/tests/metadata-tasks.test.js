@@ -19,6 +19,70 @@ function fixture(t) {
 }
 const task = (source, id) => ({source, kind: 'artwork', input: {id}});
 const image = {poster: 'poster', background: 'background', logo: 'logo'};
+test('persistent failure doubles retry delay across contexts and success resets it', async t => {
+  const f = fixture(t);
+  const descriptor = task('tmdb', 123);
+  const fail = async () => {f.fail(); return image;};
+  let cache = f.create();
+  await cache.run(descriptor, fail);
+  assert.equal(Object.values(cache.snapshot())[0].retryCount, 1);
+  f.advance(31 * 60000);
+  cache = f.create();
+  await cache.run(descriptor, fail);
+  const second = Object.values(cache.snapshot())[0];
+  assert.equal(second.retryCount, 2);
+  assert.equal(second.nextCheckAt, 1000 + 91 * 60000);
+  f.advance(31 * 60000);
+  let calls = 0;
+  const recover = async () => {calls++; return image;};
+  await f.create().run(descriptor, recover);
+  assert.equal(calls, 0);
+  f.advance(30 * 60000);
+  cache = f.create();
+  await cache.run(descriptor, recover);
+  assert.equal(calls, 1);
+  assert.equal(Object.values(cache.snapshot())[0].retryCount, 0);
+});
+test('confirmed HTTP 404 is missing rather than a transient failure', async t => {
+  const f = fixture(t);
+  const cache = f.create();
+  await cache.run(task('tmdb', 404), async () => {throw {response: {status: 404}};});
+  const entry = Object.values(cache.snapshot())[0];
+  assert.equal(entry.status, 'missing');
+  assert.equal(entry.nextCheckAt, 1000 + 30 * DAY);
+});
+test('episode failure backoff persists independently and is capped at one day', async t => {
+  const f = fixture(t);
+  const descriptor = {source: 'tmdb', kind: 'episodes', input: {id: 44}, episodeNumbers: [1]};
+  let now = 1000;
+  for (let attempt = 1; attempt <= 9; attempt++) {
+    const cache = f.create();
+    await cache.run(descriptor, async () => {f.fail(); return [episode(1)];});
+    const item = Object.values(cache.snapshot())[0];
+    const delay = Math.min(DAY, 30 * 60000 * 2 ** (attempt - 1));
+    assert.equal(item.nextCheckAt, now + delay);
+    assert.equal(item.retryCount, attempt);
+    f.advance(delay + 1); now += delay + 1;
+  }
+});
+test('HTTP 403 remains retryable and does not become missing', async t => {
+  const f = fixture(t);
+  const cache = f.create();
+  await assert.rejects(cache.run(task('tmdb', 403), async () => {throw {response: {status: 403}};}));
+  const item = Object.values(cache.snapshot())[0];
+  assert.equal(item.status, 'error');
+  assert.equal(item.nextCheckAt, 1000 + 30 * 60000);
+});
+test('legacy record-wide retry cannot bypass an unexpired task deadline', () => {
+  const now = Date.now();
+  const final = {updatedAt: new Date(now - 3600000).toISOString(), info: image, episodes: [],
+    sourceStatus: {tmdbWeb: {transientFailures: 1, retryCount: 1}},
+    metadataTasks: {x: {source: 'tmdb', status: 'error', nextCheckAt: now + 3600000}}};
+  assert.equal(enrichmentDue(final, now), false);
+  assert.equal(enrichmentDue(final, now + 3600000), true);
+  delete final.metadataTasks;
+  assert.equal(enrichmentDue(final, now), true);
+});
 const episode = number => ({episodeNumber: number, title: {value: `Episode ${number}`, language: 'it'},
   overview: {value: 'Synopsis', language: 'en'}, thumbnail: 'image'});
 

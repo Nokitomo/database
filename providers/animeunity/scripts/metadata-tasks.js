@@ -10,8 +10,11 @@ function createMetadataTasks({root = path.join(DATA, 'enrichment-cache'), now = 
   failures = () => 0, log = console.log, signal, initialTasks = {}} = {}) {
   const used = new Map(Object.entries(initialTasks));
   const inFlight = new Map();
-  const ttl = status => status === 'error' ? 30 * 60000 : status === 'missing' ? 30 * DAY : 90 * DAY;
-  const fresh = entry => entry && now() - entry.checkedAt < ttl(entry.status);
+  const ttl = entry => entry.status === 'error'
+    ? Math.min(DAY, 30 * 60000 * 2 ** Math.min(6, Math.max(0, (entry.retryCount || 1) - 1)))
+    : entry.status === 'missing' ? 30 * DAY : 90 * DAY;
+  const fresh = entry => entry && now() - entry.checkedAt < ttl(entry);
+  const retryCount = (old, status) => status === 'error' ? Math.min(16, (old?.retryCount || 0) + 1) : 0;
   const run = async (task, load) => {
     signal?.throwIfAborted();
     const key = hash(canonical({version: 1, source: task.source, kind: task.kind, input: task.input}));
@@ -33,7 +36,8 @@ function createMetadataTasks({root = path.join(DATA, 'enrichment-cache'), now = 
         used.set(key, {source: task.source, kind: task.kind, input: task.input, status,
           episodeNumbers: usedNumbers, fields: usedFields,
           nextCheckAt: Math.min(...(parts.length ? parts : [entry])
-            .map(part => part.checkedAt + ttl(part.status)))});
+            .map(part => part.checkedAt + ttl(part))),
+          retryCount: Math.max(0, ...parts.map(part => part.retryCount || 0))});
       };
       const missingNumbers = numbers?.filter(number => !fresh(old?.episodes?.[number]));
       const reusable = numbers ? missingNumbers.length === 0 :
@@ -53,11 +57,12 @@ function createMetadataTasks({root = path.join(DATA, 'enrichment-cache'), now = 
       try { value = await load(missingNumbers || undefined); }
       catch (error) { thrown = error; }
       signal?.throwIfAborted();
-      const failed = !!thrown || failures(task.source) > before;
+      const notFound = Number(thrown?.response?.status) === 404;
+      const failed = (!!thrown && !notFound) || failures(task.source) > before;
       const checkedAt = now();
       const status = failed ? 'error' : !value || (Array.isArray(value) && !value.length) ? 'missing' : 'ok';
       const entry = {schemaVersion: 1, source: task.source, kind: task.kind, input: task.input,
-        checkedAt, status, value: value ?? old?.value ?? null,
+        checkedAt, status, retryCount: retryCount(old, status), value: value ?? old?.value ?? null,
         fields: {...old?.fields}, episodes: {...old?.episodes}};
       if (numbers) {
         const rows = Array.isArray(value) ? value : value?.episodes || [];
@@ -75,7 +80,8 @@ function createMetadataTasks({root = path.join(DATA, 'enrichment-cache'), now = 
           if (!failed && !row) byNumber.delete(number);
           const complete = row && (row.title?.value || row.title) &&
             (row.overview?.value || row.synopsis) && row.thumbnail;
-          entry.episodes[number] = {checkedAt, status: failed ? 'error' : complete ? 'ok' : 'missing'};
+          const status = failed ? 'error' : complete ? 'ok' : 'missing';
+          entry.episodes[number] = {checkedAt, status, retryCount: retryCount(old?.episodes?.[number], status)};
         }
         const merged = [...byNumber.values()].sort((a, b) => a.episodeNumber - b.episodeNumber);
         entry.value = Array.isArray(value) || Array.isArray(old?.value) ? merged :
@@ -86,13 +92,14 @@ function createMetadataTasks({root = path.join(DATA, 'enrichment-cache'), now = 
         for (const field of fields) {
           // Missing fields from a successful response replace old values; failures retain them.
           if (!failed && !value?.[field]) delete entry.value[field];
-          entry.fields[field] = {checkedAt, status: failed ? 'error' : value?.[field] ? 'ok' : 'missing'};
+          const status = failed ? 'error' : value?.[field] ? 'ok' : 'missing';
+          entry.fields[field] = {checkedAt, status, retryCount: retryCount(old?.fields?.[field], status)};
         }
       }
       writeJson(filename, entry);
       remember(entry);
       log(`[metadata] ${task.source}/${task.kind}: ${status}${numbers ? `; ${missingNumbers.length}/${numbers.length} episodes refreshed` : ''}`);
-      if (thrown && !old?.value) throw thrown;
+      if (thrown && !notFound && !old?.value) throw thrown;
       return select(entry.value);
     })();
     inFlight.set(key, operation);

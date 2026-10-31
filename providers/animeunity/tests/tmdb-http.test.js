@@ -3,6 +3,13 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {createTmdbGet, credentialKind, curlTmdbHtml} = require('../scripts/tmdb-http');
+test('curl preserves HTTP status independently from its process exit code', () => {
+  const {curlResponse} = require('../scripts/tmdb-http');
+  assert.deepEqual(curlResponse('<html>ok</html>\n__TMDB_HTTP_STATUS__:200'), {body: '<html>ok</html>', status: 200});
+  assert.equal(curlResponse('\n__TMDB_HTTP_STATUS__:404').status, 404);
+  assert.equal(curlResponse('\n__TMDB_HTTP_STATUS__:403').status, 403);
+  assert.equal(curlResponse().status, 0);
+});
 
 test('TMDB web uses curl only after an Axios 403', async () => {
   const calls = [];

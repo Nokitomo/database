@@ -29,6 +29,19 @@ file, then run `npm run verify:data`. `npm run verify:all` runs all provider and
 unifier regression tests. The anime unifier imports AnimeUnity from the data
 branch alongside its other source snapshots.
 
+## Initial coverage and retries
+
+Final batches reserve 80% of capacity for titles without a final record and 20%
+for existing records, filling unused capacity from the other queue. Existing
+records rotate oldest-first. Metadata errors persist per-task/per-field/per-episode
+retry counters with delays of 30 minutes, 1, 2, 4, 8, 16 hours, then at most one
+day. Success resets the counter. Existing cache entries remain usable; counters
+start on their next attempt. Confirmed HTTP 404 responses are treated as missing
+metadata (30 days), while blocked/network responses remain retryable. Task
+deadlines take precedence over the legacy record-wide TMDB retry timer.
+`FINAL_QUEUE` reports new versus refresh selections; `FINAL_RESULT` distinguishes
+new records, consumer changes and checks without consumer changes.
+
 ## Recovery reference
 
 - Original working code and data: `6675901eabad0033302a5cc95250a638f58b4740`.
