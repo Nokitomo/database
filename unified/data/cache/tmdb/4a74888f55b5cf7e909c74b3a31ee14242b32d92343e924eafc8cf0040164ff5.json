@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tmdb","kind":"season-poster","input":{"mediaId":34195,"seasonNumber":0},"checkedAt":1793640319675,"status":"ok","retryCount":0,"value":{"id":34195,"type":"tv","source":"tmdb-api","sourceUrl":"https://www.themoviedb.org/tv/34195/season/0","originalLanguage":"ja-JP","seasonNumber":0},"failure":null,"fields":{},"episodes":{}}
