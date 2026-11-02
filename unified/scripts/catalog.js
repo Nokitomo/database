@@ -118,8 +118,8 @@ function groupEntries(entries, registry = {members: {}, nextId: 1}, overrides = 
     }
   }
   for (const entry of [...entries].sort((a,b) =>
-    Number(a.provider !== 'animeunity') - Number(b.provider !== 'animeunity') ||
     Number(Boolean(registry.members[`${b.provider}:${b.id}`])) - Number(Boolean(registry.members[`${a.provider}:${a.id}`])) ||
+    Number(a.provider !== 'animeunity') - Number(b.provider !== 'animeunity') ||
     a.provider.localeCompare(b.provider) || String(a.id).localeCompare(String(b.id),undefined,{numeric:true}))) {
     entry.key = `${entry.provider}:${entry.id}`;
     const direct = ids(entry.record);
