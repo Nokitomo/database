@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tmdb","kind":"season-poster","input":{"mediaId":53020,"seasonNumber":0},"checkedAt":1793644129187,"status":"ok","retryCount":0,"value":{"id":53020,"type":"tv","source":"tmdb-api","sourceUrl":"https://www.themoviedb.org/tv/53020/season/0","originalLanguage":"ja-JP","seasonNumber":0},"failure":null,"fields":{},"episodes":{}}
