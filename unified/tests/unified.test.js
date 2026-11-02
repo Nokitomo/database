@@ -112,6 +112,59 @@ test('canonical ID survives arrival on AnimeUnity and temporarily missing member
   const last = groupEntries([entry('animeunity',anime(8,12))],next.registry);
   assert.equal(last.groups[0].id,first.groups[0].id);
 });
+test('a newly arrived AnimeUnity title without IDs joins its existing provider record immediately', () => {
+  const world = {...anime(7184,217070,65032),
+    info:{title:'Though I Am an Inept Villainess Part 2',type:'Anime',year:2027}};
+  const first = groupEntries([entry('animeworld',world)]);
+  const unity = {...anime(8000,null),sourceIds:{},
+    info:{title:'Though I Am an Inept Villainess Part 2',type:'TV'},
+    sourceMetadata:{info:{date:'2027',type:'TV'}}};
+  const next = groupEntries([entry('animeunity',unity,true),entry('animeworld',world)],first.registry);
+  assert.equal(next.groups.length,1);
+  assert.equal(next.groups[0].id,first.groups[0].id);
+  assert.equal(next.registry.members['animeunity:8000'],first.groups[0].id);
+});
+test('subtitled and dubbed editions keep their own episode inventories in one work', () => {
+  const source = (id,title,count,dubbed) => ({id,path:`/anime/${id}`,
+    sourceIds:{},info:{title,type:'TV',year:2022,dubbed},
+    episodes:Array.from({length:count},(_,index)=>({number:index+1,link:`${id}-${index+1}`}))});
+  const auSub=source(4189,'Violet Evergarden: Recollections',3,false);
+  const auDub=source(4190,'Violet Evergarden: Recollections (ITA)',1,true);
+  const satSub={...source('rn6U7','Violet Evergarden: Recollections',3,false),sourceIds:{mal:53672}};
+  const satDub={...source('AKpND','Violet Evergarden: Recollections (ITA)',1,true),sourceIds:{mal:53672}};
+  const {groups}=groupEntries([entry('animeunity',auSub,true),entry('animeunity',auDub,true),
+    entry('animesaturn',satSub),entry('animesaturn',satDub)]);
+  assert.equal(groups.length,1);
+  const record=baseRecord(groups[0]);
+  assert.deepEqual(record.providers.animeunity.map(value=>value.episodes.length),[3,1]);
+  assert.deepEqual(record.providers.animesaturn.map(value=>value.episodes.length),[1,3]);
+  assert.notEqual(record.providers.animeunity[0].episodes[0].link,
+    record.providers.animeunity[1].episodes[0].link);
+  assert.equal(record.providers.animeunity.filter(value=>value.dubbed).length,1);
+  assert.equal(record.providers.animesaturn.filter(value=>value.dubbed).length,1);
+});
+test('one-episode movie and TV labels can describe the same unique edition', () => {
+  const au={id:4189,sourceIds:{},info:{title:'Violet Evergarden: Recollections',type:'movie'},
+    sourceMetadata:{info:{date:'2022',type:'Movie'}},episodes:[{number:1}]};
+  const sat={id:'rn6U7',sourceIds:{mal:53672},
+    info:{title:'Violet Evergarden: Recollections',type:'TV',year:2022},episodes:[{number:1}]};
+  assert.equal(groupEntries([entry('animeunity',au,true),entry('animesaturn',sat)]).groups.length,1);
+});
+test('title matching keeps ambiguous candidates and conflicting IDs separate', () => {
+  const record=(id,anilist)=>({id,sourceIds:{anilist},
+    info:{title:'Shared title',year:2027,type:'TV'},episodes:[]});
+  const result=groupEntries([entry('animeunity',record(1,null),true),
+    entry('animeunity',record(2,null),true),entry('animeworld',record(3,null))]);
+  assert.equal(result.groups.length,3);
+  assert.equal(groupEntries([entry('animeunity',record(1,10),true),
+    entry('animeworld',record(3,11))]).groups.length,2);
+  const differentYear={...record(3,null),info:{title:'Shared title',year:2028,type:'TV'}};
+  assert.equal(groupEntries([entry('animeunity',record(1,null),true),
+    entry('animeworld',differentYear)]).groups.length,2);
+  const differentEdition={...record(3,11),info:{title:'Shared title (ITA)',year:2027,type:'TV'}};
+  assert.equal(groupEntries([entry('animeunity',record(1,10),true),
+    entry('animeworld',differentEdition)]).groups.length,2);
+});
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(),'unified-'));
   t.after(()=>fs.rmSync(root,{recursive:true,force:true}));

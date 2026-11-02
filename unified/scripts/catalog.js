@@ -27,12 +27,20 @@ function normalizedTitle(value) {
   return typeof value === 'string' ? value.normalize('NFKD').toLowerCase()
     .replace(/\p{M}/gu, '').replace(/[^\p{L}\p{N}]+/gu, '') : '';
 }
-function identityTitles(record) {
+function titleValues(record) {
   const source = record.sourceMetadata?.info || {};
   const info = record.info || {};
-  return [...new Set([info.title, info.title_eng, info.title_it,
-    source.title, source.title_eng, source.title_it]
-    .map(normalizedTitle).filter(Boolean))];
+  return [info.title, info.title_eng, info.title_it,
+    source.title, source.title_eng, source.title_it].filter(value => typeof value === 'string');
+}
+function identityTitles(record) {
+  return [...new Set(titleValues(record).map(normalizedTitle).filter(Boolean))];
+}
+function editionTitles(record) {
+  return titleValues(record).map(value => {
+    const base = value.replace(/\s*[\[(]\s*(?:ita|sub(?:\s*ita)?|dub(?:\s*ita)?)\s*[\])]\s*$/i, '');
+    return {base: normalizedTitle(base), marked: base !== value};
+  }).filter(value => value.base);
 }
 function releaseYear(record) {
   const source = record.sourceMetadata?.info || {};
@@ -46,18 +54,31 @@ function episodeCount(record) {
   const episodes = record.sourceEpisodes || record.episodes;
   return Array.isArray(episodes) && episodes.length ? episodes.length : null;
 }
-function titleCompatible(a, b) {
+function identityConflict(a, b) {
   const left = ids(a), right = ids(b);
-  if (Object.keys(left).some(key => left[key] && right[key] && left[key] !== right[key])) return false;
+  return Object.keys(left).some(key => left[key] && right[key] && left[key] !== right[key]);
+}
+function mediaCompatible(a, b, leftYear, rightYear, leftEpisodes, rightEpisodes) {
+  const leftMovie = format(a) === 'movie', rightMovie = format(b) === 'movie';
+  // A one-episode movie is sometimes labelled TV by another provider.
+  return leftMovie === rightMovie || leftYear && rightYear && leftEpisodes === 1 && rightEpisodes === 1;
+}
+function titleCompatible(a, b) {
+  if (identityConflict(a, b)) return false;
   const leftYear = releaseYear(a), rightYear = releaseYear(b);
   const leftEpisodes = episodeCount(a), rightEpisodes = episodeCount(b);
   if (leftYear && rightYear && leftYear !== rightYear) return false;
   if (leftEpisodes && rightEpisodes && leftEpisodes !== rightEpisodes) return false;
   if (!(leftYear && rightYear || leftEpisodes && rightEpisodes)) return false;
-  const leftMovie = format(a) === 'movie', rightMovie = format(b) === 'movie';
-  // Providers sometimes label a one-episode movie as TV. Require both the
-  // release year and the single-episode count before accepting that mismatch.
-  return leftMovie === rightMovie || leftYear && rightYear && leftEpisodes === 1 && rightEpisodes === 1;
+  return mediaCompatible(a, b, leftYear, rightYear, leftEpisodes, rightEpisodes);
+}
+function editionCompatible(a, b) {
+  if (identityConflict(a, b)) return false;
+  const leftYear = releaseYear(a), rightYear = releaseYear(b);
+  if (!leftYear || !rightYear || leftYear !== rightYear) return false;
+  const leftEpisodes = episodeCount(a), rightEpisodes = episodeCount(b);
+  // Dubbed editions may have fewer episodes than the subtitled edition.
+  return mediaCompatible(a, b, leftYear, rightYear, leftEpisodes, rightEpisodes);
 }
 function namespace(value, provider) {
   if (Array.isArray(value)) return value.map(item => namespace(item, provider));
@@ -112,11 +133,15 @@ function loadSources(auRoot, awRoot, additionalSources = {}, previouslyLoaded = 
 }
 function groupEntries(entries, registry = {members: {}, nextId: 1}, overrides = {}) {
   const groups = [], conflicts = [], byExternalId = new Map(), byCanonicalId = new Map();
-  const animeunityByTitle = new Map();
-  for (const entry of entries) if (entry.provider === 'animeunity') {
+  const byTitle = new Map(), byEdition = new Map();
+  for (const entry of entries) {
     for (const title of identityTitles(entry.record)) {
-      if (!animeunityByTitle.has(title)) animeunityByTitle.set(title, new Set());
-      animeunityByTitle.get(title).add(entry);
+      if (!byTitle.has(title)) byTitle.set(title, new Set());
+      byTitle.get(title).add(entry);
+    }
+    for (const edition of editionTitles(entry.record)) {
+      if (!byEdition.has(edition.base)) byEdition.set(edition.base, new Set());
+      byEdition.get(edition.base).add(entry);
     }
   }
   for (const entry of [...entries].sort((a,b) =>
@@ -134,15 +159,31 @@ function groupEntries(entries, registry = {members: {}, nextId: 1}, overrides = 
     }));
     const forced = overrides[entry.key];
     let group = forced ? byCanonicalId.get(forced) : safe.length === 1 && matches.length === 1 ? safe[0] : null;
-    if (!group && !forced && entry.provider !== 'animeunity') {
-      const candidates = new Set(identityTitles(entry.record)
-        .flatMap(title => [...(animeunityByTitle.get(title) || [])])
-        .filter(candidate => titleCompatible(entry.record, candidate.record)));
-      if (candidates.size === 1) {
-        const candidate = [...candidates][0];
-        const matchingGroup = byCanonicalId.get(registry.members[`animeunity:${candidate.id}`]);
-        if (matchingGroup && (!matches.length || matches.length === 1 && matches[0] === matchingGroup))
-          group = matchingGroup;
+    if (!group && !forced) {
+      const titles = identityTitles(entry.record);
+      const editions = editionTitles(entry.record);
+      const candidates = new Set([
+        ...titles.flatMap(title => [...(byTitle.get(title) || [])]),
+        ...editions.flatMap(edition => [...(byEdition.get(edition.base) || [])]),
+      ]);
+      const matchingGroups = new Set();
+      for (const candidate of candidates) {
+        if (candidate === entry || entry.provider !== 'animeunity' && candidate.provider !== 'animeunity') continue;
+        if (candidate.provider === entry.provider && entry.provider !== 'animeunity') continue;
+        const candidateTitles = identityTitles(candidate.record);
+        const exact = titles.some(title => candidateTitles.includes(title)) &&
+          entry.provider !== candidate.provider && titleCompatible(entry.record, candidate.record);
+        const candidateEditions = editionTitles(candidate.record);
+        const edition = editions.some(left => candidateEditions.some(right =>
+          left.base === right.base && (left.marked || right.marked))) &&
+          editionCompatible(entry.record, candidate.record);
+        if (!exact && !edition) continue;
+        const candidateGroup = byCanonicalId.get(registry.members[`${candidate.provider}:${candidate.id}`]);
+        if (candidateGroup?.entries.includes(candidate)) matchingGroups.add(candidateGroup);
+      }
+      if (matchingGroups.size === 1) {
+        const matchingGroup = [...matchingGroups][0];
+        if (!matches.length || matches.length === 1 && matches[0] === matchingGroup) group = matchingGroup;
       }
     }
     if (matches.length && !group && !forced) conflicts.push({member: entry.key, candidates: matches.map(value => value.id)});
