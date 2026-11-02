@@ -4,9 +4,12 @@ const {hash} = require('./lib');
 const ENRICHMENT_SCHEMA_VERSION = 2;
 
 function refreshPlan(final, raw, mapped, now = Date.now()) {
-  const sameInputs = !!final && final.rawFingerprint === raw.fingerprint &&
-    matchesMapping(final, mapped) && final.path === raw.path;
-  const recent = sameInputs && now - Date.parse(final.updatedAt || 0) < 90 * 86400000;
+  const sameSource = !!final && final.rawFingerprint === raw.fingerprint && final.path === raw.path;
+  const sameInputs = sameSource && matchesMapping(final, mapped);
+  const components = componentDependencies(mapped);
+  const agrees = component => matchesMapping(final, mapped) ||
+    final?.componentDependencies?.[component] === components[component];
+  const recent = sameSource && now - Date.parse(final.updatedAt || 0) < 90 * 86400000;
   const episodeTasks = Object.entries(final?.metadataTasks || {}).filter(([, task]) =>
     task.kind === 'episodes' || task.kind === 'season-layout');
   const episodeTasksDue = episodeTasks.some(([, task]) =>
@@ -14,11 +17,11 @@ function refreshPlan(final, raw, mapped, now = Date.now()) {
   const missingEpisodes = (final?.episodes || []).some(episode =>
     !episode.title || !episode.synopsis || !episode.thumbnail);
   const missingDue = missingEpisodes && now - Date.parse(final?.updatedAt || 0) >= 30 * 86400000;
-  const reuseEpisodes = recent && final.enrichmentSchemaVersion === ENRICHMENT_SCHEMA_VERSION &&
+  const reuseEpisodes = recent && agrees('episodes') && final.enrichmentSchemaVersion === ENRICHMENT_SCHEMA_VERSION &&
     !episodeTasksDue && !missingDue;
   const metadataDue = Object.values(final?.metadataTasks || {}).some(task =>
     Number.isFinite(task.nextCheckAt) && task.nextCheckAt <= now);
-  return {reuseInfo: recent && !metadataDue && !final?.sourceStatus?.tmdbWeb?.transientFailures, reuseEpisodes,
+  return {reuseInfo: recent && agrees('info') && !metadataDue && !final?.sourceStatus?.tmdbWeb?.transientFailures, reuseEpisodes,
     retainedTasks: reuseEpisodes ? Object.fromEntries(episodeTasks) : {},
     reason: !sameInputs ? 'source-or-mapping-changed' :
       final.enrichmentSchemaVersion !== ENRICHMENT_SCHEMA_VERSION ? 'schema-backfill' :
@@ -48,14 +51,46 @@ function mappingContent(mapped = {}) {
   });
 }
 function mappingFingerprint(mapped) { return hash(mappingContent(mapped)); }
+
+// Empty-range related IDs can change without changing any playback mapping.
+// Keep all nonempty ranges: these are consumed by the episode resolver, even
+// when their target is not the primary artwork target.
+function componentDependencies(mapped = {}) {
+  const content = mappingContent(mapped);
+  const mediaType = mapped.metadataMediaType || (/movie/i.test(mapped.sourceMediaType || '') ? 'movie' : mapped.sourceMediaType || null);
+  const direct = mapped.metadataTargets;
+  if (!Array.isArray(direct)) return {info: mappingFingerprint(mapped), episodes: mappingFingerprint(mapped), artwork: mappingFingerprint(mapped), episodeIdentity: mappingFingerprint(mapped)};
+  const identity = {sourceIds: content.sourceIds, imdbId: content.imdbId,
+    metadataMediaType: mediaType, metadataTargets: direct};
+  const ranges = content.targets.filter(t => Object.keys(t.ranges || {}).length);
+  const scopes = content.targets.filter(t => direct.some(d => d.provider === t.provider && d.id === t.id))
+    .map(({provider, id, scope}) => ({provider, id, scope}));
+  const artworkServices = Object.fromEntries(['tmdb', 'tvdb', 'cinemeta', 'anizip', 'anilist'].map(source =>
+    [source, hash(canonical({sourceIds: content.sourceIds, metadataMediaType: mediaType,
+      targets: direct.filter(t => t.provider.startsWith(source + '_')),
+      scopes: scopes.filter(t => t.provider.startsWith(source + '_')),
+      ...(source === 'cinemeta' ? {imdbId: content.imdbId} : {})}))]));
+  const episodeIdentity = hash(canonical({...identity, metadataTargets: direct.map(({ranges, ...target}) => target)}));
+  return {info: hash(canonical({identity, ranges})), episodes: hash(canonical({identity, ranges})), episodeIdentity,
+    artwork: hash(canonical({identity, scopes})), artworkServices};
+}
 function matchesMapping(final, mapped) {
   return !!final && !!mapped && final.mappingFingerprint ===
     (final.mappingFingerprintVersion === 2 ? mappingFingerprint(mapped) : hash(mapped));
 }
 function migrateFinalMapping(final, previous, next) {
-  if (!final || !previous || !matchesMapping(final, previous) ||
-      mappingFingerprint(previous) !== mappingFingerprint(next)) return final;
-  return {...final, mappingFingerprintVersion: 2, mappingFingerprint: mappingFingerprint(next)};
+  if (!final || !previous || !matchesMapping(final, previous)) return final;
+  const before = componentDependencies(previous), after = componentDependencies(next);
+  // Always retain the dependencies that actually produced this snapshot.
+  const migrated = {...final, componentDependencies: before};
+  if (mappingFingerprint(previous) === mappingFingerprint(next))
+    return {...migrated, mappingFingerprintVersion: 2, mappingFingerprint: mappingFingerprint(next)};
+  if (JSON.stringify(before) !== JSON.stringify(after)) return migrated;
+  const info = structuredClone(final.info);
+  if (info?.extra) {info.extra.ids = next.ids; info.extra.mappings = next.mappings;}
+  return {...migrated, info, mappings: next.mappings, sourceIds: next.sourceIds,
+    mappingPolicy: next.mappingPolicy, mappingFingerprintVersion: 2,
+    mappingFingerprint: mappingFingerprint(next)};
 }
 function finalIsCurrent(final, raw, mapped, revision) {
   return !!raw && !!mapped && !!final && mapped.rawFingerprint === raw.fingerprint &&
@@ -78,4 +113,4 @@ function consumerContent(record) {
 }
 
 module.exports = {canonical, setValues, mappingContent, mappingFingerprint, matchesMapping,
-  migrateFinalMapping, finalIsCurrent, publishable, consumerContent, refreshPlan, ENRICHMENT_SCHEMA_VERSION};
+  componentDependencies, migrateFinalMapping, finalIsCurrent, publishable, consumerContent, refreshPlan, ENRICHMENT_SCHEMA_VERSION};

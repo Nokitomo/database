@@ -6,6 +6,7 @@ const fs = require('node:fs');
 const {sourceFingerprint, migrateStoredSources, finishMigration} = require('./source-fingerprint');
 const {selectFinalBatch} = require('./final-queue');
 const {needsMappingRepair} = require('./mapping-policy');
+const {dependencyFingerprint, canAcknowledgeIndex} = require('./mapping-dependencies');
 const path = require('node:path');
 const {execFileSync} = require('node:child_process');
 const {DATA, file, hash, iso, listIds, parseArgs, readJson, sleep, writeJson} = require('./lib');
@@ -16,7 +17,7 @@ const {buildQualityReport} = require('./quality');
 const {withRecordDeadline} = require('./record-deadline');
 const {maintainImages, applyImageReplacements} = require('./image-health');
 const {mappingFingerprint, matchesMapping, migrateFinalMapping, finalIsCurrent,
-  publishable, consumerContent, ENRICHMENT_SCHEMA_VERSION} = require('./incremental');
+  publishable, consumerContent, componentDependencies, ENRICHMENT_SCHEMA_VERSION} = require('./incremental');
 
 function stageIndex(stage) { return path.join(DATA, stage, 'index.json'); }
 function finalProgressFile(id) { return path.join(DATA, 'final', 'progress', `${id}.json`); }
@@ -176,6 +177,14 @@ async function runRaw(options) {
       if (!item.path) throw new Error(`Anime ${id} has no saved path; waiting for archive or sitemap`);
       const source = await withRecordDeadline(`raw ${id}`,
         signal => fetchAnime(item, discovery.baseUrl, undefined, signal));
+      const canonicalSlug = source.info?.slug;
+      if (typeof canonicalSlug === 'string' && /^[a-z0-9][a-z0-9-]*$/i.test(canonicalSlug)) {
+        source.slug = canonicalSlug;
+        source.path = `/anime/${id}-${canonicalSlug}`;
+        nextState.verifiedPaths ||= {};
+        nextState.verifiedPaths[id] = {path: source.path, slug: canonicalSlug,
+          archivePath: archived.get(id)?.path || null};
+      }
       const previous = readJson(file('raw', id));
       const fingerprint = sourceFingerprint(source);
       writeJson(file('raw', id), {...source, archiveRecord: item.archiveRecord || previous?.archiveRecord || null,
@@ -216,7 +225,31 @@ async function runMapped(options, providerRoot) {
   if (!source) throw new Error('raw/index.json missing');
   const index = readJson(stageIndex('mapped'), {schemaVersion: 1, errors: {}});
   const revision = providerRef();
-  const sourceHash = await aniBridgeSourceHash(providerRoot, source.baseUrl);
+  const bridge = requireProvider(providerRoot, 'mappings/anibridge.js');
+  const bridgeIndex = await bridge.getAniBridgeIndex(createContext(providerRoot, source.baseUrl));
+  if (!bridgeIndex?.schemaVersion || !bridgeIndex.records?.size) throw new Error('AniBridge index unavailable');
+  const sourceHash = hash([...bridgeIndex.records.entries()].sort(([a], [b]) => a.localeCompare(b)));
+  const dependencies = new Map();
+  let acknowledged = 0;
+  // Cheap index acknowledgements do not consume the 50 expensive-record slots.
+  for (const id of source.expectedIds) {
+    if (options.ids && !options.ids.has(id)) continue;
+    const raw = readJson(file('raw', id));
+    if (!raw) continue;
+    const previous = readJson(file('mapped', id));
+    const dependency = dependencyFingerprint(bridgeIndex, bridge.findAniBridgeSourceRecords, raw);
+    dependencies.set(id, dependency);
+    if (!options.full && !index.errors[id] && !needsMappingRepair(previous, raw, readJson(file('final', id))) &&
+        canAcknowledgeIndex(previous, raw, revision, sourceHash, dependency)) {
+      if (previous.mappingSourceHash !== sourceHash || previous.mappingDependencyFingerprint !== dependency) {
+        writeJson(file('mapped', id), {...previous, sourceMediaType: raw.info?.type || raw.embeddedAnime?.type,
+          mappingSourceHash: sourceHash,
+          mappingDependencyVersion: 1, mappingDependencyFingerprint: dependency});
+        acknowledged++;
+      }
+    }
+  }
+  console.log(`MAPPING_INDEX ${JSON.stringify({acknowledged, total: source.expectedIds.length})}`);
   const expected = new Set(source.expectedIds);
   index.errors = Object.fromEntries(Object.entries(index.errors || {}).filter(([id]) => expected.has(Number(id))));
   const pending = source.expectedIds.filter(id => {
@@ -235,17 +268,28 @@ async function runMapped(options, providerRoot) {
     console.log(`mapped ${id}: starting`);
     try {
       const raw = readJson(file('raw', id));
-      const previous = readJson(file('mapped', id));
+      const storedMapping = readJson(file('mapped', id));
+      const previous = storedMapping && {...storedMapping, sourceMediaType: raw.info?.type || raw.embeddedAnime?.type};
       const mapped = await withRecordDeadline(`mapped ${id}`,
         signal => mapAnime(providerRoot, source.baseUrl, raw, signal));
       const unchanged = previous && mappingFingerprint(previous) === mappingFingerprint(mapped);
-      const next = {...mapped, rawFingerprint: raw.fingerprint, providerRef: revision,
-        mappingSourceHash: sourceHash, mappedAt: unchanged ? previous.mappedAt : iso(), checkedAt: iso()};
+      const next = {...mapped, sourceMediaType: raw.info?.type || raw.embeddedAnime?.type,
+        rawFingerprint: raw.fingerprint, providerRef: revision,
+        mappingSourceHash: sourceHash, mappingDependencyVersion: 1,
+        mappingDependencyFingerprint: dependencies.get(id),
+        mappedAt: unchanged ? previous.mappedAt : iso(), checkedAt: iso()};
       const final = readJson(file('final', id));
       const migrated = migrateFinalMapping(final, previous, next);
       if (migrated !== final) writeJson(file('final', id), migrated);
+      const progress = readJson(finalProgressFile(id));
+      const migratedProgress = migrateFinalMapping(progress, previous, next);
+      if (migratedProgress !== progress) writeJson(finalProgressFile(id), migratedProgress);
       writeJson(file('mapped', id), next);
       console.log(`mapped ${id}: ${unchanged ? 'content unchanged; final retained' : 'content changed; enrichment dependencies will be compared'}`);
+      if (!unchanged && final) console.log(`MAPPING_COMPONENTS ${JSON.stringify({id,
+        metadataRetained: matchesMapping(migrated, next),
+        changed: Object.keys(componentDependencies(next)).filter(key =>
+          JSON.stringify(componentDependencies(previous)[key]) !== JSON.stringify(componentDependencies(next)[key]))})}`);
       if (next.mappingPolicy?.rejected.length) console.log(`MAPPING_REJECTED ${JSON.stringify({id, targets: next.mappingPolicy.rejected})}`);
       delete index.errors[id];
     } catch (error) { index.errors[id] = {at: iso(), message: error.message}; console.error(`mapped ${id}: ${error.message}`); }
@@ -330,6 +374,7 @@ async function runFinal(options, providerRoot) {
           hash(consumerContent(previousFinal)) === hash(consumerContent(result)) ? 'unchanged' : 'changed',
           unresolvedMetadata: Object.values(result.metadataTasks || {}).filter(task => task.status === 'error').length})}`);
         writeJson(file('final', id), {...result, rawFingerprint: raw.fingerprint,
+          componentDependencies: componentDependencies(mapped),
           mappingFingerprint: fingerprint, mappingFingerprintVersion: 2, providerRef: revision});
         if (result.sourceStatus?.tmdbWeb?.transientFailures) {
           console.log(`final ${id}: TMDB web had ${result.sourceStatus.tmdbWeb.transientFailures} temporary failures; retry scheduled`);
@@ -386,6 +431,8 @@ function rebuildFinalArtifacts(source, mappingIndex, manifest, revision, root = 
   manifest.expectedCount = source.expectedIds.length;
   manifest.availableCount = records.length;
   manifest.pendingRefreshIds = pendingRefreshIds;
+  manifest.catalogComplete = source.complete && records.length === source.expectedIds.length;
+  manifest.refreshComplete = mappingIndex.complete && pendingRefreshIds.length === 0 && Object.keys(manifest.errors).length === 0;
   manifest.complete = source.complete && mappingIndex.complete && pendingRefreshIds.length === 0 && records.length === source.expectedIds.length && Object.keys(manifest.errors).length === 0;
   manifest.providerRef = revision;
   manifest.catalogSha256 = hash(catalog);

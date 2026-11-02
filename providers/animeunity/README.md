@@ -42,6 +42,31 @@ deadlines take precedence over the legacy record-wide TMDB retry timer.
 `FINAL_QUEUE` reports new versus refresh selections; `FINAL_RESULT` distinguishes
 new records, consumer changes and checks without consumer changes.
 
+## Incremental AniBridge updates
+
+Each mapped record stores a versioned fingerprint of the provider resolver's
+direct and reverse AniBridge lookup, including absent direct entries. A new
+global index acknowledges unchanged dependencies in one batch without repeating
+external resolvers or consuming the expensive-record limit. Legacy fingerprints
+are seeded only when the stored global index matches; otherwise one conservative
+mapping verification is required. Expired mapping-policy checks still run.
+
+Final snapshots retain the dependencies that produced their metadata. Changes
+to unrelated empty-range references update saved references without fetching
+metadata again. Real component changes preserve unaffected artwork services and
+verified episode correspondences. Changed group layouts, ambiguous numbering,
+expired tasks and unknown legacy provenance use the conservative refresh path.
+Partial checkpoints obey the same dependency checks.
+
+Provider API slugs are remembered separately from sitemap aliases. A changed
+complete archive path triggers verification; alternating sitemap aliases cannot
+repeatedly invalidate a confirmed path.
+
+`catalogComplete` reports retained catalog coverage and `refreshComplete` reports
+mapping freshness. The existing `complete` field keeps its original combined
+meaning for workflow/consumer compatibility. `MAPPING_INDEX` and
+`MAPPING_COMPONENTS` logs explain skipped work and genuine invalidations.
+
 ## Typed mappings and confirmed missing resources
 
 The database adapter accepts typed AniBridge mappings and explicitly typed AniZip

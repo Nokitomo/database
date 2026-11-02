@@ -99,6 +99,11 @@ function verifyDatabase(stage = 'all') {
       throw new Error('Manifest counts do not match current records');
     if (manifest.pendingRefreshIds && JSON.stringify(manifest.pendingRefreshIds) !== JSON.stringify(pendingRefreshIds))
       throw new Error('Pending refresh IDs do not match current records');
+    if (manifest.catalogComplete !== undefined && manifest.catalogComplete !==
+        Boolean(rawIndex.complete && complete.length === ids.length)) throw new Error('Invalid catalog completeness');
+    if (manifest.refreshComplete !== undefined && manifest.refreshComplete !==
+        Boolean(mappedIndex.complete && !pendingRefreshIds.length && !Object.keys(manifest.errors || {}).length))
+      throw new Error('Invalid refresh completeness');
     if (manifest.complete && (pendingRefreshIds.length || complete.length !== ids.length || !rawIndex.complete || !mappedIndex.complete))
       throw new Error('Manifest incorrectly marked complete');
     const catalog = readJson(path.join(DATA, 'final', 'catalog.json'));

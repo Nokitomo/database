@@ -2,6 +2,7 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const {reusableEpisodes}=require('../scripts/episode-reuse');
 const {mappingFingerprint}=require('../scripts/incremental');
+const {componentDependencies}=require('../scripts/incremental');
 const {enrichAnime}=require('../scripts/vega');
 function fixture(){
   const mapped={sourceIds:{},mappings:{targets:[]},providerRef:'v1'};
@@ -11,6 +12,42 @@ function fixture(){
     episodes:[{link:'10',title:'Resolved title',synopsis:'Plot',thumbnail:'image'}],metadataTasks:{}};
   return {mapped,raw,previous};
 }
+
+test('a changed correspondence rebuilds its episode while preserving unaffected episodes',()=>{
+  const {mapped,raw,previous}=fixture();
+  const oldTarget={provider:'tmdb_show',id:'42',scope:'s1',ranges:{1:'1',2:'2'}};
+  mapped.metadataTargets=[oldTarget];mapped.mappings.targets=[oldTarget];
+  const resolve=(r,n)=>({seasonNumber:1,mappings:[{provider:'tmdb_show',id:'42',scope:'s1',seasonNumber:1,
+    episodeNumbers:[Number(r.targets[0].ranges[n])]}]});
+  previous.mappings=structuredClone(mapped.mappings);
+  previous.componentDependencies=componentDependencies(mapped);
+  previous.mappingFingerprint=mappingFingerprint(mapped);
+  previous.sourceEpisodes=structuredClone(raw.episodes);
+  previous.episodes=raw.episodes.map(e=>({link:String(e.id),title:'Title',synopsis:'Plot',thumbnail:'image',
+    seasonNumber:1,externalMappings:resolve(previous.mappings,Number(e.number)).mappings}));
+  const next=structuredClone(mapped);next.mappings.targets[0].ranges[2]='3';next.metadataTargets[0].ranges[2]='3';
+  assert.deepEqual(reusableEpisodes(previous,raw,next,Date.now(),resolve).map(e=>e.link),['10']);
+  next.metadataTargets[0].id='99';
+  assert.equal(reusableEpisodes(previous,raw,next,Date.now(),resolve).length,0);
+});
+
+test('changing TVDB artwork preserves fresh TMDB artwork and respects service retries',async()=>{
+  const {mapped,raw,previous}=fixture();
+  mapped.metadataTargets=[{provider:'tmdb_show',id:'42'},{provider:'tvdb_show',id:'10'}];
+  previous.componentDependencies=componentDependencies(mapped);
+  previous.artworkInventory={poster:[],logo:[],background:[]};
+  previous.rawFingerprint=raw.fingerprint;
+  previous.info={title:'Test',linkList:[]};
+  const next=structuredClone(mapped);next.metadataTargets[1].id='11';
+  let reused;
+  const options={previousFinal:previous,getMeta:async()=>({title:'Test',linkList:[]}),getEpisodes:async()=>[],
+    fillTvdbEpisodeGaps:async()=>{},collectArtwork:async(_p,c)=>{reused=c.artworkReuse.sources;return {};}};
+  await enrichAnime('.','https://www.animeunity.co',raw,next,options);
+  assert.equal(reused.has('tmdb'),true);assert.equal(reused.has('tvdb'),false);
+  previous.metadataTasks={retry:{source:'tmdb',kind:'artwork',nextCheckAt:0}};
+  await enrichAnime('.','https://www.animeunity.co',raw,next,options);
+  assert.equal(reused.has('tmdb'),false);
+});
 test('only new episodes are sent to gap filling and known episodes are supplied to Vega',async()=>{
   const {mapped,raw,previous}=fixture();let known,gaps;
   const result=await enrichAnime('.','https://www.animeunity.co',raw,mapped,{previousFinal:previous,

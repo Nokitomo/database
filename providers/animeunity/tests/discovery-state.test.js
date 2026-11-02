@@ -8,6 +8,21 @@ const {archiveItems, verifyAnimeUnavailable} = require('../scripts/source');
 const item = (id, slug = `title-${id}`) => ({id, slug, path: `/anime/${id}-${slug}`});
 const archive = (...items) => ({items: new Map(items.map(value => [value.id, value])), total: items.length});
 
+test('alternating sitemap aliases cannot oscillate the API-confirmed path', async () => {
+  let state = initialDiscoveryState({expectedIds: [7748]}, [item(7748, 'link-click-3')]);
+  state.verifiedPaths = {7748: {...item(7748, 'link-click-3-part-1'), archivePath: '/anime/7748-link-click-3-part-1'}};
+  for (const slug of ['link-click-3', 'link-click-3-part-1', 'link-click-3']) {
+    const result = await reconcileDiscovery({sitemap: new Map([[7748, item(7748, slug)]]),
+      archive: state.archive ? null : archive(item(7748, 'link-click-3-part-1')), state,
+      verifyUnavailable: async () => false});
+    assert.equal(result.merged.get(7748).path, '/anime/7748-link-click-3-part-1');
+    state = result.state;
+  }
+  const changed = await reconcileDiscovery({sitemap: new Map([[7748, item(7748, 'link-click-3')]]),
+    archive: archive(item(7748, 'new-confirmed-slug')), state, verifyUnavailable: async () => false});
+  assert.equal(changed.merged.get(7748).path, '/anime/7748-new-confirmed-slug');
+});
+
 test('a missing sitemap entry stays active using the last complete archive snapshot', async () => {
   const state = {schemaVersion: 1, archive: {checkedAt: '2026-10-29T11:00:00Z', total: 2,
     items: [item(7874), item(7875)]}, known: {7874: item(7874), 7875: item(7875)}, inactive: {}};

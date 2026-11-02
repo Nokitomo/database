@@ -46,6 +46,20 @@ async function reconcileDiscovery({sitemap, archive, state, verifyUnavailable}) 
     }
   }
   const merged = mergeDiscoveredItems(sitemap, archived, Object.values(known));
+  const verifiedPaths = {...state.verifiedPaths};
+  for (const [key, verified] of Object.entries(verifiedPaths)) {
+    const id = Number(key), item = merged.get(id);
+    if (!item) continue;
+    // A newly changed archive path must be checked again. An old sitemap
+    // alias cannot override the path confirmed by the provider's info API.
+    const freshPath = archive?.items.get(id)?.path;
+    if (freshPath && freshPath !== verified.archivePath && freshPath !== verified.path) {
+      delete verifiedPaths[key];
+      merged.set(id, {...item, ...archive.items.get(id)});
+    } else {
+      merged.set(id, {...item, path: verified.path, slug: verified.slug});
+    }
+  }
   const removed = [];
   // Only a newly completed archive scan can propose removals. A missing sitemap
   // entry or a failed archive scan cannot change availability.
@@ -64,7 +78,7 @@ async function reconcileDiscovery({sitemap, archive, state, verifyUnavailable}) 
     schemaVersion: 1,
     archive: archive ? {checkedAt: new Date().toISOString(), total: archive.total,
       items: [...archive.items.values()].map(archiveItem)} : state.archive || null,
-    known, inactive, reactivationPending,
+    known, inactive, reactivationPending, verifiedPaths,
   }};
 }
 

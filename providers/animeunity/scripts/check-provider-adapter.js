@@ -5,6 +5,9 @@ const {installMappingOverride} = require('./mapping-policy');
 async function check(root) {
   const resolver = requireProvider(root, 'mappings/resolver.js');
   const index = requireProvider(root, 'mappings/index.js');
+  const bridge = requireProvider(root, 'mappings/anibridge.js');
+  assert.equal(typeof bridge.findAniBridgeSourceRecords, 'function');
+  assert.equal(typeof index.resolveAniBridgeEpisodeMappings, 'function');
   installMappingOverride(resolver);
   const resolution = {targets: [], metadataTargets: [], ids: {}};
   const providerContext = {databaseMappingOverride: {anilistId: 42, resolution}};

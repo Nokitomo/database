@@ -15,7 +15,7 @@ const {createTmdbGet} = require('./tmdb-http');
 const {normalizeRelatedLinks} = require('./provider-links');
 const {buildArtworkFallbacks} = require('./artwork-fallbacks');
 const {createMetadataTasks} = require('./metadata-tasks');
-const {refreshPlan, ENRICHMENT_SCHEMA_VERSION} = require('./incremental');
+const {refreshPlan, matchesMapping, componentDependencies, ENRICHMENT_SCHEMA_VERSION} = require('./incremental');
 const {reusableEpisodes} = require('./episode-reuse');
 
 const pacedGet = createPacedGet((url, options) => axios.get(url, options), {check: assertWarp});
@@ -195,7 +195,9 @@ async function enrichAnime(providerRoot, baseUrl, raw, mapped, options = {}) {
       metadataTargets: mapped.metadataTargets || [], ids: mapped.ids || {}, imdbId: mapped.imdbId},
   };
   const plan = refreshPlan(options.previousFinal, raw, mapped);
-  const knownEpisodes = reusableEpisodes(options.previousFinal, raw, mapped);
+  const resolveEpisode = options.resolveEpisode || (!options.getEpisodes
+    ? requireProvider(providerRoot, 'mappings/index.js').resolveAniBridgeEpisodeMappings : undefined);
+  const knownEpisodes = reusableEpisodes(options.previousFinal, raw, mapped, Date.now(), resolveEpisode);
   const knownIds = new Set(knownEpisodes.map(e => String(e.link)));
   plan.reuseEpisodes = plan.reuseEpisodes && knownEpisodes.length === raw.episodes.length;
   if (knownEpisodes.length) plan.retainedTasks = Object.fromEntries(Object.entries(options.previousFinal.metadataTasks || {})
@@ -207,6 +209,34 @@ async function enrichAnime(providerRoot, baseUrl, raw, mapped, options = {}) {
   const info = normalizeRelatedLinks(options.progress?.info ||
     (plan.reuseInfo ? structuredClone(options.previousFinal.info) : await getMeta({link, providerContext: context})));
   if (!info?.title || !Array.isArray(info.linkList)) throw new Error(`Vega metadata incomplete for ${raw.id}`);
+  const previous = options.previousFinal;
+  if (previous && !matchesMapping(previous, mapped) &&
+      JSON.stringify(previous.info?.linkList) !== JSON.stringify(info.linkList)) {
+    // A changed group layout may use record-aligned numbering. Rebuild those
+    // groups rather than treating an ordinary episode mapping as proof.
+    knownEpisodes.length = 0;
+    knownIds.clear();
+    plan.reuseEpisodes = false;
+    plan.retainedTasks = {};
+  }
+  const dependencies = componentDependencies(mapped);
+  const reusableArtwork = new Set();
+  if (previous && previous.rawFingerprint === raw.fingerprint && previous.providerRef === mapped.providerRef &&
+      previous.enrichmentSchemaVersion === ENRICHMENT_SCHEMA_VERSION && previous.artworkInventory &&
+      Date.now() - Date.parse(previous.updatedAt || 0) < 30 * 86400000) {
+    for (const [source, dependency] of Object.entries(dependencies.artworkServices || {})) {
+      if (previous.componentDependencies?.artworkServices?.[source] !== dependency ||
+          (source === 'cinemeta' && previous.info?.imdbId !== info.imdbId) ||
+          (source === 'tmdb' && previous.sourceStatus?.tmdbWeb?.transientFailures) ||
+          Object.values(previous.metadataTasks || {}).some(t => t.source === source &&
+            (!Number.isFinite(t.nextCheckAt) || t.nextCheckAt <= Date.now()))) continue;
+      reusableArtwork.add(source);
+    }
+  }
+  context.artworkReuse = {previous, sources: reusableArtwork};
+  for (const [key, task] of Object.entries(previous?.metadataTasks || {})) {
+    if (reusableArtwork.has(task.source) && !['episodes', 'season-layout'].includes(task.kind)) plan.retainedTasks[key] = task;
+  }
   const byId = new Map((options.progress?.episodes ||
     (plan.reuseEpisodes ? structuredClone(options.previousFinal.episodes) : knownEpisodes)).map(episode => [String(episode.link), episode]));
   const groups = info.linkList.filter(group => group.episodesLink);
@@ -381,11 +411,12 @@ async function collectArtwork(providerRoot, context, raw, mapped, info) {
     isMovie, titles: [raw.info.title_eng, raw.info.title, raw.info.title_it, info.title]});
   const {resolveTmdbArtworkLibrary} = requireProvider(providerRoot, 'tmdb/artworkLibrary.js');
   context.artworkLibrary = {schemaVersion: 1, tmdb: {}, tvdb: {}};
+  const reuse = context.artworkReuse;
   const tmdbKind = isMovie ? 'tmdb_movie' : 'tmdb_show';
   for (const target of verified.metadataTargets.filter(value => value.provider === tmdbKind)) {
     const id = Number(target.id);
     if (!Number.isSafeInteger(id) || id <= 0 || context.artworkLibrary.tmdb[id]) continue;
-    context.artworkLibrary.tmdb[id] = await resolveTmdbArtworkLibrary({
+    context.artworkLibrary.tmdb[id] = reuse?.sources.has('tmdb') && reuse.previous.artworkLibrary?.tmdb?.[id] || await resolveTmdbArtworkLibrary({
       providerContext: context, id, type: isMovie ? 'movie' : 'tv'});
   }
   const tvdbKind = isMovie ? 'tvdb_movie' : 'tvdb_show';
@@ -395,7 +426,7 @@ async function collectArtwork(providerRoot, context, raw, mapped, info) {
     if (!Number.isSafeInteger(id) || id <= 0 || context.artworkLibrary.tvdb[id]) continue;
     const mappedSeasons = verified.targets.filter(value => value.provider === tvdbKind && Number(value.id) === id)
       .map(value => Number(value.scope?.match(/season:(\d+)/i)?.[1])).filter(Number.isFinite);
-    context.artworkLibrary.tvdb[id] = await resolveTvdbArtworkLibrary({providerContext: context,
+    context.artworkLibrary.tvdb[id] = reuse?.sources.has('tvdb') && reuse.previous.artworkLibrary?.tvdb?.[id] || await resolveTvdbArtworkLibrary({providerContext: context,
       tvdbId: id, mediaType: isMovie ? 'movie' : 'series', mappedSeasons});
   }
   const tvdbTarget = verified.metadataTargets.find(target => target.provider === tvdbKind);
@@ -423,6 +454,8 @@ async function collectArtwork(providerRoot, context, raw, mapped, info) {
     },
   };
   const results = Object.fromEntries(await Promise.all(Object.entries(jobs).map(async ([source, run]) => {
+    if (reuse?.sources.has(source)) return [source, Object.fromEntries(['poster', 'background', 'logo'].map(field =>
+      [field, reuse.previous.artworkInventory[field]?.find(candidate => candidate.source === source)?.url]))];
     try { return [source, await run() || {}]; } catch { return [source, {}]; }
   })));
   if (tmdbArtworkSamples < 5 && (mapped.metadataTargets || mapped.mappings?.targets || [])
