@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tvdb","kind":"episodes","input":{"tvdbShowId":259863,"seasonNumber":2},"checkedAt":1793641442685,"status":"ok","retryCount":0,"value":[{"episodeNumber":4,"title":"Minding My Own Business","titleLanguage":"eng"}],"failure":null,"fields":{},"episodes":{"4":{"checkedAt":1793641442685,"status":"missing","retryCount":0}}}
