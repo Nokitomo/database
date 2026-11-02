@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tvdb","kind":"episodes","input":{"tvdbShowId":146401,"seasonNumber":0},"checkedAt":1793645520204,"status":"ok","retryCount":0,"value":[{"episodeNumber":2,"title":"Inazuma Eleven GO the Movie: The Ultimate Bonds Gryphon","titleLanguage":"eng"}],"failure":null,"fields":{},"episodes":{"2":{"checkedAt":1793645520204,"status":"missing","retryCount":0}}}
