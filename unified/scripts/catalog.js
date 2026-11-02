@@ -23,6 +23,40 @@ function compatible(a, b) {
   const conflict = Object.keys(x).some(key => x[key] && y[key] && x[key] !== y[key]);
   return shared && !conflict && !(format(a) && format(b) && format(a) !== format(b));
 }
+function normalizedTitle(value) {
+  return typeof value === 'string' ? value.normalize('NFKD').toLowerCase()
+    .replace(/\p{M}/gu, '').replace(/[^\p{L}\p{N}]+/gu, '') : '';
+}
+function identityTitles(record) {
+  const source = record.sourceMetadata?.info || {};
+  const info = record.info || {};
+  return [...new Set([info.title, info.title_eng, info.title_it,
+    source.title, source.title_eng, source.title_it]
+    .map(normalizedTitle).filter(Boolean))];
+}
+function releaseYear(record) {
+  const source = record.sourceMetadata?.info || {};
+  const info = record.info || {};
+  const value = info.year ?? source.date ?? info.date ??
+    info.tags?.find(tag => /^(?:19|20)\d{2}$/.test(String(tag)));
+  const match = String(value || '').match(/(?:19|20)\d{2}/);
+  return match ? Number(match[0]) : null;
+}
+function episodeCount(record) {
+  const episodes = record.sourceEpisodes || record.episodes;
+  return Array.isArray(episodes) && episodes.length ? episodes.length : null;
+}
+function titleCompatible(a, b) {
+  const left = ids(a), right = ids(b);
+  if (Object.keys(left).some(key => left[key] && right[key] && left[key] !== right[key])) return false;
+  const leftYear = releaseYear(a), rightYear = releaseYear(b);
+  const leftEpisodes = episodeCount(a), rightEpisodes = episodeCount(b);
+  if (leftYear && rightYear && leftYear !== rightYear) return false;
+  if (leftEpisodes && rightEpisodes && leftEpisodes !== rightEpisodes) return false;
+  if (!(leftYear && rightYear || leftEpisodes && rightEpisodes)) return false;
+  const leftMovie = format(a) === 'movie', rightMovie = format(b) === 'movie';
+  return leftMovie === rightMovie;
+}
 function namespace(value, provider) {
   if (Array.isArray(value)) return value.map(item => namespace(item, provider));
   if (!value || typeof value !== 'object') return value;
@@ -76,7 +110,15 @@ function loadSources(auRoot, awRoot, additionalSources = {}, previouslyLoaded = 
 }
 function groupEntries(entries, registry = {members: {}, nextId: 1}, overrides = {}) {
   const groups = [], conflicts = [], byExternalId = new Map(), byCanonicalId = new Map();
+  const animeunityByTitle = new Map();
+  for (const entry of entries) if (entry.provider === 'animeunity') {
+    for (const title of identityTitles(entry.record)) {
+      if (!animeunityByTitle.has(title)) animeunityByTitle.set(title, new Set());
+      animeunityByTitle.get(title).add(entry);
+    }
+  }
   for (const entry of [...entries].sort((a,b) =>
+    Number(a.provider !== 'animeunity') - Number(b.provider !== 'animeunity') ||
     Number(Boolean(registry.members[`${b.provider}:${b.id}`])) - Number(Boolean(registry.members[`${a.provider}:${a.id}`])) ||
     a.provider.localeCompare(b.provider) || String(a.id).localeCompare(String(b.id),undefined,{numeric:true}))) {
     entry.key = `${entry.provider}:${entry.id}`;
@@ -90,6 +132,15 @@ function groupEntries(entries, registry = {members: {}, nextId: 1}, overrides = 
     }));
     const forced = overrides[entry.key];
     let group = forced ? byCanonicalId.get(forced) : safe.length === 1 && matches.length === 1 ? safe[0] : null;
+    if (!group && !forced && !matches.length && entry.provider !== 'animeunity') {
+      const candidates = new Set(identityTitles(entry.record)
+        .flatMap(title => [...(animeunityByTitle.get(title) || [])])
+        .filter(candidate => titleCompatible(entry.record, candidate.record)));
+      if (candidates.size === 1) {
+        const candidate = [...candidates][0];
+        group = byCanonicalId.get(registry.members[`animeunity:${candidate.id}`]) || null;
+      }
+    }
     if (matches.length && !group && !forced) conflicts.push({member: entry.key, candidates: matches.map(value => value.id)});
     if (!group) {
       const id = forced || registry.members[entry.key] || `work-${registry.nextId++}`;
