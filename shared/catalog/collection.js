@@ -32,7 +32,7 @@ function reuse(client,state,root,id,now,save=()=>{}){
 }
 function annotate(record,client,now,previous,changed=false){
   let result=policy.annotate(record,client.coverage,now,previous);
-  if(changed&&client.coverage){result={mode:'full',reason:'provider-reported-change'};record.collection=result;}
+  if(changed&&client.coverage&&!(client.coverage.kind==='anime'&&result.mode==='linked')){result={mode:'full',reason:'provider-reported-change'};record.collection=result;}
   if(result.mode==='linked'&&previous){
     // Keep already acquired metadata even when this collection omits extra calls.
     for(const [key,value]of Object.entries(previous.info||{}))if(record.info[key]==null||record.info[key]===''||Array.isArray(record.info[key])&&!record.info[key].length)record.info[key]=value;

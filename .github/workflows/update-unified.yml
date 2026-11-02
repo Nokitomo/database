@@ -1,6 +1,8 @@
 name: Update unified anime database
 on:
-  # Scheduled runs paused while the primary catalogs are built. Manual runs remain available.
+  # Enable after the initial unified merge via repository variable ANIME_SECONDARY_ENABLED=true.
+  schedule:
+    - cron: '37 */2 * * *'
   workflow_dispatch:
     inputs:
       stage:
@@ -16,6 +18,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   update:
+    if: github.event_name != 'schedule' || vars.ANIME_SECONDARY_ENABLED == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 280
     env:
@@ -38,6 +41,7 @@ jobs:
       - run: npm ci
       - run: npm run verify:unified
       - name: Build pinned external resolvers
+        if: inputs.stage != 'merge'
         run: |
           bash shared/warp/check.sh
           git clone --filter=blob:none https://github.com/Nokitomo/vega-providers.git .cache/vega-providers

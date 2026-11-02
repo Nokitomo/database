@@ -109,6 +109,9 @@ function decide(coverage, record) {
   const match = matches[0];
   if ((coverage.kind==='cinema'&&(!type||!match.type)) || (type&&match.type&&type !== match.type) || Object.keys(direct).some(k => direct[k] && match.ids[k] && direct[k] !== match.ids[k]))
     return {mode: 'full', reason: 'conflicting-identity'};
+  // Anime presence does not assert episode correspondence or metadata completeness.
+  if (coverage.kind === 'anime' && match.ready) return {mode: 'linked', primary: coverage.primary,
+    workId: match.id, fingerprint: match.fingerprint, episodeResolution: 'live'};
   if (!match.ready || match.missing.length) return {mode: 'full', reason: 'missing-primary-metadata', fields: match.missing};
   const count=(record.episodes||(record.seasons||[]).flatMap(s=>s.episodes||[])).length;
   const keys=episodeKeys(record,coverage.kind);

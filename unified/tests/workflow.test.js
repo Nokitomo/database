@@ -19,14 +19,6 @@ test('the actual runner creates and resumes its own data branch without changing
   fs.mkdirSync(path.join(seed,'providers/animeunity/data'),{recursive:true});
   fs.writeFileSync(path.join(seed,'providers/animeunity/data/sentinel.json'),'{"preserved":true}');
   git(['add','.'],seed);git(['commit','-m','AU snapshot'],seed);git(['push','origin','animeunity-data'],seed);
-  git(['checkout','--orphan','animeworld-data'],seed);git(['rm','-rf','.'],seed);
-  fs.mkdirSync(path.join(seed,'providers/animeworld/data'),{recursive:true});
-  fs.writeFileSync(path.join(seed,'providers/animeworld/data/manifest.json'),'{}');
-  git(['add','.'],seed);git(['commit','-m','AW snapshot'],seed);git(['push','origin','animeworld-data'],seed);
-  git(['checkout','--orphan','animesaturn-data'],seed);git(['rm','-rf','.'],seed);
-  fs.mkdirSync(path.join(seed,'providers/animesaturn/data'),{recursive:true});
-  fs.writeFileSync(path.join(seed,'providers/animesaturn/data/manifest.json'),'{}');
-  git(['add','.'],seed);git(['commit','-m','AS snapshot'],seed);git(['push','origin','animesaturn-data'],seed);
   git(['config','--file',globalConfig,`url.${slash(remote)}.insteadOf`,'https://github.com/test/unified.git']);
   const bin=path.join(tmp,'bin');fs.mkdirSync(bin);
   function executable(name,text){fs.writeFileSync(path.join(bin,name),'#!/usr/bin/env bash\n'+text+'\n',{mode:0o755});}
@@ -50,6 +42,14 @@ else if(args[0].endsWith('/pipeline.js')) {
 `);
   for(let run=1;run<=2;run++) {
     if(run===2){
+  git(['checkout','--orphan','animeworld-data'],seed);git(['rm','-rf','.'],seed);
+  fs.mkdirSync(path.join(seed,'providers/animeworld/data'),{recursive:true});
+  fs.writeFileSync(path.join(seed,'providers/animeworld/data/manifest.json'),'{}');
+  git(['add','.'],seed);git(['commit','-m','AW snapshot'],seed);git(['push','origin','animeworld-data'],seed);
+  git(['checkout','--orphan','animesaturn-data'],seed);git(['rm','-rf','.'],seed);
+  fs.mkdirSync(path.join(seed,'providers/animesaturn/data'),{recursive:true});
+  fs.writeFileSync(path.join(seed,'providers/animesaturn/data/manifest.json'),'{}');
+  git(['add','.'],seed);git(['commit','-m','AS snapshot'],seed);git(['push','origin','animesaturn-data'],seed);
       git(['checkout','--orphan','animetop-data'],seed);git(['rm','-rf','.'],seed);
       fs.mkdirSync(path.join(seed,'providers/animetop/data'),{recursive:true});fs.writeFileSync(path.join(seed,'providers/animetop/data/manifest.json'),'{}');
       git(['add','.'],seed);git(['commit','-m','AnimeTop snapshot'],seed);git(['push','origin','animetop-data'],seed);

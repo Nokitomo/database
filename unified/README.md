@@ -4,7 +4,11 @@ This independent pipeline reads committed AnimeUnity, AnimeWorld, AnimeSaturn an
 It does not scrape source pages, change either source pipeline, or implement
 playback in Vega. AnimeWorld source scraping remains a separate workflow.
 
-AnimeTop is optional until its first published snapshot. Its own animated-series
+Secondary providers are optional until their first published snapshot. Once a provider
+has appeared in sourceSnapshots, its missing snapshot blocks publication. AnimeUnity
+is always required. Bootstrap with stage=merge from AnimeUnity alone, then start
+AnimeWorld and AnimeSaturn using the published coverage. AnimeTop is optional until
+its first published snapshot. Its own animated-series
 and animated-film catalogs are collected by an independent workflow. Direct
 AniList/MAL IDs can establish identity; records without them stay separate and
 explicitly `unmapped`, with their complete source metadata retained. No title-only
@@ -93,16 +97,22 @@ implementation in vega-providers is needed for collecting/enriching metadata.
 
 The adapter batches episodes per TMDB season, reuses the existing paced HTTP
 client/API authentication/web fallback and durable per-service task cache.
-AniBridge is rechecked daily; individual task keys incorporate external target
-IDs and seasons. Missing/failed tasks retain the shared retry TTLs. Transport
+AniBridge dependencies are compared per exclusive work using the resolver forward/reverse
+lookup; unrelated index changes do not enqueue that work. Source metadata/episode changes,
+resolver revision changes, due tasks and retries can enqueue enrichment. Ready records
+without earlier due tasks have a 30-day refresh ceiling, not a daily refresh. Individual
+task keys incorporate external target IDs and seasons. Missing/failed tasks retain the shared retry TTLs. Transport
 errors and unmapped titles remain explicitly retryable/unresolved. A successful
 attempt does not imply every service supplied every field.
 
 ## Execution
 
-`Update unified anime database` runs every two hours and supports manual `all`
-or `merge` (no external enrichment). It never runs on push. It waits for the
-first AnimeWorld and AnimeSaturn data snapshots, then pins all input snapshots for that run.
+`Update unified anime database` supports manual `all` or `merge` (no external
+enrichment). Scheduled jobs are gated by the repository variable
+`ANIME_SECONDARY_ENABLED=true`: unified runs every two hours, AnimeWorld and
+AnimeSaturn every six hours at different minutes. Leave the variable unset until
+the initial AnimeUnity-only merge has published coverage. No workflow runs on push.
+Input snapshots are pinned for each run; new source checkpoints are merged on a later run.
 WARP is checked before requests and publication. `TMDB_API_KEY` uses the existing
 GitHub secret. Resolver code is built at the tracked `vega-providers.ref` commit.
 The new workflow has its own concurrency group and only pushes `unified-data`.
@@ -120,6 +130,18 @@ use temporary directories. Do not run the production command locally just to
 inspect the catalog. For development, use the exported `run()` with explicit
 source/output paths and `stage: 'merge'`.
 
-Activation still requires pushing code, the first source database builds and a
+Activation requires pushing code, an initial unified merge, then source builds and a
 GitHub-run verification of WARP/secrets. Local tests do not certify that remote
 environment. Vega integration and initial database completion remain separate.
+
+## Lightweight anime availability
+
+A unique, compatible direct AniList/MAL identity matching a ready primary work
+allows linked collection even with missing metadata or different episode inventories.
+Archive-reported changes still refresh identity, but do not force episode detail scraping
+for an identity that remains linked. Uncertain identities and exclusive works retain full
+collection. Cinema coverage rules are unchanged. Images and episode links already present
+in the fetched anime page may be retained without extra episode requests or external mapping.
+The variant carries `episodeResolution: live`; Vega must resolve actual episode availability
+and safe numbering at playback. This flag does not implement playback in Vega or claim that
+every provider has every canonical episode. Existing metadata is retained.

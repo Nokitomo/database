@@ -282,3 +282,42 @@ test('pending AnimeUnity source records normalize title_eng and plot for the con
   assert.equal(result.info.title,'.hack//G.U. Returner');assert.equal(result.info.synopsis,'Trama');
   assert.equal(result.enrichment.status,'pending');
 });
+
+
+test('bootstrap from AnimeUnity alone then refuse loss of an acquired secondary snapshot', async t => {
+  const config=fixture(t), awManifest=path.join(config.awRoot,'manifest.json'), saved=read(awManifest);
+  fs.unlinkSync(awManifest);
+  const first=await run({...config,stage:'merge'});
+  assert.equal(first.count,1);assert.equal(first.pendingCount,0);assert.equal(verify(config.output).count,1);
+  assert.deepEqual(Object.keys(read(path.join(config.output,'manifest.json')).sourceSnapshots),['animeunity']);
+  assert.equal(read(path.join(config.output,'coverage.json')).entries.length,1);
+  write(awManifest,saved);await run({...config,enrich:ready});
+  const before=read(path.join(config.output,'manifest.json'));
+  fs.unlinkSync(awManifest);
+  await assert.rejects(run({...config,enrich:ready}),/previously loaded AnimeWorld/);
+  assert.deepEqual(read(path.join(config.output,'manifest.json')),before);
+});
+
+test('exclusive records reuse metadata after one day and react to their own mapping dependencies', async t => {
+  const config=fixture(t);let time=100000000,calls=0,dependency='same';
+  const options={...config,now:()=>time,mappingFingerprint:()=>dependency,
+    enrich:async record=>{calls++;return ready(record);}};
+  await run(options);assert.equal(calls,1);
+  time+=2*86400000;await run(options);assert.equal(calls,1);
+  dependency='changed';await run(options);assert.equal(calls,2);
+  await run(options);assert.equal(calls,2);
+  time+=30*86400000;await run(options);assert.equal(calls,3);
+});
+
+test('due metadata tasks are retried before the general refresh and failed records respect backoff', async t => {
+  const config=fixture(t);let time=100000000,calls=0;
+  const options={...config,now:()=>time,enrich:async record=>{calls++;return {...await ready(record),metadataTasks:{a:{nextCheckAt:time+2*3600000}}};}};
+  await run(options);time+=3600000;await run(options);assert.equal(calls,1);
+  time+=3600001;await run(options);assert.equal(calls,2);
+});
+
+test('merge-only does not fetch mapping dependencies or external metadata', async t => {
+  const config=fixture(t);
+  await run({...config,stage:'merge',enrich:()=>assert.fail('external call'),mappingFingerprint:()=>assert.fail('mapping call')});
+  assert.equal(verify(config.output).count,2);
+});

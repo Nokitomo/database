@@ -1,7 +1,9 @@
 name: Update AnimeSaturn database
 
 on:
-  # Scheduled runs paused while the primary catalogs are built. Manual runs remain available.
+  # Enable after the initial unified merge via repository variable ANIME_SECONDARY_ENABLED=true.
+  schedule:
+    - cron: '47 */6 * * *'
   workflow_dispatch:
     inputs:
       mode:
@@ -25,6 +27,7 @@ concurrency:
 
 jobs:
   update:
+    if: github.event_name != 'schedule' || vars.ANIME_SECONDARY_ENABLED == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 300
     env:

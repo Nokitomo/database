@@ -29,11 +29,15 @@ function namespace(value, provider) {
   return Object.fromEntries(Object.entries(value).map(([key, item]) =>
     [key, key === 'base' && typeof item === 'string' ? `${provider}:${item}` : namespace(item, provider)]));
 }
-function loadSources(auRoot, awRoot, additionalSources = {}) {
+function loadSources(auRoot, awRoot, additionalSources = {}, previouslyLoaded = []) {
   const auManifest = read(path.join(auRoot, 'final/manifest.json'));
   const auIndex = read(path.join(auRoot, 'raw/index.json'));
   const awManifest = read(path.join(awRoot, 'manifest.json'));
-  if (!auManifest || !auIndex || !awManifest) throw new Error('Both provider snapshots are required; refusing an incomplete replacement');
+  if (!auManifest || !auIndex) throw new Error('AnimeUnity snapshot is required');
+  if (!awManifest && (previouslyLoaded.includes('animeworld') || require('node:fs').existsSync(path.join(awRoot, 'manifest.json'))))
+    throw new Error('Missing or invalid previously loaded AnimeWorld snapshot');
+  if (awManifest && (!awManifest.itemHashes || typeof awManifest.itemHashes !== 'object' || Array.isArray(awManifest.itemHashes)))
+    throw new Error('Invalid AnimeWorld snapshot manifest');
   const entries = [];
   // Include raw AnimeUnity records still waiting for enrichment: they already
   // establish provider presence and must not be misclassified as AW-exclusive.
@@ -45,17 +49,17 @@ function loadSources(auRoot, awRoot, additionalSources = {}) {
     if (raw || final) entries.push({provider: 'animeunity', id,
       record: {...(final || raw), sourceIds: ids(raw || final)}, enriched: Boolean(final), raw});
   }
-  for (const [id, expected] of Object.entries(awManifest.itemHashes)) {
+  for (const [id, expected] of Object.entries(awManifest?.itemHashes || {})) {
     const record = read(path.join(awRoot, `items/${id}.json`));
     if (!record || hash(record) !== expected) throw new Error(`AnimeWorld snapshot hash mismatch: ${id}`);
     entries.push({provider: 'animeworld', id: Number(id), record, enriched: false});
   }
-  const manifests={animeunity:auManifest,animeworld:awManifest};
-  const origins={animeunity:{site:auIndex.baseUrl},animeworld:awManifest.origins};
+  const manifests={animeunity:auManifest,...(awManifest?{animeworld:awManifest}:{})};
+  const origins={animeunity:{site:auIndex.baseUrl},...(awManifest?{animeworld:awManifest.origins}:{})};
   for(const [provider,root] of Object.entries(additionalSources)){
     if(!['animesaturn','animetop'].includes(provider))throw new Error('Unsupported additional provider');
     const manifest=read(path.join(root,'manifest.json'));
-    if(provider==='animetop'&&!manifest)continue;
+    if(!manifest && !previouslyLoaded.includes(provider) && !require('node:fs').existsSync(path.join(root,'manifest.json')))continue;
     if(provider==='animetop')require('../../providers/animetop/scripts/verify').verify(root);
     if(!manifest||manifest.provider!==provider)throw new Error(`Missing ${provider} snapshot; refusing to drop its membership`);
     for(const [id,expected] of Object.entries(manifest.itemHashes)){
@@ -66,7 +70,7 @@ function loadSources(auRoot, awRoot, additionalSources = {}) {
     }
     manifests[provider]=manifest;origins[provider]=manifest.origins;
   }
-  const inactiveIds = {animeunity: auIndex.inactiveIds || [], animeworld: awManifest.inactiveIds || []};
+  const inactiveIds = {animeunity: auIndex.inactiveIds || [], animeworld: awManifest?.inactiveIds || []};
   for (const [provider, manifest] of Object.entries(manifests)) inactiveIds[provider] ||= manifest.inactiveIds || [];
   return {entries,manifests,origins,inactiveIds};
 }
@@ -124,6 +128,7 @@ function baseRecord(group) {
       sourceIdentity:{title:entry.record.info?.title||entry.record.info?.name,type:entry.record.info?.type,year:entry.record.info?.year},sourceIds:entry.record.sourceIds,collection:entry.record.collection,
       audio: entry.record.info?.audio ?? (entry.raw?.info?.dub ? 'Italiano' : null),
       dubbed: entry.record.info?.dubbed ?? Boolean(entry.raw?.info?.dub),
+      episodeResolution: entry.record.collection?.episodeResolution || 'snapshot',
       episodes: namespace(entry.record.sourceEpisodes || entry.record.episodes || [], entry.provider),
       ...(entry.provider==='animetop'?{seasons:namespace(entry.record.seasons||[],entry.provider),sourceRows:namespace(entry.record.sourceRows||[],entry.provider),playback:namespace(entry.record.playback||[],entry.provider),info:namespace(entry.record.info,entry.provider),sourceIds:entry.record.sourceIds,warnings:entry.record.warnings}: {})});
     if (providerImages[entry.provider]) {

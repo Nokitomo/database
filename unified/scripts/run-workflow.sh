@@ -14,7 +14,7 @@ if git ls-remote --exit-code --heads origin "refs/heads/$provider-data" > "$cach
   git archive FETCH_HEAD "providers/$provider/data" | tar -x
 else
   result=$?
-  if [[ "$result" == 2 && "$provider" == animetop ]]; then echo "AnimeTop has no first snapshot; publishing existing providers."; continue; fi
+  if [[ "$result" == 2 && "$provider" != animeunity ]]; then echo "$provider has no first snapshot; checking retained membership before publication."; continue; fi
   if [[ "$result" == 2 ]]; then echo "$provider has not published its first snapshot yet; retry on the next schedule."; exit 0; fi
   exit "$result"
 fi

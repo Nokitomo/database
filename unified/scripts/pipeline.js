@@ -18,8 +18,31 @@ function worldInput(group) {
   return primary;
 }
 async function run({auRoot, awRoot, output, providerRoot, limit = 10, budgetMs = 180000,
-  enrich = enrichSource, now = Date.now, stage = 'all', additionalSources = {}}) {
-  const source = loadSources(auRoot, awRoot, additionalSources);
+  enrich = enrichSource, now = Date.now, stage = 'all', additionalSources = {}, mappingFingerprint}) {
+  const priorManifest = read(path.join(output, 'manifest.json'), {});
+  const previouslyLoaded = Object.keys(priorManifest.sourceSnapshots || {});
+  for (const provider of previouslyLoaded) {
+    if (!['animeunity','animeworld'].includes(provider) && !additionalSources[provider])
+      throw new Error(`Previously loaded source omitted: ${provider}`);
+  }
+  const source = loadSources(auRoot, awRoot, additionalSources, previouslyLoaded);
+  const resolverRevision = require('node:fs').readFileSync(path.join(__dirname, '../../vega-providers.ref'), 'utf8').trim();
+  let bridge, bridgeIndex;
+  async function mappingDependency(input) {
+    if (mappingFingerprint) return mappingFingerprint(input);
+    // Injected offline enrichers do not require a real resolver checkout.
+    if (enrich !== enrichSource) return null;
+    const {ids} = require('./catalog');
+    const direct = ids(input);
+    if (!direct.anilist && !direct.mal) return 'no-direct-anime-identity';
+    const {createContext, requireProvider} = require('../../providers/animeunity/scripts/vega');
+    bridge ||= requireProvider(providerRoot, 'mappings/anibridge.js');
+    bridgeIndex ||= await bridge.getAniBridgeIndex(createContext(providerRoot, 'https://source.invalid'));
+    if (!bridgeIndex?.schemaVersion || !bridgeIndex.records?.size) throw new Error('AniBridge index unavailable');
+    return require('../../providers/animeunity/scripts/mapping-dependencies').dependencyFingerprint(
+      bridgeIndex, bridge.findAniBridgeSourceRecords, {info: {anilist_id: direct.anilist, mal_id: direct.mal,
+        type: /movie|film/i.test(input.info.type || '') ? 'Movie' : input.info.type}});
+  }
   const {groups, registry, conflicts} = groupEntries(source.entries,
     read(path.join(output, 'registry.json'), {members: {}, nextId: 1}),
     read(path.join(__dirname, '../overrides.json'), {}));
@@ -33,24 +56,33 @@ async function run({auRoot, awRoot, output, providerRoot, limit = 10, budgetMs =
       const input = worldInput(group);
       const fingerprint = hash({version: input.episodes.some(episode => needsEpisodeIdentity(episode.number)) ? 3 : 2, provider: input.provider, sourceIds: input.sourceIds,
         title: input.info.title, type: input.info.type,
+        resolverRevision,
         ...(input.provider==='animetop'?{providerInfo:input.info,sourceRows:input.sourceRows}:{}),
         episodes: input.episodes.map(({id,number,title,synopsis,thumbnail}) => ({id,number,title,synopsis,thumbnail}))});
       const file = path.join(output, 'enriched', `${group.id}.json`), previous = read(file);
       const status = state[group.id];
-      const due = !status || status.fingerprint !== fingerprint || (status.nextCheckAt || 0) <= now();
+      const canProcess = processed < limit && now()-start < budgetMs;
+      const checkDependency = stage !== 'merge' && ((previous && status) || canProcess);
+      const dependency = checkDependency ? await mappingDependency(input) : status?.mappingDependency;
+      const due = (!previous && !status?.error) || !status || status.fingerprint !== fingerprint ||
+        dependency !== status.mappingDependency || (status.nextCheckAt || 0) <= now();
       let enriched = previous;
       if (due && stage !== 'merge') {
         if (processed < limit && now()-start < budgetMs) {
           processed++;
-          console.log(`[unified] enriching ${group.id} ${input.provider}=${input.id}`);
+          const reason = !status ? 'new' : status.fingerprint !== fingerprint ? 'source-or-resolver-changed' :
+            dependency !== status.mappingDependency ? 'mapping-changed' : !previous && !status.error ? 'missing-output' : status.error ? 'retry' : 'metadata-task-or-refresh-due';
+          console.log(`[unified] enriching ${group.id} ${input.provider}=${input.id} reason=${reason}`);
           try {
             enriched = await enrich(input, {providerRoot, cacheRoot: path.join(output, 'cache'), previous,
               signal: AbortSignal.timeout(Math.max(1, budgetMs-(now()-start)))});
             write(file, enriched);
             const taskDue = Object.values(enriched.metadataTasks || {}).map(value => value.nextCheckAt).filter(Number.isFinite);
-            state[group.id] = {fingerprint, nextCheckAt: Math.min(now() + (enriched.enrichment.status === 'retry' ? 3600000 : input.provider==='animetop'&&enriched.enrichment.status==='unmapped'?7*86400000:86400000), ...taskDue)};
+            state[group.id] = {fingerprint, mappingDependency: dependency, nextCheckAt: Math.min(
+              now() + (enriched.enrichment.status === 'retry' ? 3600000 : enriched.enrichment.status === 'unmapped' ? 7*86400000 : 30*86400000),
+              ...taskDue.map(value => Math.max(now()+3600000, value)))};
           } catch (error) {
-            state[group.id] = {fingerprint, error: String(error.message).slice(0,200), nextCheckAt: now()+3600000};
+            state[group.id] = {fingerprint, mappingDependency: dependency, error: String(error.message).slice(0,200), nextCheckAt: now()+3600000};
             record.enrichment = {status: 'retry'};
             console.error(`[unified] ${group.id}: ${error.message}`);
           }
@@ -65,6 +97,7 @@ async function run({auRoot, awRoot, output, providerRoot, limit = 10, budgetMs =
       }
       if (enriched) record = {...record, ...namespace(enriched, input.provider), metadataProvider:input.provider,
         info: {...namespace(enriched.info, input.provider), title: input.info.title,
+          synopsis: input.info.synopsis || enriched.info?.synopsis,
           status: input.info.status, availableEpisodeCount: input.episodes.length}};
       if (state[group.id]?.error) record.enrichment = {status: 'retry'};
     }
