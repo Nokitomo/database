@@ -1,0 +1,28 @@
+name: Diagnose AnimeSaturn source markup
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      WARP_REQUIRED: '1'
+      HTTP_PROXY: ''
+      HTTPS_PROXY: ''
+      ALL_PROXY: ''
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          sparse-checkout: |
+            providers/animesaturn
+            shared
+      - run: bash shared/warp/setup.sh
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: node providers/animesaturn/scripts/diagnose.js
