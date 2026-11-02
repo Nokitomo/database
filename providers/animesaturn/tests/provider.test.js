@@ -147,3 +147,31 @@ test('synopsis parser migration retries old selector failures once',async t=>{
   await run({root,client:f.client(1),stage:'details',now:100002});
   assert(read(file).records['00001'].error);
 });
+
+
+test('fractional labels and combined videos preserve identity without guessing mappings',()=>{
+  for(const [token,label,seo,name] of [['60-5','60.5','60.5','Test Episodio 60.5'],['1-2','1-2','1','Test Episodio 1-2'],['0','0','0','Test Episodio 0']]){
+    const html=f.anime(1).replace('ep-1','ep-'+token).replace('>1</a>','>'+label+'</a>');
+    const anime=parseAnime(html,f.BASE,{id:f.id(1)}),e=anime.episodes[0];
+    assert.equal(e.number,label);
+    let page=f.episode(1,token).replace('"episodeNumber":"'+token+'"','"name":"'+name+'","episodeNumber":"'+seo+'"');
+    const result=parseEpisode(page,f.BASE,anime,e);
+    assert.equal(result.number,label);assert.equal(result.id,e.id);assert.equal(result.path,e.path);
+    assert.equal(result.metadataMappingStatus,'unresolved');
+    assert.throws(()=>parseEpisode(page,f.BASE,{id:f.id(2)},e),/identity/);
+    assert.throws(()=>parseEpisode(page.replace('"episodeNumber":"'+seo+'"','"episodeNumber":"99"'),f.BASE,anime,e),/identity/);
+    if(token==='1-2')assert.throws(()=>parseEpisode(page.replace(name,'Test Episodio 1'),f.BASE,anime,e),/identity/);
+    if(token==='60-5')assert.equal(parseEpisode(page,f.BASE,anime,{...e,number:'60-5'}).number,'60.5');
+  }
+});
+
+test('episode identity migration preserves completed episode requests and runs once',async t=>{
+  const root=temp(t),client=f.client(1,2);await run({root,client,now:100000});
+  const file=path.join(root,'state.json'),state=read(file),r=state.records['00001'];
+  delete state.episodeLabelParserVersion;r.complete=false;r.error={message:'Invalid episode metadata identity',retryAt:999999999};
+  write(file,state);const next=f.client(1,2);
+  await run({root,client:next,stage:'details',now:100001});
+  assert(!read(file).records['00001'].error);assert.equal(next.calls.filter(x=>x.startsWith('/episode/')).length,0);
+  const again=read(file);again.records['00001'].error={message:'Invalid episode metadata identity',retryAt:999999999};write(file,again);
+  await run({root,client:f.client(1,2),stage:'details',now:100002});assert(read(file).records['00001'].error);
+});

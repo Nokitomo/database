@@ -146,6 +146,13 @@ async function run({root=DEFAULT_DATA,mode='update',stage='all',requestLimit=50,
       }
       state.synopsisParserVersion=2;save();
     }
+  if (stage!=='publish' && !state.episodeLabelParserVersion) {
+    for (const record of Object.values(state.records)) if (record.error?.message === 'Invalid episode metadata identity') {
+      delete record.error;record.nextCheckAt=0;record.complete=false;
+      // Keep pageAt and successful episodeChecks: resume at the failed video.
+    }
+    state.episodeLabelParserVersion=1;save();
+  }
   collection.configure(client,'animesaturn',root,state,now);
   let interrupted=false;
   try{

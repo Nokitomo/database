@@ -36,6 +36,14 @@ function schemas($, base, origins) {
 function images($, selector, kind, base, origins) {
   return $(selector).map((_,e)=>({kind, url:reference($(e).attr('src') || $(e).attr('content'),base,origins)})).get().filter(value=>value.url);
 }
+// A route token is an identifier, not a decimal or an episode range.
+function episodeNumber(token, label) {
+  const value=clean(label).replace(',', '.').replace(/[–—]/g,'-').replace(/\s*-\s*/g,'-');
+  const route=String(token).replace(/^ep-/, '');
+  if (/^\d+(?:\.\d+)?$/.test(value) && (route===value || route===value.replace('.', '-'))) return value;
+  if (/^\d+-\d+$/.test(value) && route===value) return value;
+  return route; // Unknown labels retain their opaque provider identity.
+}
 function parseAnime(html, base, expected, origins = {}) {
   const $ = document(html), title = clean($('main h1').text());
   const identity = animePath($('meta[property="og:url"]').attr('content') || expected.path,base);
@@ -55,7 +63,7 @@ function parseAnime(html, base, expected, origins = {}) {
   const episodes = episodeSection.find('a.ep-tile').map((_,e)=>{
     const a=$(e), route=animePath(a.attr('href'),base);
     if (route.id !== identity.id || !route.token) throw new Error('Invalid episode identity');
-    return {id:`${identity.id}:${route.token}`, number:route.token.slice(3), label:clean(a.text()),
+    return {id:`${identity.id}:${route.token}`, number:episodeNumber(route.token,a.text()), label:clean(a.text()),
       path:route.episodePath, title:null, synopsis:null, thumbnail:null};
   }).get();
   if (!Number.isFinite(declaredAvailable) || declaredAvailable !== episodes.length ||
@@ -90,10 +98,18 @@ function parseAnime(html, base, expected, origins = {}) {
 function parseEpisode(html, base, anime, episode, origins={}) {
   const $=document(html), data=schemas($,base,origins).find(value=>value['@type']==='TVEpisode');
   const route=animePath($('meta[property="og:url"]').attr('content'),base);
-  if (!data || route.id !== anime.id || route.episodePath !== episode.path || String(data.episodeNumber)!==String(episode.number)) throw new Error('Invalid episode metadata identity');
+  const number=episodeNumber(route.token,episode.label || episode.number);
+  const range=number.match(/^(\d+)-(\d+)$/);
+  const namedRange=clean(data?.name).match(/(?:episodio|episode)\s+(\d+)\s*[-–—]\s*(\d+)$/i);
+  const explicitRange=range && Number(range[2])>Number(range[1]) && namedRange &&
+    namedRange[1]===range[1] && namedRange[2]===range[2];
+  const numberMatches=String(data?.episodeNumber)===number ||
+    (explicitRange && String(data?.episodeNumber)===range[1]);
+  if (!data || route.id !== anime.id || route.episodePath !== episode.path || !numberMatches)
+    throw new Error('Invalid episode metadata identity');
   // SEO descriptions/images usually repeat the series, so retain provenance
   // without promoting them to episode-specific synopsis/thumbnail fields.
-  return {...episode, publishedAt:data.datePublished||null, sourceMetadata:{jsonLd:data},
+  return {...episode, number, ...(!/^\d+$/.test(number)||Number(number)===0?{metadataMappingStatus:'unresolved'}:{}), publishedAt:data.datePublished||null, sourceMetadata:{jsonLd:data},
     images:images($,'meta[property="og:image"],meta[name="twitter:image"]','share',base,origins)};
 }
 function parseFeed(text, base, page=1, origins={}) {
