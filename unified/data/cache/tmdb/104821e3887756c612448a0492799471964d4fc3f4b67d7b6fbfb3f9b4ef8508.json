@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tmdb","kind":"season-poster","input":{"mediaId":316720,"seasonNumber":1},"checkedAt":1793652858102,"status":"ok","retryCount":0,"value":{"id":316720,"type":"tv","source":"tmdb-api","sourceUrl":"https://www.themoviedb.org/tv/316720/season/1","originalLanguage":"ja-JP","seasonNumber":1},"failure":null,"fields":{},"episodes":{}}
