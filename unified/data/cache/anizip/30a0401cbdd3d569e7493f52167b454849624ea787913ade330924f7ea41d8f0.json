@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"anizip","kind":"episodes","input":{"anilistId":122678,"malId":38676,"requests":[{"sourceEpisodeNumber":1,"externalMappings":[{"provider":"tvdb_show","id":"304475","scope":"s0","seasonNumber":0,"episodeNumbers":[14]}]}]},"checkedAt":1793644287515,"status":"ok","retryCount":0,"value":[null],"failure":null,"fields":{},"episodes":{}}

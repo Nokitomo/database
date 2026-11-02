@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tvdb","kind":"episodes","input":{"tvdbShowId":304475,"seasonNumber":0},"checkedAt":1793644287472,"status":"ok","retryCount":0,"value":[{"episodeNumber":14,"title":"Passionate Walkure - Delta Shougekijou","titleLanguage":"eng"}],"failure":null,"fields":{},"episodes":{"14":{"checkedAt":1793644287472,"status":"missing","retryCount":0}}}
