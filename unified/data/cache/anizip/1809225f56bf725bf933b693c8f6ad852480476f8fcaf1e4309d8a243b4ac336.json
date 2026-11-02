@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"anizip","kind":"episodes","input":{"anilistId":111909,"malId":39884,"requests":[{"sourceEpisodeNumber":1,"externalMappings":[{"provider":"anilist","id":"111909","episodeNumbers":[1]},{"provider":"mal","id":"39884","episodeNumbers":[1]}]}]},"checkedAt":1793649616415,"status":"ok","retryCount":0,"value":[null],"failure":null,"fields":{},"episodes":{}}
