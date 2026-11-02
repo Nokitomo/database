@@ -50,6 +50,7 @@ jobs:
           npm --prefix .cache/vega-providers run build
       - name: Merge and enrich with durable checkpoints
         env:
+          NODE_OPTIONS: --max-old-space-size=5120
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
           RUN_STAGE: ${{ inputs.stage || 'all' }}
           GH_TOKEN: ${{ github.token }}
