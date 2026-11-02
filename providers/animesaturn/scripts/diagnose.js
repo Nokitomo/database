@@ -9,7 +9,7 @@ const {parseAnime}=require('./parse');
     const response=await client.get(path),$=cheerio.load(response.html);
     const result={id,url:response.url,ogUrl:$('meta[property="og:url"]').attr('content'),title:$('main h1').text().trim(),meta:$('.ag-meta').length,story:$('.story-clip').length,
       storyCandidates:$('[class*="story"],[class*="synop"],[class*="plot"]').map((_,e)=>({tag:e.tagName,class:$(e).attr('class'),text:$(e).text().trim().slice(0,160)})).get()};
-    try{const r=parseAnime(response.html,client.baseUrl,{id,path},{});result.parsed=true;result.episodes=r.episodes.length;}catch(e){result.error=e.message;}
+    try{const r=parseAnime(response.html,client.baseUrl,{id,path},{});result.parsed=true;result.episodes=r.episodes.length;}catch(e){result.error=e.message;process.exitCode=1;}
     console.log(JSON.stringify(result));
   }
 })().catch(e=>{console.error(e.message);process.exitCode=1;});

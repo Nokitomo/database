@@ -139,6 +139,13 @@ async function run({root=DEFAULT_DATA,mode='update',stage='all',requestLimit=50,
   const state=read(path.join(root,'state.json'),initialState()),save=()=>write(path.join(root,'state.json'),state);
   if(mode==='full'&&!state.fullSince)state.fullSince=now;
   client ||= new Client({signal:AbortSignal.timeout(budgetMs)});
+    // One-time retry of records rejected by the old long-synopsis-only selector.
+    if ((state.synopsisParserVersion || 1) < 2) {
+      for (const record of Object.values(state.records)) if (record.error?.message === 'Invalid anime identity/metadata') {
+        delete record.error;record.pageAt=0;record.nextCheckAt=0;record.complete=false;
+      }
+      state.synopsisParserVersion=2;save();
+    }
   collection.configure(client,'animesaturn',root,state,now);
   let interrupted=false;
   try{

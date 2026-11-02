@@ -125,3 +125,25 @@ test('selective collection avoids per-episode requests but exclusive records sti
  await require('../scripts/pipeline').details(client,state,root,{now:now+1,requestLimit:20,save(){}});
  assert.equal(read(itemFile(root,f.id(1))).collection.mode,'full');assert.equal(client.calls.filter(p=>p.startsWith('/episode/')).length,2);
 });
+
+
+test('short synopsis without expandable story-clip remains a valid anime page',()=>{
+  const html=f.anime(1).replace(/<([a-z]+)[^>]*class="story-clip"[^>]*>[\s\S]*?<\/\1>/,'<section class="ag-story"><h2>Trama</h2><p>Episodio speciale.</p></section>');
+  assert(!html.includes('class="story-clip"'));
+  const record=parseAnime(html,f.BASE,{id:f.id(1)});
+  assert.equal(record.info.synopsis,'Episodio speciale.');
+  assert.throws(()=>parseAnime(html.replace('ag-story','other-section'),f.BASE,{id:f.id(1)}),/identity/);
+});
+
+test('synopsis parser migration retries old selector failures once',async t=>{
+  const root=temp(t),client=f.client(1);await run({root,client,now:100000});
+  const file=path.join(root,'state.json'),state=read(file);
+  delete state.synopsisParserVersion;
+  state.records['00001'].error={message:'Invalid anime identity/metadata',retryAt:999999999};
+  write(file,state);
+  await run({root,client:f.client(1),stage:'details',now:100001});
+  const after=read(file);assert.equal(after.synopsisParserVersion,2);assert(!after.records['00001'].error);
+  after.records['00001'].error={message:'Invalid anime identity/metadata',retryAt:999999999};write(file,after);
+  await run({root,client:f.client(1),stage:'details',now:100002});
+  assert(read(file).records['00001'].error);
+});

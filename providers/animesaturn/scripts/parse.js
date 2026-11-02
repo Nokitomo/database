@@ -39,7 +39,8 @@ function images($, selector, kind, base, origins) {
 function parseAnime(html, base, expected, origins = {}) {
   const $ = document(html), title = clean($('main h1').text());
   const identity = animePath($('meta[property="og:url"]').attr('content') || expected.path,base);
-  if (!title || identity.id !== expected.id || !$('.ag-meta').length || !$('.story-clip').length) throw new Error('Invalid anime identity/metadata');
+  const story = $('.story-clip').first().length ? $('.story-clip').first() : $('.ag-story').first().clone();
+  if (!title || identity.id !== expected.id || !$('.ag-meta').length || !story.length) throw new Error('Invalid anime identity/metadata');
   const fields = $('.ag-meta').children('a,div').map((_,e)=>{
     const label = clean($(e).children('span').first().text());
     const value = clean($(e).children('span').last().text());
@@ -71,7 +72,7 @@ function parseAnime(html, base, expected, origins = {}) {
     ...images($,'meta[property="og:image"],meta[name="twitter:image"]','share',base,origins)];
   const status = {'Finito':'completed','In corso':'ongoing','Non rilasciato':'upcoming','Droppato':'dropped'}[field('Stato')] || 'unknown';
   return {schemaVersion:1,provider:'animesaturn',...identity,sourceIds,
-    info:{title,originalTitle:clean($('main h1').next('p').text()),synopsis:clean($('.story-clip').text()),
+    info:{title,originalTitle:clean($('main h1').next('p').text()),synopsis:clean(story.clone().find('h1,h2,h3,button,script,style').remove().end().text()),
       type:field('Tipo'),status,statusLabel:field('Stato'),audio:field('Lingua'),dubbed:/italian/i.test(field('Lingua')||''),
       season:field('Stagione'),year:Number(field('Data di uscita')?.match(/\b(19|20)\d{2}\b/)?.[0])||null,
       releaseDateLabel:field('Data di uscita'),studios:fields.filter(value=>value.label==='Studio').map(value=>value.value),
