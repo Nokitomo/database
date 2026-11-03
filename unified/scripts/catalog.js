@@ -309,13 +309,16 @@ function publish(root, records, source, registry, conflicts) {
       [provider, [...new Map([...(prior.providerImages[provider] || []), ...(record.providerImages?.[provider] || [])].map(value=>[hash(value),value])).values()]]));
     return record;
   });
+  require('./episode-display').prepareEpisodeDisplay(records);
   const catalog = [], itemHashes = {}, shards = Array.from({length: 100}, () => []);
   for (const record of records.sort((a,b)=>a.id.localeCompare(b.id))) {
     write(path.join(root, 'items', `${record.id}.json`), record);
     itemHashes[record.id] = hash(record);
     shards[Number(record.id.slice(5)) % 100].push(record);
-    if (record.active) catalog.push({id: record.id, active: true, title: record.info?.title, poster: record.info?.poster,
-      providers: Object.keys(record.providers).filter(key => record.availability[key] === 'present'), enrichment: record.enrichment.status});
+    if (record.active && !record.displayWorkId) catalog.push({id: record.id, active: true, title: record.info?.title, poster: record.info?.poster,
+      providers: Object.keys(record.providers).filter(key => record.availability[key] === 'present'),
+      ...(record.episodeOnlyProviders?.length ? {episodeOnlyProviders: record.episodeOnlyProviders} : {}),
+      enrichment: record.enrichment.status});
   }
   const origins = {...old.origins, ...Object.fromEntries(Object.entries(source.origins).flatMap(([provider, values]) =>
     Object.entries(values).map(([key,value]) => [`${provider}:${key}`, value])))};
@@ -326,10 +329,11 @@ function publish(root, records, source, registry, conflicts) {
     shardHashes[name] = hash(items);
   });
   const manifest = {schemaVersion: 2, itemHashes, shardHashes, origins, catalogHash: hash(catalog), count: records.length,
-    activeCount: catalog.length, inactiveCount: records.length-catalog.length,
-    complete: Object.values(source.manifests).every(value => value.complete) && !conflicts.length && records.filter(value=>value.active).every(value => value.enrichment.status === 'ready' && !Object.values(value.availability).includes('unknown')),
+    activeCount: records.filter(value=>value.active).length, catalogCount: catalog.length,
+    inactiveCount: records.filter(value=>!value.active).length,
+    complete: Object.values(source.manifests).every(value => value.complete) && !conflicts.length && records.filter(value=>value.active && !value.displayWorkId).every(value => value.enrichment.status === 'ready' && !Object.values(value.availability).includes('unknown')),
     sourceSnapshots: Object.fromEntries(Object.entries(source.manifests).map(([key,value]) => [key, hash(value)])),
-    conflicts, pendingCount: records.filter(value => value.active && value.enrichment.status !== 'ready').length};
+    conflicts, pendingCount: records.filter(value => value.active && !value.displayWorkId && value.enrichment.status !== 'ready').length};
   write(path.join(root, 'catalog.json'), catalog);
   write(path.join(root, 'registry.json'), registry);
   // All retained records remain synchronized; catalog membership is active-only.
@@ -338,6 +342,8 @@ function publish(root, records, source, registry, conflicts) {
     changed: Object.keys(itemHashes).filter(id => old.itemHashes[id] !== itemHashes[id]),
     deactivated: records.filter(value=>!value.active && previous.get(value.id)?.active !== false).map(value=>value.id),
     reactivated: records.filter(value=>value.active && previous.get(value.id)?.active === false).map(value=>value.id),
+    hidden: records.filter(value=>value.active && value.displayWorkId && previous.get(value.id)?.displayWorkId !== value.displayWorkId).map(value=>value.id),
+    shown: records.filter(value=>value.active && !value.displayWorkId && previous.get(value.id)?.displayWorkId).map(value=>value.id),
     removed: Object.keys(old.itemHashes).filter(id => !itemHashes[id])});
   manifest.coverageHash = require('../../shared/catalog/coverage').publish(root, records, 'anime');
   write(path.join(root, 'manifest.json'), manifest);

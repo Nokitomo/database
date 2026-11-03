@@ -39,11 +39,22 @@ cache/state or either provider source database. Compare the client's saved hashe
 with the latest manifest to support missed updates of any duration. Fetch all
 files from the **same Git commit**, validate hashes, then atomically activate the
 local snapshot. Schema version 2 retains inactive records in itemHashes and shards.
-Use `catalog.json` for navigation: it contains active records only. Apply item
-updates even for hidden records; `active: false` hides an item without deleting
-its metadata. `count` includes all retained items, with `activeCount` and
-`inactiveCount` reported separately. `changes.json` includes `deactivated` and
-`reactivated`; clients that miss publications must still compare manifest hashes.
+Use `catalog.json` for navigation: it contains active, independently displayed
+works. An episode-only work with a complete verified relation to another work
+stays `active: true` and retains its provider variants, but has `displayWorkId`
+and is omitted from the catalog. The displayed work has `episodeStreamSources`
+with provider IDs, source episode numbers and relative paths for live playback.
+`episodeOnlyProviders` lists providers contributing only mapped episodes; it is
+separate from whole-work `providers` and appears in the catalog row too.
+If its primary episode list lacks a mapped special such as episode 0,
+`supplementalEpisodes` supplies a display entry without inventing external
+metadata. Clients must use these routes when offering streams from the hidden
+work; merely filtering catalog rows does not implement playback.
+`active: false` means no provider currently confirms availability, and retains
+all metadata. `count` includes all retained items. `activeCount` counts available
+items, `catalogCount` counts displayed cards, and `inactiveCount` counts unavailable
+items. `changes.json` includes `hidden`, `shown`, `deactivated` and `reactivated`;
+clients that miss publications must still compare manifest hashes.
 Source-confirmed inactive IDs mark provider variants `unavailable`. Missing
 membership without confirmation becomes `unknown`, preserves visibility and
 prevents claiming complete coverage. `not_matched` means no known association.

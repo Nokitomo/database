@@ -10,6 +10,7 @@ const {compatible, groupEntries, episodeRelations, baseRecord, loadSources} = re
 const {enrichWorld} = require('../scripts/enrich');
 const {run, worldInput} = require('../scripts/pipeline');
 const {verify} = require('../scripts/verify');
+const {prepareEpisodeDisplay} = require('../scripts/episode-display');
 const ready = async record=>({info:record.info,episodes:[],enrichment:{status:'ready'}});
 
 test('missing membership without confirmed retirement remains unknown and active',async t=>{
@@ -211,6 +212,69 @@ test('confirmed Saekano prologues point only to episode zero of their series', (
       [{source:`animesaturn:${saturnId}`,target:`animeunity:${unityId}`,
         targetWorkId:targetId,episodeMap:{'1':'0'}}]);
   }
+});
+test('episode-only sources stay available but use one catalog card and explicit playback route', async t => {
+  const config = fixture(t);
+  const unity = {...anime(648,null), episodes:[{id:0,number:0},{id:1,number:1}]};
+  const saturn = {...anime('61y5M',null), provider:'animesaturn',
+    episodes:[{id:'61y5M:ep-1',number:'1',path:'/episode/prologue/ep-1'}]};
+  write(path.join(config.auRoot,'raw/items/648.json'),unity);
+  write(path.join(config.auRoot,'final/items/648.json'),unity);
+  const index = read(path.join(config.auRoot,'raw/index.json'));index.expectedIds.push(648);
+  write(path.join(config.auRoot,'raw/index.json'),index);
+  const final = read(path.join(config.auRoot,'final/manifest.json'));
+  final.itemHashes['648']=legacyHash(unity);write(path.join(config.auRoot,'final/manifest.json'),final);
+  const saturnRoot=path.join(path.dirname(config.output),'saturn');
+  write(path.join(saturnRoot,'items/61y5M.json'),saturn);
+  write(path.join(saturnRoot,'manifest.json'),{provider:'animesaturn',complete:true,
+    itemHashes:{'61y5M':hash(saturn)},origins:{site:'https://saturn.invalid',img:'https://images.invalid'}});
+  await run({...config,additionalSources:{animesaturn:saturnRoot},enrich:ready});
+  const registry=read(path.join(config.output,'registry.json'));
+  const targetId=registry.members['animeunity:648'],sourceId=registry.members['animesaturn:61y5M'];
+  const source=read(path.join(config.output,`items/${sourceId}.json`));
+  const target=read(path.join(config.output,`items/${targetId}.json`));
+  const manifest=read(path.join(config.output,'manifest.json'));
+  assert.equal(source.active,true);
+  assert.equal(source.displayWorkId,targetId);
+  assert.equal(source.providers.animesaturn[0].availability,'present');
+  assert.equal(target.episodeStreamSources[0].episodeNumber,'0');
+  assert.equal(target.episodeStreamSources[0].sourceEpisodePath,'/episode/prologue/ep-1');
+  assert.deepEqual(target.episodeOnlyProviders,['animesaturn']);
+  assert.deepEqual(read(path.join(config.output,'catalog.json')).find(row=>row.id===targetId).episodeOnlyProviders,
+    ['animesaturn']);
+  assert(target.supplementalEpisodes?.some(value=>value.episodeNumber==='0') ||
+    target.episodes.some(value=>String(value.sourceEpisodeNumber ?? value.episodeNumber ?? value.number)==='0'));
+  assert(!read(path.join(config.output,'catalog.json')).some(row=>row.id===sourceId));
+  assert.equal(manifest.activeCount,4);
+  assert.equal(manifest.catalogCount,3);
+  assert.deepEqual(read(path.join(config.output,'changes.json')).hidden,[sourceId]);
+  assert.equal(verify(config.output).count,4);
+});
+test('a missing canonical episode zero is added only as a safe display extra', () => {
+  const target={id:'work-1',active:true,episodes:[{episodeNumber:1}],providers:{animeunity:[],animeworld:[],
+    animesaturn:[{id:'main',availability:'present',episodes:[{id:'main:0',number:'0'}]}]},
+    availability:{animesaturn:'present'}};
+  const source={id:'work-2',active:true,episodes:[{episodeNumber:1}],providers:{animeunity:[],
+    animesaturn:[],animetop:[],animeworld:[{id:'special',availability:'present',
+      episodes:[{id:'special:1',number:'1',path:'/episode/special'}]}]},
+    episodeRelations:[{source:'animeworld:special',target:'animesaturn:main',
+      targetWorkId:'work-1',episodeMap:{'1':'0'}}]};
+  prepareEpisodeDisplay([target,source]);
+  assert.equal(source.displayWorkId,'work-1');
+  assert.deepEqual(target.supplementalEpisodes,[{episodeNumber:'0',title:'Episodio 0',
+    synopsis:undefined,thumbnail:undefined,targetProvider:'animesaturn',targetProviderId:'main'}]);
+  assert.equal(target.episodeStreamSources[0].sourceEpisodeId,'special:1');
+  target.episodes.unshift({episodeNumber:0});
+  prepareEpisodeDisplay([target,source]);
+  assert.equal(target.supplementalEpisodes,undefined);
+  source.providers.animeworld[0].episodes.push({id:'special:2',number:'2'});
+  prepareEpisodeDisplay([target,source]);
+  assert.equal(source.displayWorkId,undefined);
+  assert.equal(target.episodeStreamSources,undefined);
+  source.providers.animeworld[0].episodes.pop();
+  target.active=false;prepareEpisodeDisplay([target,source]);
+  assert.equal(source.displayWorkId,undefined);
+  assert.equal(target.episodeStreamSources,undefined);
 });
 test('confirmed Fate/Extra Saturn editions join the existing Unity and World work', () => {
   const overrides = read(path.join(__dirname, '../overrides.json'));
