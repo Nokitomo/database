@@ -6,7 +6,7 @@ const os = require('node:os');
 const path = require('node:path');
 const {hash, write, read} = require('../../providers/animeworld/scripts/store');
 const {hash: legacyHash} = require('../../providers/animeunity/scripts/lib');
-const {compatible, groupEntries, baseRecord, loadSources} = require('../scripts/catalog');
+const {compatible, groupEntries, episodeRelations, baseRecord, loadSources} = require('../scripts/catalog');
 const {enrichWorld} = require('../scripts/enrich');
 const {run, worldInput} = require('../scripts/pipeline');
 const {verify} = require('../scripts/verify');
@@ -164,6 +164,51 @@ test('title matching keeps ambiguous candidates and conflicting IDs separate', (
   const differentEdition={...record(3,11),info:{title:'Shared title (ITA)',year:2027,type:'TV'}};
   assert.equal(groupEntries([entry('animeunity',record(1,10),true),
     entry('animeworld',differentEdition)]).groups.length,2);
+});
+test('confirmed cross-provider identities keep a stable canonical work', () => {
+  const overrides = read(path.join(__dirname, '../overrides.json'));
+  const unity = entry('animeunity', {...anime(1239,null), info:{title:'Kara no Kyoukai Movie 8: Shuushou',type:'Movie'}}, true);
+  const saturn = entry('animesaturn', {...anime('KuSFJ',null), info:{title:'Kara no Kyoukai 9: Epilogo',type:'TV'}});
+  const world = entry('animeworld', {...anime(444,null), info:{title:'Kara no Kyoukai 9: Epilogo',type:'Movie'}});
+  const registry = {members:{'animeunity:1239':'work-1015','animesaturn:KuSFJ':'work-6615',
+    'animeworld:444':'work-6876'},nextId:7505};
+  const result = groupEntries([unity,saturn,world],registry,overrides);
+  assert.equal(result.groups.length,1);
+  assert.equal(result.groups[0].id,'work-1015');
+  assert.deepEqual(baseRecord(result.groups[0]).providers.animesaturn.map(value=>value.id),['KuSFJ']);
+  assert.equal(result.conflicts.length,0);
+});
+
+test('confirmed episode-only relations do not merge their parent works', () => {
+  const overrides = read(path.join(__dirname, '../overrides.json'));
+  const unity = entry('animeunity', {...anime(1263,null),episodes:[21,22,23,24].map(number=>({number}))}, true);
+  const saturn = entry('animesaturn', {...anime('58HSU',null,38020),episodes:[1,2,3,4].map(number=>({number}))});
+  const world = entry('animeworld', {...anime(1377,null,38020),episodes:[1,2,3,4].map(number=>({number}))});
+  const registry = {members:{'animeunity:1263':'work-1035','animesaturn:58HSU':'work-6435',
+    'animeworld:1377':'work-6435'},nextId:7505};
+  const result = groupEntries([unity,saturn,world],registry,overrides);
+  assert.equal(result.groups.length,2);
+  const stage = result.groups.find(group=>group.id==='work-6435');
+  const relations = episodeRelations(stage,result.registry,overrides,[unity,saturn,world]);
+  assert.equal(relations.length,2);
+  assert(relations.every(value=>value.targetWorkId==='work-1035'));
+  assert.deepEqual(relations[0].episodeMap,{'1':'21','2':'22','3':'23','4':'24'});
+  saturn.record.episodes.pop();
+  assert.equal(episodeRelations(stage,result.registry,overrides,[unity,saturn,world]).length,1);
+});
+test('reviewed standalone sources stay eligible for future identity matching', async t => {
+  const config = fixture(t);
+  const standalone = anime(7184,null);
+  write(path.join(config.awRoot,'items/7184.json'),standalone);
+  const manifest = read(path.join(config.awRoot,'manifest.json'));
+  manifest.itemHashes['7184'] = hash(standalone);
+  write(path.join(config.awRoot,'manifest.json'),manifest);
+  await run({...config,enrich:ready});
+  const registry = read(path.join(config.output,'registry.json'));
+  const record = read(path.join(config.output,`items/${registry.members['animeworld:7184']}.json`));
+  assert.deepEqual(record.identityReview.standaloneAtReview,
+    [{source:'animeworld:7184',reviewedAt:'2026-11-03'}]);
+  assert.equal(verify(config.output).count,3);
 });
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(),'unified-'));

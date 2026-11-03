@@ -201,6 +201,31 @@ function groupEntries(entries, registry = {members: {}, nextId: 1}, overrides = 
   }
   return {groups, registry, conflicts};
 }
+function episodeRelations(group, registry, overrides = {}, sourceEntries = []) {
+  const configured = overrides.$episodeRelations || {};
+  return group.entries.flatMap(entry => {
+    const source = `${entry.provider}:${entry.id}`;
+    const value = configured[source];
+    if (!value) return [];
+    if (typeof value.target !== 'string' || !/^(animeunity|animeworld|animesaturn|animetop):[A-Za-z0-9]+$/.test(value.target) ||
+        !value.episodeMap || typeof value.episodeMap !== 'object' || Array.isArray(value.episodeMap) ||
+        !Object.keys(value.episodeMap).length ||
+        Object.entries(value.episodeMap).some(([from, to]) => !/^\d+(?:\.\d+)?$/.test(from) || !/^\d+(?:\.\d+)?$/.test(String(to))))
+      throw new Error(`Invalid episode relation override: ${source}`);
+    const sourceNumbers = new Set((entry.record.sourceEpisodes || entry.record.episodes || []).map(episode => String(episode.number)));
+    // A provider may renumber or temporarily omit an episode. Keep the override
+    // for later runs, but do not publish a relation whose source is missing.
+    if (Object.keys(value.episodeMap).some(number => !sourceNumbers.has(number))) return [];
+    const targetWorkId = registry.members[value.target];
+    if (!targetWorkId || targetWorkId === group.id) return [];
+    const targetEntry = sourceEntries.find(candidate => `${candidate.provider}:${candidate.id}` === value.target);
+    if (!targetEntry) return [];
+    const targetNumbers = new Set((targetEntry.record.sourceEpisodes || targetEntry.record.episodes || [])
+      .map(episode => String(episode.number)));
+    if (Object.values(value.episodeMap).some(number => !targetNumbers.has(String(number)))) return [];
+    return [{source, target: value.target, targetWorkId, episodeMap: value.episodeMap}];
+  });
+}
 function baseRecord(group) {
   const primary = group.entries.filter(entry => entry.provider === 'animeunity' && entry.enriched)
     .sort((a,b) => (b.record.episodes?.length || 0)-(a.record.episodes?.length || 0))[0] ||
@@ -318,4 +343,4 @@ function publish(root, records, source, registry, conflicts) {
   write(path.join(root, 'manifest.json'), manifest);
   return manifest;
 }
-module.exports = {ids, compatible, namespace, loadSources, groupEntries, baseRecord, publish};
+module.exports = {ids, compatible, namespace, loadSources, groupEntries, episodeRelations, baseRecord, publish};

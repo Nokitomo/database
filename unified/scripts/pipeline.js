@@ -1,7 +1,7 @@
 'use strict';
 const path = require('node:path');
 const {read, write, hash} = require('../../providers/animeworld/scripts/store');
-const {loadSources, groupEntries, baseRecord, namespace, publish} = require('./catalog');
+const {loadSources, groupEntries, episodeRelations, baseRecord, namespace, publish} = require('./catalog');
 const {enrichSource} = require('./enrich');
 const {needsEpisodeIdentity, protectSourceEpisodes} = require('../../providers/animeunity/scripts/episode-safety');
 function worldInput(group) {
@@ -43,14 +43,21 @@ async function run({auRoot, awRoot, output, providerRoot, limit = 10, budgetMs =
       bridgeIndex, bridge.findAniBridgeSourceRecords, {info: {anilist_id: direct.anilist, mal_id: direct.mal,
         type: /movie|film/i.test(input.info.type || '') ? 'Movie' : input.info.type}});
   }
+  const overrides = read(path.join(__dirname, '../overrides.json'), {});
   const {groups, registry, conflicts} = groupEntries(source.entries,
-    read(path.join(output, 'registry.json'), {members: {}, nextId: 1}),
-    read(path.join(__dirname, '../overrides.json'), {}));
+    read(path.join(output, 'registry.json'), {members: {}, nextId: 1}), overrides);
   const state = read(path.join(output, 'state.json'), {}), start = now();
   let processed = 0, hasImmediateWork = false;
   const records = [];
   for (const group of groups) {
     let record = baseRecord(group);
+    const relations = episodeRelations(group, registry, overrides, source.entries);
+    if (relations.length) record.episodeRelations = relations;
+    const reviewedStandalone = group.entries.map(entry => entry.key)
+      .filter(key => overrides.$reviewedStandalone?.[key]);
+    if (reviewedStandalone.length) record.identityReview = {
+      standaloneAtReview: reviewedStandalone.map(source =>
+        ({source, reviewedAt: overrides.$reviewedStandalone[source]}))};
     const exclusive = !group.entries.some(entry => entry.provider === 'animeunity');
     if (exclusive) {
       const input = worldInput(group);
@@ -102,6 +109,13 @@ async function run({auRoot, awRoot, output, providerRoot, limit = 10, budgetMs =
       if (state[group.id]?.error) record.enrichment = {status: 'retry'};
     }
     records.push(record);
+  }
+  const byId = new Map(records.map(record => [record.id, record]));
+  for (const record of records) for (const relation of record.episodeRelations || []) {
+    const target = byId.get(relation.targetWorkId);
+    // A provider can temporarily disappear; its retained work still owns the target ID.
+    if (!target) continue;
+    (target.incomingEpisodeRelations ||= []).push({sourceWorkId: record.id, ...relation});
   }
   const manifest = publish(output, records, source, registry, conflicts);
   return {processed, hasImmediateWork, count: manifest.count, pendingCount: manifest.pendingCount, complete: manifest.complete};

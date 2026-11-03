@@ -1,1 +1,109 @@
-{}
+{
+  "$episodeRelations": {
+    "animeworld:2718": {
+      "target": "animesaturn:fBtfR",
+      "episodeMap": {
+        "1": "0"
+      }
+    },
+    "animeworld:3663": {
+      "target": "animesaturn:LWs4H",
+      "episodeMap": {
+        "1": "0"
+      }
+    },
+    "animesaturn:58HSU": {
+      "target": "animeunity:1263",
+      "episodeMap": {
+        "1": "21",
+        "2": "22",
+        "3": "23",
+        "4": "24"
+      }
+    },
+    "animeworld:1377": {
+      "target": "animeunity:1263",
+      "episodeMap": {
+        "1": "21",
+        "2": "22",
+        "3": "23",
+        "4": "24"
+      }
+    }
+  },
+  "$reviewedStandalone": {
+    "animeworld:7184": "2026-11-03",
+    "animeworld:2137": "2026-11-03",
+    "animeworld:2501": "2026-11-03",
+    "animeworld:2566": "2026-11-03",
+    "animeworld:2808": "2026-11-03",
+    "animeworld:3242": "2026-11-03",
+    "animeworld:3435": "2026-11-03",
+    "animeworld:3529": "2026-11-03",
+    "animeworld:3530": "2026-11-03",
+    "animeworld:3531": "2026-11-03",
+    "animeworld:3532": "2026-11-03",
+    "animeworld:3533": "2026-11-03",
+    "animeworld:3534": "2026-11-03",
+    "animeworld:3535": "2026-11-03",
+    "animeworld:3536": "2026-11-03",
+    "animeworld:3537": "2026-11-03",
+    "animeworld:3538": "2026-11-03",
+    "animeworld:3539": "2026-11-03",
+    "animeworld:3540": "2026-11-03",
+    "animeworld:3704": "2026-11-03"
+  },
+  "animesaturn:1HiEL": "work-6362",
+  "animesaturn:3sFZP": "work-6385",
+  "animesaturn:5db8q": "work-6393",
+  "animesaturn:6AqR1": "work-6402",
+  "animesaturn:7rdJA": "work-6420",
+  "animesaturn:A4pxk": "work-6445",
+  "animesaturn:AXrRQ": "work-6459",
+  "animesaturn:b9y1m": "work-6462",
+  "animesaturn:BGnJs": "work-6466",
+  "animesaturn:cYRW4": "work-6487",
+  "animesaturn:ffqFP": "work-6534",
+  "animesaturn:Fwkux": "work-6541",
+  "animesaturn:JCmgz": "work-6583",
+  "animesaturn:KuSFJ": "work-1015",
+  "animesaturn:Nu2G5": "work-6661",
+  "animesaturn:peVem": "work-2710",
+  "animesaturn:QanPB": "work-6693",
+  "animesaturn:QV4kq": "work-6402",
+  "animesaturn:rNSr6": "work-6719",
+  "animesaturn:S7nsS": "work-6729",
+  "animesaturn:VX1iF": "work-6789",
+  "animesaturn:WfdhA": "work-5785",
+  "animesaturn:xJ3Nv": "work-6816",
+  "animesaturn:YEb68": "work-6840",
+  "animeunity:1239": "work-1015",
+  "animeunity:2859": "work-2493",
+  "animeunity:3091": "work-2710",
+  "animeunity:7119": "work-5785",
+  "animeworld:367": "work-6789",
+  "animeworld:444": "work-1015",
+  "animeworld:2912": "work-6583",
+  "animeworld:2913": "work-6393",
+  "animeworld:2914": "work-6541",
+  "animeworld:2915": "work-6459",
+  "animeworld:2916": "work-6420",
+  "animeworld:2917": "work-6487",
+  "animeworld:3623": "work-2710",
+  "animeworld:3637": "work-2493",
+  "animeworld:3640": "work-6693",
+  "animeworld:3656": "work-6385",
+  "animeworld:4566": "work-6661",
+  "animeworld:4662": "work-6402",
+  "animeworld:5069": "work-6402",
+  "animeworld:5095": "work-6362",
+  "animeworld:6198": "work-6729",
+  "animeworld:6199": "work-6719",
+  "animeworld:6200": "work-6466",
+  "animeworld:6215": "work-5785",
+  "animeworld:6273": "work-6445",
+  "animeworld:6441": "work-6534",
+  "animeworld:6442": "work-6816",
+  "animeworld:6470": "work-6462",
+  "animeworld:6898": "work-6840"
+}
