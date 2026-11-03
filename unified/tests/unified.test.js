@@ -196,6 +196,36 @@ test('confirmed episode-only relations do not merge their parent works', () => {
   saturn.record.episodes.pop();
   assert.equal(episodeRelations(stage,result.registry,overrides,[unity,saturn,world]).length,1);
 });
+test('confirmed Saekano prologues point only to episode zero of their series', () => {
+  const overrides = read(path.join(__dirname, '../overrides.json'));
+  for (const [saturnId, unityId, targetId] of [
+    ['61y5M', 648, 'work-481'], ['qAsYf', 647, 'work-480']]) {
+    const unity = entry('animeunity', {...anime(unityId,null),episodes:[{number:0},{number:1}]}, true);
+    const saturn = entry('animesaturn', {...anime(saturnId,null),episodes:[{number:1}]});
+    const registry = {members:{[`animeunity:${unityId}`]:targetId,
+      [`animesaturn:${saturnId}`]:'work-8000'},nextId:8001};
+    const result = groupEntries([unity,saturn],registry,overrides);
+    assert.equal(result.groups.length,2);
+    const source = result.groups.find(group=>group.entries.some(value=>value.id===saturnId));
+    assert.deepEqual(episodeRelations(source,result.registry,overrides,[unity,saturn]),
+      [{source:`animesaturn:${saturnId}`,target:`animeunity:${unityId}`,
+        targetWorkId:targetId,episodeMap:{'1':'0'}}]);
+  }
+});
+test('confirmed Fate/Extra Saturn editions join the existing Unity and World work', () => {
+  const overrides = read(path.join(__dirname, '../overrides.json'));
+  const unity = entry('animeunity', anime(539,null), true);
+  const saturnSub = entry('animesaturn', anime('WFC27',null));
+  const saturnDub = entry('animesaturn', anime('Qp8JG',null));
+  const registry = {members:{'animeunity:539':'work-391',
+    'animesaturn:WFC27':'work-6800','animesaturn:Qp8JG':'work-6700'},nextId:8001};
+  const result = groupEntries([unity,saturnSub,saturnDub],registry,overrides);
+  assert.equal(result.groups.length,1);
+  assert.equal(result.groups[0].id,'work-391');
+  assert.deepEqual(baseRecord(result.groups[0]).providers.animesaturn.map(value=>value.id).sort(),
+    ['Qp8JG','WFC27']);
+  assert.equal(overrides.$reviewedStandalone['animesaturn:dHzMv'],'2026-11-03');
+});
 test('reviewed standalone sources stay eligible for future identity matching', async t => {
   const config = fixture(t);
   const standalone = anime(7184,null);
