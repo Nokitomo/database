@@ -97,6 +97,50 @@ test('interrupted archive scan preserves known membership and its page cursor',a
   client.get=get;await run({root,client,stage:'discover',pagesPerBatch:2,now:4000000});
   assert.equal(read(path.join(root,'state.json')).archive.total,31);
 });
+test('a batch deadline pauses cleanly and the next batch resumes the archive cursor',async t=>{
+  const root=temp(t),client=f.client(31),stateFile=path.join(root,'state.json');
+  await run({root,client,stage:'discover',pagesPerBatch:1,requestLimit:0,now:100000});
+  assert.equal(read(stateFile).archive.scan.next,2);
+  const paused=await run({root,client,stage:'discover',budgetMs:1,now:100001});
+  assert.equal(paused.paused,true);assert.equal(paused.interrupted,false);
+  assert.equal(read(stateFile).archive.scan.next,2);
+  assert.equal(read(stateFile).errors.connection,undefined);
+  await run({root,client,stage:'discover',pagesPerBatch:2,now:100002});
+  assert.equal(read(stateFile).archive.total,31);
+});
+test('a timed-out detail request is deferred while other due records continue',async t=>{
+  const root=temp(t),stateFile=path.join(root,'state.json');
+  await run({root,client:f.client(2),now:100000});
+  const state=read(stateFile);
+  for(const id of ['00001','00002'])state.records[id].nextCheckAt=0;
+  write(stateFile,state);
+  const client=f.client(2),get=client.get.bind(client);
+  client.signal={aborted:false,reason:null};
+  client.get=async url=>{
+    if(url===f.route(1)){
+      client.signal={aborted:true,reason:{name:'TimeoutError'}};
+      throw new Error('The operation was aborted due to timeout');
+    }
+    return get(url);
+  };
+  const paused=await run({root,client,stage:'details',now:4000000});
+  assert.equal(paused.paused,true);assert.equal(paused.interrupted,false);
+  const saved=read(stateFile);
+  assert.equal(saved.errors.connection,undefined);
+  assert.match(saved.records['00001'].error.message,/timeout/);
+  assert.equal(saved.records['00001'].error.retryAt,4000000+3600000);
+  const next=f.client(2);
+  await run({root,client:next,stage:'details',now:4000001});
+  assert(next.calls.includes(f.route(2)));
+  assert(!next.calls.includes(f.route(1)));
+});
+test('a real discovery error still marks the batch as interrupted',async t=>{
+  const root=temp(t),client=f.client(1);
+  client.discover=async()=>{throw new Error('Source unavailable');};
+  const result=await run({root,client,now:100000});
+  assert.equal(result.interrupted,true);assert.equal(result.paused,false);
+  assert.equal(read(path.join(root,'state.json')).errors.connection.message,'Source unavailable');
+});
 test('feed and newest scans preserve old heads until their previous boundary is found',async()=>{
   const state={known:{},origins:{},errors:{},feed:{head:['/episode/test-00001/ep-1']},newest:{head:['00031']}};
   const client={baseUrl:f.BASE,async get(url){

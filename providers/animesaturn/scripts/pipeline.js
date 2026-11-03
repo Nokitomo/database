@@ -5,6 +5,9 @@ const {Client}=require('./http');
 const {parseArchive,parseAnime,parseEpisode,parseFeed,parseHomeImages}=require('./parse');
 const {DEFAULT_DATA,itemFile,read,write,hash,initialState,observe,publish}=require('./store');
 const HOUR=3600000,DAY=24*HOUR;
+class BatchPause extends Error {constructor(){super('Batch time budget reached');}}
+const deadlineReached=(error,client)=>error instanceof BatchPause ||
+  Boolean(client.signal?.aborted && client.signal.reason?.name==='TimeoutError');
 const retryable=(error,now)=>!error||error.retryAt<=now;
 const failure=(error,now)=>({message:String(error.message).slice(0,250),status:error.status||null,retryAt:now+HOUR});
 const signature=page=>hash(page.cards.map(value=>[value.id,value.path]));
@@ -25,11 +28,12 @@ function workStatus(state,now,stage='all'){
     !Object.keys(state.errors).length&&ids.every(id=>state.records[id]?.complete&&!state.records[id]?.error),
     pendingCount:pending.length,hasImmediateWork:stage==='publish'?false:stage==='discover'?Boolean(discovery):stage==='details'?!!pending.length:Boolean(discovery||pending.length)};
 }
-async function scanArchive(client,state,root,{now,pagesPerBatch,save}){
+async function scanArchive(client,state,root,{now,pagesPerBatch,save,pauseIfDue=()=>{}}){
   if(!retryable(state.errors.archive,now)||!state.archive.scan&&state.archive.completedAt&&now-state.archive.completedAt<DAY&&
     (!state.fullSince||state.archive.completedAt>=state.fullSince))return;
   try{
     for(let n=0;n<pagesPerBatch;n++){
+      pauseIfDue();
       let scan=state.archive.scan;
       if(scan&&scan.next>scan.pages){
         const first=parseArchive((await client.get('/az-list')).html,client.baseUrl,1,state.origins);
@@ -50,13 +54,15 @@ async function scanArchive(client,state,root,{now,pagesPerBatch,save}){
       scan.next++;scan.last=signature(listing);save();
       console.log(`animesaturn archive: ${page}/${scan.pages}, ${Object.keys(scan.ids).length}/${scan.total}`);
     }
-  }catch(error){if(client.signal?.aborted||/WARP_REQUIRED/.test(error.message))throw error;
+  }catch(error){if(deadlineReached(error,client)){if(!(error instanceof BatchPause)){state.errors.archive=failure(error,now);save();}throw error;}
+    if(client.signal?.aborted||/WARP_REQUIRED/.test(error.message))throw error;
     state.errors.archive=failure(error,now);if(/Archive|Invalid archive/.test(error.message))delete state.archive.scan;save();}
 }
-async function scanFeed(client,state,{now,pagesPerBatch,save}){
+async function scanFeed(client,state,{now,pagesPerBatch,save,pauseIfDue=()=>{}}){
   if(!retryable(state.errors.feed,now)||!state.feed.scan&&state.feed.checkedAt&&now-state.feed.checkedAt<2*HOUR)return;
   try{
     for(let i=0;i<pagesPerBatch;i++){
+      pauseIfDue();
       const scan=state.feed.scan||={page:1,anchors:state.feed.head||[],head:null,signatures:[]};
       const value=parseFeed((await client.get(`/api/home/episodes?page=${scan.page}`)).html,client.baseUrl,scan.page,state.origins);
       const keys=value.items.map(item=>item.episodePath),fingerprint=hash(keys);
@@ -69,14 +75,16 @@ async function scanFeed(client,state,{now,pagesPerBatch,save}){
       }
       scan.page++;save();
     }
-  }catch(error){if(client.signal?.aborted||/WARP_REQUIRED/.test(error.message))throw error;
+  }catch(error){if(deadlineReached(error,client)){if(!(error instanceof BatchPause)){state.errors.feed=failure(error,now);save();}throw error;}
+    if(client.signal?.aborted||/WARP_REQUIRED/.test(error.message))throw error;
     state.errors.feed=failure(error,now);if(/Repeated|Invalid update feed/.test(error.message))delete state.feed.scan;save();}
 }
-async function scanNewest(client,state,{now,pagesPerBatch,save}){
+async function scanNewest(client,state,{now,pagesPerBatch,save,pauseIfDue=()=>{}}){
   state.newest ||= {};
   if(!retryable(state.errors.newest,now)||!state.newest.scan&&state.newest.checkedAt&&now-state.newest.checkedAt<2*HOUR)return;
   try{
     for(let i=0;i<pagesPerBatch;i++){
+      pauseIfDue();
       const scan=state.newest.scan||={page:1,anchors:state.newest.head||[],head:null,signatures:[]};
       const listing=parseArchive((await client.get(scan.page===1?'/newest':`/newest/${scan.page}`)).html,
         client.baseUrl,scan.page,state.origins,'Nuove aggiunte');
@@ -88,15 +96,17 @@ async function scanNewest(client,state,{now,pagesPerBatch,save}){
         state.newest={head:scan.head,checkedAt:now};delete state.errors.newest;save();return;
       }scan.page++;save();
     }
-  }catch(error){if(client.signal?.aborted||/WARP_REQUIRED/.test(error.message))throw error;
+  }catch(error){if(deadlineReached(error,client)){if(!(error instanceof BatchPause)){state.errors.newest=failure(error,now);save();}throw error;}
+    if(client.signal?.aborted||/WARP_REQUIRED/.test(error.message))throw error;
     state.errors.newest=failure(error,now);if(/Repeated|Invalid archive/.test(error.message))delete state.newest.scan;save();}
 }
-async function details(client,state,root,{now,requestLimit,save}){
+async function details(client,state,root,{now,requestLimit,save,pauseIfDue=()=>{}}){
   let remaining=requestLimit;
   for(const known of Object.values(state.known)){
     if(remaining<=0)break;
     if(!recordDue(state,known.id,now))continue;
-    const status=state.records[known.id]||={episodeChecks:{}};
+    pauseIfDue();
+    const status=state.records[known.id] ||= {episodeChecks:{}};
     if(collection.reuse(client,state,root,known.id,now,save))continue;
     try{
       let record=read(itemFile(root,known.id));const previous=record,sourceChanged=!!known.refresh;
@@ -121,6 +131,7 @@ async function details(client,state,root,{now,requestLimit,save}){
       for(let index=0;selection.mode==='full'&&index<record.episodes.length&&remaining>0;index++){
         const episode=record.episodes[index],checked=status.episodeChecks[episode.id]||0;
         if(episode.sourceMetadata&&now-checked<30*DAY&&(!state.fullSince||checked>=state.fullSince))continue;
+        pauseIfDue();
         remaining--;
         record.episodes[index]=parseEpisode((await client.get(episode.path)).html,client.baseUrl,record,episode,state.origins);
         status.episodeChecks[episode.id]=now;write(itemFile(root,known.id),record);save();
@@ -130,7 +141,12 @@ async function details(client,state,root,{now,requestLimit,save}){
       if(status.complete){status.checkedAt=now;status.nextCheckAt=now+(['completed','dropped'].includes(record.info.status)&&record.episodes.length?30*DAY:12*HOUR);}
       if(selection.mode==='linked')status.nextCheckAt=Math.min(status.nextCheckAt,now+DAY);
       write(itemFile(root,known.id),record);delete status.error;save();
-    }catch(error){status.error=failure(error,now);save();if(client.signal?.aborted||/WARP_REQUIRED/.test(error.message))throw error;
+    }catch(error){if(error instanceof BatchPause)throw error;
+      status.error=failure(error,now);save();if(deadlineReached(error,client)){
+        console.log(`animesaturn ${known.id}: request exceeded batch deadline; retry later`);
+        throw error;
+      }
+      if(client.signal?.aborted||/WARP_REQUIRED/.test(error.message))throw error;
       console.error(`animesaturn ${known.id}: ${error.message}`);}
   }
 }
@@ -138,6 +154,8 @@ async function run({root=DEFAULT_DATA,mode='update',stage='all',requestLimit=50,
   if(!['update','full'].includes(mode)||!['all','discover','details','publish'].includes(stage))throw new Error('Invalid mode/stage');
   const state=read(path.join(root,'state.json'),initialState()),save=()=>write(path.join(root,'state.json'),state);
   if(mode==='full'&&!state.fullSince)state.fullSince=now;
+  const softDeadline=Date.now()+Math.max(0,budgetMs-90000);
+  const pauseIfDue=()=>{if(Date.now()>=softDeadline)throw new BatchPause();};
   client ||= new Client({signal:AbortSignal.timeout(budgetMs)});
     // One-time retry of records rejected by the old long-synopsis-only selector.
     if ((state.synopsisParserVersion || 1) < 2) {
@@ -154,24 +172,29 @@ async function run({root=DEFAULT_DATA,mode='update',stage='all',requestLimit=50,
     state.episodeLabelParserVersion=1;save();
   }
   collection.configure(client,'animesaturn',root,state,now);
-  let interrupted=false;
+  let interrupted=false,paused=false,discovered=false;
   try{
     if(stage!=='publish'){
       const discovery=await client.discover();state.origins.site=client.baseUrl;
+      discovered=true;delete state.errors.connection;
       state.homeImages=parseHomeImages(discovery.html,client.baseUrl,state.origins);
       state.discovery={baseUrl:client.baseUrl,source:discovery.source,pastebin:discovery.pastebin};save();
       if(stage==='all'||stage==='discover'){
-        await scanArchive(client,state,root,{now,pagesPerBatch,save});
-        await scanFeed(client,state,{now,pagesPerBatch:5,save});
-        await scanNewest(client,state,{now,pagesPerBatch:5,save});
+        await scanArchive(client,state,root,{now,pagesPerBatch,save,pauseIfDue});
+        await scanFeed(client,state,{now,pagesPerBatch:5,save,pauseIfDue});
+        await scanNewest(client,state,{now,pagesPerBatch:5,save,pauseIfDue});
       }
-      if(stage==='all'||stage==='details')await details(client,state,root,{now,requestLimit,save});
+      if(stage==='all'||stage==='details')await details(client,state,root,{now,requestLimit,save,pauseIfDue});
       delete state.errors.connection;
     }
-  }catch(error){state.errors.connection=failure(error,now);interrupted=true;save();}
+  }catch(error){
+    if(deadlineReached(error,client)&&discovered){paused=true;
+      console.log(`AnimeSaturn batch paused at its time budget: ${error.message}`);
+    }else{state.errors.connection=failure(error,now);interrupted=true;save();}
+  }
   const status=workStatus(state,now,stage);
   if(status.complete&&state.fullSince){delete state.fullSince;save();}
-  publish(root,state,status);return {...status,interrupted};
+  publish(root,state,status);return {...status,interrupted,paused};
 }
 if(require.main===module)run({mode:process.env.RUN_MODE||'update',stage:process.env.RUN_STAGE||'all'})
   .then(result=>{console.log(`ANIMESATURN_BATCH ${JSON.stringify(result)}`);if(result.interrupted)process.exitCode=1;})

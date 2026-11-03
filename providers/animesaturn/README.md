@@ -64,12 +64,15 @@ under the same data directory. The manifest lists only active published items.
 Partially collected titles are retained and the manifest does not claim complete.
 
 `.github/workflows/update-animesaturn.yml` uses WARP and its own concurrency group.
-It runs at minute 53 every two hours, or manually with full/update mode and
+It runs at minute 47 every six hours, or manually with full/update mode and
 all/discover/details/publish stages. It does not run on push. Only the independent
 `animesaturn-data` branch receives checkpoints; `main` and other providers are
 not pushed by this runner. A batch has a three-minute deadline and up to 50
-detail/episode requests. The workflow dispatches continuation near its four-hour
-budget, after publishing. A hard runner kill may lose the unpushed current batch,
+detail/episode requests. A batch nearing its deadline saves its cursor and continues
+in the same job. If an in-flight request reaches the hard deadline, that record
+backs off for an hour while other due work continues. Actual connection and source
+validation failures remain visible. The workflow dispatches continuation near its
+four-hour budget, after publishing. A hard runner kill may lose the unpushed current batch,
 but previously committed checkpoints remain resumable.
 
 The unified workflow consumes this snapshot alongside AnimeWorld and AnimeUnity.

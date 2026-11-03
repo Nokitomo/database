@@ -4,7 +4,7 @@ const {spawnSync}=require('node:child_process');
 const repo=path.resolve(__dirname,'../../..');
 const bash=process.platform==='win32'?'C:/Program Files/Git/bin/bash.exe':'bash';
 
-test('the actual runner creates and resumes its own data branch without changing main',t=>{
+test('the actual runner continues after a paused batch and resumes its own data branch without changing main',t=>{
   const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'animesaturn-workflow-'));
   t.after(()=>fs.rmSync(tmp,{recursive:true,force:true}));
   const slash=value=>value.replaceAll('\\','/');
@@ -30,9 +30,11 @@ else if(args[0]==='-e') {const r=cp.spawnSync(process.execPath,args,{stdio:'inhe
 else if(args[0].endsWith('/pipeline.js')) {
   const root='providers/animesaturn/data',file=path.join(root,'state.json');fs.mkdirSync(path.join(root,'items'),{recursive:true});
   const prior=fs.existsSync(file)?JSON.parse(fs.readFileSync(file)).counter:0;
-  if(prior!==Number(process.env.ANIMESATURN_TEST_RUN)-1)throw new Error('Checkpoint not restored');
+  const run=Number(process.env.ANIMESATURN_TEST_RUN);
+  if(!(run===1&&[0,1].includes(prior)||run===2&&prior===2))throw new Error('Checkpoint not restored');
   fs.writeFileSync(file,JSON.stringify({counter:prior+1}));fs.writeFileSync(path.join(root,'items',(prior+1)+'.json'),JSON.stringify({id:prior+1}));
-  console.log('ANIMESATURN_BATCH '+JSON.stringify({hasImmediateWork:false,complete:true}));
+  const paused=run===1&&prior===0;
+  console.log('ANIMESATURN_BATCH '+JSON.stringify({hasImmediateWork:paused,complete:!paused,paused}));
 } else if(!args[0].endsWith('/verify.js')) throw new Error('Unexpected command');
 `);
   for(let run=1;run<=2;run++) {
@@ -46,9 +48,10 @@ else if(args[0].endsWith('/pipeline.js')) {
     assert.equal(r.status,0,r.stdout+'\n'+r.stderr);
   }
   assert.equal(git(['rev-parse','main'],remote),mainBefore);
-  assert.deepEqual(JSON.parse(git(['show','animesaturn-data:providers/animesaturn/data/state.json'],remote)),{counter:2});
+  assert.deepEqual(JSON.parse(git(['show','animesaturn-data:providers/animesaturn/data/state.json'],remote)),{counter:3});
   const files=git(['ls-tree','-r','--name-only','animesaturn-data'],remote).split('\n');
   assert.ok(files.every(file=>file.startsWith('providers/animesaturn/data/')));
   assert.ok(files.includes('providers/animesaturn/data/items/1.json'));
   assert.ok(files.includes('providers/animesaturn/data/items/2.json'));
+  assert.ok(files.includes('providers/animesaturn/data/items/3.json'));
 });
