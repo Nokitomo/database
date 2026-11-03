@@ -66,7 +66,13 @@ async function run({auRoot, awRoot, output, providerRoot, limit = 10, budgetMs =
         resolverRevision,
         ...(input.provider==='animetop'?{providerInfo:input.info,sourceRows:input.sourceRows}:{}),
         episodes: input.episodes.map(({id,number,title,synopsis,thumbnail}) => ({id,number,title,synopsis,thumbnail}))});
-      const file = path.join(output, 'enriched', `${group.id}.json`), previous = read(file);
+      const file = path.join(output, 'enriched', `${group.id}.json`);
+      const priorRecord = read(path.join(output, 'items', `${group.id}.json`));
+      // A forced merge can change which provider supplies this work's metadata.
+      // The old enrichment may contain provider-relative image references, so it
+      // cannot be reused under the new provider's origin namespace.
+      const providerChanged = priorRecord?.metadataProvider && priorRecord.metadataProvider !== input.provider;
+      const previous = providerChanged ? null : read(file);
       const status = state[group.id];
       const canProcess = processed < limit && now()-start < budgetMs;
       const checkDependency = stage !== 'merge' && ((previous && status) || canProcess);

@@ -210,6 +210,49 @@ test('reviewed standalone sources stay eligible for future identity matching', a
     [{source:'animeworld:7184',reviewedAt:'2026-11-03'}]);
   assert.equal(verify(config.output).count,3);
 });
+test('switching the metadata provider drops stale provider-relative enrichment', async t => {
+  const config = fixture(t);
+  const saturnRoot = path.join(path.dirname(config.output),'saturn');
+  const saturn = {id:'1HiEL',path:'/anime/hazbin-hotel-ita-1HiEL',sourceIds:{},
+    info:{title:'Hazbin Hotel (ITA)',type:'TV',year:2024},
+    episodes:[{id:'one',number:'1',thumbnail:{base:'images',path:'/old.jpg'}}]};
+  write(path.join(saturnRoot,'items/1HiEL.json'),saturn);
+  write(path.join(saturnRoot,'manifest.json'),{provider:'animesaturn',complete:true,
+    itemHashes:{'1HiEL':hash(saturn)},origins:{site:'https://saturn.invalid',images:'https://images.invalid'}});
+  const additionalSources = {animesaturn:saturnRoot};
+  await run({...config,additionalSources,enrich:async record=>({info:record.info,
+    episodes:[{link:'one',thumbnail:{base:record.provider==='animesaturn'?'images':'img',path:'/old.jpg'}}],
+    enrichment:{status:'ready'}})});
+  const world = {...anime(5095,null),info:{title:'Hazbin Hotel (ITA)',type:'ONA',year:2024},
+    episodes:[{id:1,number:'1',thumbnail:{base:'img',path:'/new.jpg'}}]};
+  write(path.join(config.awRoot,'items/5095.json'),world);
+  const awManifest = read(path.join(config.awRoot,'manifest.json'));
+  awManifest.itemHashes['5095'] = hash(world);
+  write(path.join(config.awRoot,'manifest.json'),awManifest);
+  let priorForWorld = 'not called';
+  await run({...config,additionalSources,enrich:async (record,{previous})=>{
+    if (record.id === 5095) priorForWorld = previous;
+    return {info:record.info,episodes:[{link:'1',thumbnail:{base:'img',path:'/new.jpg'}}],
+      enrichment:{status:'ready'}};
+  }});
+  assert.equal(priorForWorld,null);
+  const merged = read(path.join(config.output,'items/work-6362.json'));
+  assert.equal(merged.metadataProvider,'animeworld');
+  assert.equal(merged.providers.animesaturn.length,1);
+  assert.equal(merged.providers.animeworld.length,1);
+  const currentManifest = read(path.join(config.output,'manifest.json'));
+  const badOrigins = [];
+  for (const id of Object.keys(currentManifest.itemHashes)) {
+    const walk = value => {
+      if (!value || typeof value !== 'object') return;
+      if (value.base && value.path && !currentManifest.origins[value.base]) badOrigins.push([id,value]);
+      Object.values(value).forEach(walk);
+    };
+    walk(read(path.join(config.output,`items/${id}.json`)));
+  }
+  assert.deepEqual(badOrigins,[]);
+  assert.equal(verify(config.output).count,3);
+});
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(),'unified-'));
   t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
