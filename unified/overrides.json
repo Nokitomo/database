@@ -1,10 +1,10 @@
 {
   "$externalMetadata": {
-    "work-6362": {"sourceKey": "animesaturn:1HiEL", "tmdbShowId": 94954, "imdbId": "tt7216636", "seasonNumber": 1, "episodeCount": 8, "evidence": "streamingunity:7540"},
-    "work-6445": {"sourceKey": "animesaturn:A4pxk", "tmdbShowId": 94954, "imdbId": "tt7216636", "seasonNumber": 2, "episodeCount": 8, "evidence": "streamingunity:7540"},
-    "work-6729": {"sourceKey": "animesaturn:S7nsS", "tmdbShowId": 289892, "imdbId": "tt10691770", "seasonNumber": 0, "episodeMap": {"1": 10}, "evidence": "streamingunity:13065; user-confirmed TMDB S00E10"},
-    "work-6719": {"sourceKey": "animesaturn:rNSr6", "tmdbShowId": 289892, "imdbId": "tt10691770", "seasonNumber": 1, "episodeCount": 8, "evidence": "streamingunity:13065"},
-    "work-6466": {"sourceKey": "animesaturn:BGnJs", "tmdbShowId": 289892, "imdbId": "tt10691770", "seasonNumber": 2, "episodeCount": 12, "evidence": "streamingunity:13065"}
+    "work-6362": {"sourceKey": "animesaturn:1HiEL", "tmdbShowId": 94954, "imdbId": "tt7216636", "seasonNumber": 1, "episodeMap": {"1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8}, "evidence": "streamingunity:7540; TMDB season 1 titles"},
+    "work-6445": {"sourceKey": "animesaturn:A4pxk", "tmdbShowId": 94954, "imdbId": "tt7216636", "seasonNumber": 2, "episodeMap": {"1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8}, "evidence": "streamingunity:7540; TMDB season 2 titles"},
+    "work-6729": {"sourceKey": "animesaturn:S7nsS", "tmdbShowId": 289892, "imdbId": "tt10691770", "seasonNumber": 0, "episodeMap": {"1": 10}, "evidence": "streamingunity:13065; TMDB special title MISSIONE: ZERO"},
+    "work-6719": {"sourceKey": "animesaturn:rNSr6", "tmdbShowId": 289892, "imdbId": "tt10691770", "seasonNumber": 1, "episodeMap": {"1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": {"seasonNumber": 2, "episodeNumber": 5}}, "evidence": "streamingunity:13065; TMDB season 1 and season 2 titles"},
+    "work-6466": {"sourceKey": "animesaturn:BGnJs", "tmdbShowId": 289892, "imdbId": "tt10691770", "seasonNumber": 2, "episodeMap": {"1": 1, "2": 2, "3": 3, "4": 4, "5": 6, "6": 7, "7": 8, "8": 9, "9": 10, "10": 11, "11": 12, "12": 13}, "evidence": "streamingunity:13065; TMDB season 2 titles"}
   },
   "$episodeRelations": {
     "animesaturn:61y5M": {

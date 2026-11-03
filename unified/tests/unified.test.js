@@ -479,10 +479,31 @@ test('reviewed TMDB season mapping enriches episodes without AniList or MAL',asy
 test('Hazbin Hotel and Helluva Boss overrides cover only the confirmed seasons',()=>{
   const reviewed=require('../overrides.json').$externalMetadata;
   assert.deepEqual(['work-6362','work-6445','work-6719','work-6466','work-6729']
-    .map(id=>[id,reviewed[id].tmdbShowId,reviewed[id].seasonNumber,reviewed[id].episodeCount || reviewed[id].episodeMap['1']]),[
+    .map(id=>[id,reviewed[id].tmdbShowId,reviewed[id].seasonNumber,Object.keys(reviewed[id].episodeMap).length]),[
       ['work-6362',94954,1,8],['work-6445',94954,2,8],
-      ['work-6719',289892,1,8],['work-6466',289892,2,12],['work-6729',289892,0,10]
+      ['work-6719',289892,1,8],['work-6466',289892,2,12],['work-6729',289892,0,1]
     ]);
+  assert.deepEqual(reviewed['work-6719'].episodeMap['8'],{seasonNumber:2,episodeNumber:5});
+  assert.deepEqual(Object.values(reviewed['work-6466'].episodeMap),
+    [1,2,3,4,6,7,8,9,10,11,12,13]);
+});
+
+test('Helluva Boss Queen Bee uses TMDB S02E05 across the provider season boundary',async()=>{
+  const record=anime(1,null);record.episodes=[{id:8,number:'8',title:'Episode 8'}];
+  const reviewed=require('../overrides.json').$externalMetadata['work-6719'];
+  const result=await enrichWorld(record,{externalOverride:reviewed,services:{
+    skipAniZip:true,context:{externalStatus:{}},
+    'mappings/index.js':{resolveAnimeMappings:async()=>({targets:[],ids:{}}),
+      buildAniBridgeExtra:()=>({}),resolveAniBridgeEpisodeMappings:()=>({mappings:[]})},
+    'tmdb/index.js':{resolveTmdbMediaMetadata:async()=>({}),
+      resolveTmdbEpisodeSeasonMetadata:async args=>{
+        assert.equal(args.seasonNumber,2);assert.deepEqual(args.episodeNumbers,[5]);
+        return {episodes:[{episodeNumber:5,title:{value:'Ape regina'}}]};}},
+    fillGaps:async()=>{},artwork:async()=>({poster:[],background:[],logo:[]})
+  }});
+  assert.equal(result.episodes[0].title,'Ape regina');
+  assert.equal(result.episodes[0].seasonNumber,2);
+  assert.equal(result.episodes[0].externalMappings[0].episodeNumbers[0],5);
 });
 test('workflows never trigger on push and publish only their data branch',()=>{
   const yaml=fs.readFileSync(path.join(__dirname,'../../.github/workflows/update-unified.yml'),'utf8');

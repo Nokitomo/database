@@ -49,14 +49,18 @@ async function enrichWorld(record, {providerRoot, cacheRoot, signal, previous, e
   for (const source of record.episodes) {
     if ((needsEpisodeIdentity(source.number)||source.metadataMappingStatus==='unresolved')) continue;
     const number = /^\d+(?:\.\d+)?$/.test(String(source.number)) ? Number(source.number) : null;
-    const manualNumber = externalOverride && Number.isSafeInteger(number) && number > 0 &&
-      (externalOverride.episodeMap ? externalOverride.episodeMap[String(number)] :
-        number <= externalOverride.episodeCount ? number : null);
+    const manualValue = externalOverride && Number.isSafeInteger(number) && number > 0 ?
+      externalOverride.episodeMap?.[String(number)] : null;
+    const manualNumber = typeof manualValue === 'object' ? manualValue?.episodeNumber : manualValue;
+    const manualSeason = typeof manualValue === 'object' ? manualValue?.seasonNumber : externalOverride?.seasonNumber;
+    if (manualValue != null && (!Number.isSafeInteger(manualNumber) || manualNumber <= 0 ||
+        !Number.isSafeInteger(manualSeason) || manualSeason < 0)) throw new Error('Invalid confirmed episode mapping');
     const discovered = number == null ? null : mapping.resolveAniBridgeEpisodeMappings(resolution, number);
-    const resolved = manualNumber != null ? {seasonNumber:externalOverride.seasonNumber,
+    const resolved = manualNumber != null ? {seasonNumber:manualSeason,
       mappings:[{provider:'tmdb_show',id:String(externalOverride.tmdbShowId),
-        seasonNumber:externalOverride.seasonNumber,episodeNumbers:[manualNumber]},
-      ...(discovered?.mappings || []).filter(value => value.provider !== 'tmdb_show')]} : discovered;
+        seasonNumber:manualSeason,episodeNumbers:[manualNumber]},
+      ...(discovered?.mappings || []).filter(value => value.provider !== 'tmdb_show')]} :
+      externalOverride ? {...discovered, mappings:(discovered?.mappings || []).filter(value => value.provider !== 'tmdb_show')} : discovered;
     episodeMappings.set(source.id, resolved);
     for (const target of resolved?.mappings || []) {
       if (target.provider !== 'tmdb_show' || target.seasonNumber == null || target.episodeNumbers.length !== 1) continue;
