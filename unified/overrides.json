@@ -1,4 +1,11 @@
 {
+  "$externalMetadata": {
+    "work-6362": {"sourceKey": "animesaturn:1HiEL", "tmdbShowId": 94954, "imdbId": "tt7216636", "seasonNumber": 1, "episodeCount": 8, "evidence": "streamingunity:7540"},
+    "work-6445": {"sourceKey": "animesaturn:A4pxk", "tmdbShowId": 94954, "imdbId": "tt7216636", "seasonNumber": 2, "episodeCount": 8, "evidence": "streamingunity:7540"},
+    "work-6729": {"sourceKey": "animesaturn:S7nsS", "tmdbShowId": 289892, "imdbId": "tt10691770", "seasonNumber": 0, "episodeMap": {"1": 10}, "evidence": "streamingunity:13065; user-confirmed TMDB S00E10"},
+    "work-6719": {"sourceKey": "animesaturn:rNSr6", "tmdbShowId": 289892, "imdbId": "tt10691770", "seasonNumber": 1, "episodeCount": 8, "evidence": "streamingunity:13065"},
+    "work-6466": {"sourceKey": "animesaturn:BGnJs", "tmdbShowId": 289892, "imdbId": "tt10691770", "seasonNumber": 2, "episodeCount": 12, "evidence": "streamingunity:13065"}
+  },
   "$episodeRelations": {
     "animesaturn:61y5M": {
       "target": "animeunity:648",

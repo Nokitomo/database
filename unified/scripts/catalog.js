@@ -251,6 +251,11 @@ function baseRecord(group) {
       dubbed: entry.record.info?.dubbed ?? Boolean(entry.raw?.info?.dub),
       episodeResolution: entry.record.collection?.episodeResolution || 'snapshot',
       episodes: namespace(entry.record.sourceEpisodes || entry.record.episodes || [], entry.provider),
+      // Keep the provider's own descriptive fields beside its episode inventory.
+      // They can be used even when no external identity has been resolved.
+      providerMetadata: namespace(Object.fromEntries(['info','sourceMetadata','tooltip','related',
+        'recommendations','trailers','externalLinks','schedule','warnings']
+        .filter(key => entry.record[key] != null).map(key => [key, entry.record[key]])), entry.provider),
       ...(entry.provider==='animetop'?{seasons:namespace(entry.record.seasons||[],entry.provider),sourceRows:namespace(entry.record.sourceRows||[],entry.provider),playback:namespace(entry.record.playback||[],entry.provider),info:namespace(entry.record.info,entry.provider),sourceIds:entry.record.sourceIds,warnings:entry.record.warnings}: {})});
     if (providerImages[entry.provider]) {
       const images=entry.provider==='animetop'?(entry.record.images||[]).map(({role,reference,...rest})=>({kind:role,url:reference,...rest})):entry.record.images||[];

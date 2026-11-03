@@ -51,6 +51,10 @@ async function run({auRoot, awRoot, output, providerRoot, limit = 10, budgetMs =
   const records = [];
   for (const group of groups) {
     let record = baseRecord(group);
+    const externalOverride = overrides.$externalMetadata?.[group.id] ||
+      Object.values(overrides.$externalMetadata || {}).find(value =>
+        group.entries.some(entry => entry.key === value.sourceKey)) || null;
+    if (externalOverride) record.confirmedExternalIdentity = externalOverride;
     const relations = episodeRelations(group, registry, overrides, source.entries);
     if (relations.length) record.episodeRelations = relations;
     const reviewedStandalone = group.entries.map(entry => entry.key)
@@ -63,7 +67,7 @@ async function run({auRoot, awRoot, output, providerRoot, limit = 10, budgetMs =
       const input = worldInput(group);
       const fingerprint = hash({version: input.episodes.some(episode => needsEpisodeIdentity(episode.number)) ? 3 : 2, provider: input.provider, sourceIds: input.sourceIds,
         title: input.info.title, type: input.info.type,
-        resolverRevision,
+        resolverRevision, externalOverride,
         ...(input.provider==='animetop'?{providerInfo:input.info,sourceRows:input.sourceRows}:{}),
         episodes: input.episodes.map(({id,number,title,synopsis,thumbnail}) => ({id,number,title,synopsis,thumbnail}))});
       const file = path.join(output, 'enriched', `${group.id}.json`);
@@ -87,7 +91,7 @@ async function run({auRoot, awRoot, output, providerRoot, limit = 10, budgetMs =
             dependency !== status.mappingDependency ? 'mapping-changed' : !previous && !status.error ? 'missing-output' : status.error ? 'retry' : 'metadata-task-or-refresh-due';
           console.log(`[unified] enriching ${group.id} ${input.provider}=${input.id} reason=${reason}`);
           try {
-            enriched = await enrich(input, {providerRoot, cacheRoot: path.join(output, 'cache'), previous,
+            enriched = await enrich(input, {providerRoot, cacheRoot: path.join(output, 'cache'), previous, externalOverride,
               signal: AbortSignal.timeout(Math.max(1, budgetMs-(now()-start)))});
             write(file, enriched);
             const taskDue = Object.values(enriched.metadataTasks || {}).map(value => value.nextCheckAt).filter(Number.isFinite);

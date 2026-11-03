@@ -6,7 +6,7 @@ const {hash} = require('../../providers/animeworld/scripts/store');
 const {needsEpisodeIdentity, providerOnlyEpisode} = require('../../providers/animeunity/scripts/episode-safety');
 
 // Only external resolvers are reused. No AnimeUnity source endpoint is called.
-async function enrichWorld(record, {providerRoot, cacheRoot, signal, previous, services = {}}) {
+async function enrichWorld(record, {providerRoot, cacheRoot, signal, previous, externalOverride, services = {}}) {
   if(record.provider==='animetop'&&!ids(record).anilist&&!ids(record).mal)return {info:record.info,episodes:record.episodes.map(source=>providerOnlyEpisode({link:String(source.id),sourcePath:source.path},source)),enrichment:{status:'unmapped',reason:'provider-external-identity-missing'}};
   const load = name => services[name] || requireProvider(providerRoot, name);
   const context = services.context || createContext(providerRoot, 'https://source.invalid', null,
@@ -19,10 +19,24 @@ async function enrichWorld(record, {providerRoot, cacheRoot, signal, previous, s
   if ((sourceIds.anilist || sourceIds.mal) && !resolution.schemaVersion) throw new Error('AniBridge unavailable');
   const mapped = {...mapping.buildAniBridgeExtra(resolution), metadataTargets: resolution.metadataTargets,
     imdbId: resolution.imdbId, sourceIds};
+  if (externalOverride) {
+    if (isMovie || !Number.isSafeInteger(externalOverride.tmdbShowId) || externalOverride.tmdbShowId <= 0 ||
+        !Number.isSafeInteger(externalOverride.seasonNumber) || externalOverride.seasonNumber < 0 ||
+        !/^tt\d+$/.test(externalOverride.imdbId || '')) throw new Error('Invalid confirmed external identity');
+    const target = {provider:'tmdb_show', id:String(externalOverride.tmdbShowId),
+      scope:`s${externalOverride.seasonNumber}`,
+      raw:`tmdb_show:${externalOverride.tmdbShowId}:s${externalOverride.seasonNumber}`,ranges:{}};
+    mapped.metadataTargets = [...(mapped.metadataTargets || []).filter(value => value.provider !== 'tmdb_show'), target];
+    mapped.mappings = {...mapped.mappings, source:'reviewed-override',
+      targets:[...(mapped.mappings?.targets || []).filter(value => value.provider !== 'tmdb_show'), target]};
+    mapped.ids = {...mapped.ids, tmdbShowIds:[externalOverride.tmdbShowId],
+      imdbShowIds:[externalOverride.imdbId]};
+    mapped.imdbId = externalOverride.imdbId;
+  }
   const info = {...record.info, sourceType: record.info.type, type: isMovie ? 'movie' : 'series',
     tags: [record.info.type, record.info.statusLabel, record.info.year].filter(Boolean).map(String), extra: mapped};
   const tmdb = load('tmdb/index.js');
-  const target = (resolution.metadataTargets || []).find(value => value.provider === (isMovie ? 'tmdb_movie' : 'tmdb_show'));
+  const target = (mapped.metadataTargets || []).find(value => value.provider === (isMovie ? 'tmdb_movie' : 'tmdb_show'));
   if (target) {
     const args = {providerContext: context, id: Number(target.id), type: isMovie ? 'movie' : 'tv'};
     const media = context.metadataTasks ? await context.metadataTasks.run({source: 'tmdb', kind: 'media',
@@ -35,7 +49,14 @@ async function enrichWorld(record, {providerRoot, cacheRoot, signal, previous, s
   for (const source of record.episodes) {
     if ((needsEpisodeIdentity(source.number)||source.metadataMappingStatus==='unresolved')) continue;
     const number = /^\d+(?:\.\d+)?$/.test(String(source.number)) ? Number(source.number) : null;
-    const resolved = number == null ? null : mapping.resolveAniBridgeEpisodeMappings(resolution, number);
+    const manualNumber = externalOverride && Number.isSafeInteger(number) && number > 0 &&
+      (externalOverride.episodeMap ? externalOverride.episodeMap[String(number)] :
+        number <= externalOverride.episodeCount ? number : null);
+    const discovered = number == null ? null : mapping.resolveAniBridgeEpisodeMappings(resolution, number);
+    const resolved = manualNumber != null ? {seasonNumber:externalOverride.seasonNumber,
+      mappings:[{provider:'tmdb_show',id:String(externalOverride.tmdbShowId),
+        seasonNumber:externalOverride.seasonNumber,episodeNumbers:[manualNumber]},
+      ...(discovered?.mappings || []).filter(value => value.provider !== 'tmdb_show')]} : discovered;
     episodeMappings.set(source.id, resolved);
     for (const target of resolved?.mappings || []) {
       if (target.provider !== 'tmdb_show' || target.seasonNumber == null || target.episodeNumbers.length !== 1) continue;
@@ -109,7 +130,7 @@ async function enrichWorld(record, {providerRoot, cacheRoot, signal, previous, s
   const failed = Object.values(tasks).some(task => task.status === 'error') || context.externalStatus?.tmdbWeb?.transientFailures > 0;
   return {info, episodes, mappings: mapped.mappings, artworkInventory, artworkLibrary: context.artworkLibrary,
     metadataTasks: tasks, sourceStatus: context.externalStatus,
-    enrichment: {status: failed ? 'retry' : resolution.targets?.length ? 'ready' : 'unmapped',
-      mappingFingerprint: hash(resolution.targets || [])}};
+    enrichment: {status: failed ? 'retry' : externalOverride || resolution.targets?.length ? 'ready' : 'unmapped',
+      mappingFingerprint: hash([resolution.targets || [], externalOverride || null])}};
 }
 module.exports = {enrichWorld, enrichSource:enrichWorld};

@@ -106,6 +106,18 @@ test('variants retained, conflicts isolated and artwork origins namespaced', () 
   assert.equal(record.providers.animeworld.length,1);
   assert.equal(record.providerImages.animeworld[0].url.base,'animeworld:img');
 });
+
+test('provider descriptions remain available in the final item', () => {
+  const source=anime(10,null);
+  source.sourceMetadata={info:{type:'TV',synopsis:'Sinossi originale'},seo:{description:'Descrizione'}};
+  source.related=[{title:'Correlato',url:{base:'site',path:'/related'}}];
+  source.trailers=[{title:'Trailer',url:'https://example.invalid/trailer'}];
+  const record=baseRecord(groupEntries([entry('animesaturn',source)]).groups[0]);
+  const variant=record.providers.animesaturn[0];
+  assert.equal(variant.providerMetadata.sourceMetadata.info.synopsis,'Sinossi originale');
+  assert.equal(variant.providerMetadata.related[0].url.base,'animesaturn:site');
+  assert.equal(variant.providerMetadata.trailers[0].title,'Trailer');
+});
 test('canonical ID survives arrival on AnimeUnity and temporarily missing membership', () => {
   const first = groupEntries([entry('animeworld',anime(4,12))]);
   const next = groupEntries([entry('animeunity',anime(8,12)),entry('animeworld',anime(4,12))], first.registry);
@@ -439,6 +451,38 @@ test('external adapter groups season calls and fills TVDB fields modularly',asyn
   }});
   assert.equal(seasonCalls,1);assert.equal(result.episodes[0].title,'Titolo');
   assert.equal(result.episodes[0].synopsis,'Sinossi TVDB');assert.equal(result.episodes.length,2);
+});
+
+test('reviewed TMDB season mapping enriches episodes without AniList or MAL',async()=>{
+  const record=anime(1,null);record.episodes=[{id:11,number:'1',title:'MISSIONE: ZERO'}];
+  let mediaCalls=0, seasonCalls=0;
+  const result=await enrichWorld(record,{externalOverride:{tmdbShowId:289892,imdbId:'tt10691770',seasonNumber:0,episodeMap:{'1':10}},services:{
+    skipAniZip:true,context:{externalStatus:{tmdbWeb:{transientFailures:0}}},
+    'mappings/index.js':{resolveAnimeMappings:async()=>({targets:[],ids:{}}),
+      buildAniBridgeExtra:()=>({}),resolveAniBridgeEpisodeMappings:()=>({mappings:[]})},
+    'tmdb/index.js':{resolveTmdbMediaMetadata:async()=>{mediaCalls++;return {overview:{value:'Helluva Boss'}};},
+      resolveTmdbEpisodeSeasonMetadata:async args=>{seasonCalls++;assert.equal(args.seasonNumber,0);
+        assert.deepEqual(args.episodeNumbers,[10]);return {episodes:[{episodeNumber:10,title:{value:'Missione Zero'}}]};}},
+    fillGaps:async()=>{},artwork:async(_,__,___,mapped)=>{
+      assert.equal(mapped.metadataTargets[0].scope,'s0');
+      assert.deepEqual(mapped.metadataTargets[0].ranges,{});
+      return {poster:[],background:[],logo:[]};}
+  }});
+  assert.equal(mediaCalls,1);assert.equal(seasonCalls,1);
+  assert.equal(result.info.extra.ids.tmdbShowIds[0],289892);
+  assert.equal(result.info.extra.imdbId,'tt10691770');
+  assert.equal(result.episodes[0].externalMappings[0].episodeNumbers[0],10);
+  assert.equal(result.episodes[0].title,'Missione Zero');
+  assert.equal(result.enrichment.status,'ready');
+});
+
+test('Hazbin Hotel and Helluva Boss overrides cover only the confirmed seasons',()=>{
+  const reviewed=require('../overrides.json').$externalMetadata;
+  assert.deepEqual(['work-6362','work-6445','work-6719','work-6466','work-6729']
+    .map(id=>[id,reviewed[id].tmdbShowId,reviewed[id].seasonNumber,reviewed[id].episodeCount || reviewed[id].episodeMap['1']]),[
+      ['work-6362',94954,1,8],['work-6445',94954,2,8],
+      ['work-6719',289892,1,8],['work-6466',289892,2,12],['work-6729',289892,0,10]
+    ]);
 });
 test('workflows never trigger on push and publish only their data branch',()=>{
   const yaml=fs.readFileSync(path.join(__dirname,'../../.github/workflows/update-unified.yml'),'utf8');
