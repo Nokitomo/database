@@ -38,12 +38,11 @@ test('AnimeUnity restores and publishes only its data branch and resumes its ori
  const failure=spawnSync(bash,['-c','export PATH="$AU_BIN:$PATH"; bash providers/animeunity/scripts/checkpoint.sh restore'],{cwd:missing,encoding:'utf8',env:{...env,AU_BIN:binPath,GH_REPO:'test/animeunity'}});
  assert.notEqual(failure.status,0);assert(!fs.existsSync(path.join(missing,data,'raw/index.json')));
 });
-test('migration workflows pin code, require the saved data and never publish main',()=>{
+test('AnimeUnity workflow pins code, requires the saved data and never publishes main',()=>{
  const read=p=>fs.readFileSync(path.join(repo,p),'utf8');const yaml=read('.github/workflows/update-animeunity.yml'),shell=read('providers/animeunity/scripts/checkpoint.sh');
  assert.match(yaml,/ref: \$\{\{ github.sha \}\}/);assert.match(yaml,/npm run verify:all/);assert.match(yaml,/single_batch:/);assert.match(yaml,/verify_only:/);
  assert.match(yaml,/data\/vega-providers.ref/);assert(!yaml.includes('rev-parse HEAD > vega-providers.ref'));
  assert.match(shell,/Missing checkpoint/);assert.match(shell,/fetch --depth=1 origin "\$data_branch"/);assert(!shell.includes('pull --rebase'));assert(!shell.includes('push origin main'));
  assert.match(read('unified/scripts/run-workflow.sh'),/for provider in animeunity animeworld/);
- assert.match(read('.github/workflows/migrate-animeunity-links.yml'),/checkpoint.sh publish/);
  const {DATA,ROOT}=require('../scripts/lib');assert.equal(ROOT,repo);assert.equal(DATA,path.join(repo,'providers/animeunity/data'));
 });
