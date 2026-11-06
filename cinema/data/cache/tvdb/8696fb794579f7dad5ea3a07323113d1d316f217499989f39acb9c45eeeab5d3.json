@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tvdb","kind":"season-image","input":{"tvdbId":83123,"mediaType":"series","seasonNumber":5,"field":"poster","inventoryVersion":1},"checkedAt":1793978326706,"status":"ok","retryCount":0,"value":["https://artworks.thetvdb.com/banners/seasons/83123-5-2.jpg"],"failure":null,"fields":{},"episodes":{}}

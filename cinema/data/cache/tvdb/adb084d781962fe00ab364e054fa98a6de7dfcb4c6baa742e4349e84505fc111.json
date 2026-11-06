@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tvdb","kind":"season-image","input":{"tvdbId":83123,"mediaType":"series","seasonNumber":1,"field":"poster","inventoryVersion":1},"checkedAt":1793978317258,"status":"ok","retryCount":0,"value":["https://artworks.thetvdb.com/banners/seasons/83123-1-8.jpg"],"failure":null,"fields":{},"episodes":{}}
