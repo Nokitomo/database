@@ -3,6 +3,7 @@
 const path = require('node:path');
 const {DATA, hash, readJson, writeJson} = require('./lib');
 const {canonical} = require('./incremental');
+const metrics = require('../../../shared/metrics');
 const DAY = 86400000;
 const DEFAULT_FIELDS = ['logo', 'poster', 'background'];
 
@@ -48,11 +49,13 @@ function createMetadataTasks({root = path.join(DATA, 'enrichment-cache'), now = 
         : {...value, episodes: (value.episodes || []).filter(episode => numbers.includes(episode.episodeNumber))}
         : value;
       if (reusable) {
+        metrics.add('metadataCache', 'hits');
         remember(old);
         log(`[metadata] ${task.source}/${task.kind}: cached`);
         return select(old.value);
       }
       const before = failures(task.source);
+      metrics.add('metadataCache', 'misses');
       let value;
       let thrown;
       try { value = await load(missingNumbers || undefined); }

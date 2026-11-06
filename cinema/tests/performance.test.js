@@ -38,6 +38,7 @@ test('default batches exceed ten, checkpoint each title, and resume only remaini
   assert.equal(result.processed,100);assert.equal(result.pendingCount,5);assert.equal(result.hasImmediateWork,true);
   assert.equal(Object.keys(read(path.join(options.output,'state.json'))).length,100);
   assert(result.timings.sourcesMs>=0&&result.timings.publicationMs>=0&&result.timings.totalMs>=0);
+  assert.deepEqual(result.externalMetrics,{}); // Fake enrichment performs no HTTP/cache work.
   result=await run({...options,enrich,now:2});
   assert.equal(result.processed,5);assert.equal(calls,105);assert.equal(result.pendingCount,0);assert.equal(verify(options.output).complete,true);
   assert.equal((await run({...options,enrich,now:3})).processed,0);assert.equal(calls,105);

@@ -20,6 +20,18 @@ The last nine inter-batch intervals in the retrieved log were 156–192 seconds 
 
 Batch limits must be nonnegative safe integers. In `all` mode, the title limit must be at least 1 and the budget must exceed 1,000 ms (the reserved margin before starting an enrichment). Invalid values fail before source loading or output writes, preventing continuation loops that cannot process a title. `merge` mode still permits zero limits because it intentionally performs no enrichment.
 
+### External-service diagnostics
+
+Each `CINEMA_BATCH` also includes `externalMetrics`, isolated to that batch (including identity resolution). Counters live in memory and are not stored in catalog records or fingerprints. Missing counters mean zero observed events.
+
+- `tmdbApi`, `tmdbWeb`, `tvdb`, `wikidata`, `other`: transport `attempts`, `succeeded`, `failed`, `requestMs`, HTTP errors such as `http429`, and `networkOrAbort`. Retries count as additional attempts. `requestMs` excludes limiter waits. `limiterWaitMs` includes both pacing and rate-limit backoff; `retryDecisions` counts accepted 429 retry decisions, including those subsequently rejected for excessive Retry-After.
+- `tmdbWebCurl`: separate attempts, outcomes and timing for the curl fallback after web 403. Its elapsed time includes curl startup and WARP validation.
+- `tmdbPhases`, `tvdbPhases`, `wikidataPhases`: resolver calls, failures and elapsed time, including their cache work, HTTP calls and waits. These overlap transport timings: do not add them together.
+- `cache`: string/file read hits and misses, confirmed-missing resource hits and enrichment checkpoint hits. String/file hits mean a value was returned to the resolver, which can still reject it as stale. Checkpoint hits include reuse within the current record as well as resumed drafts.
+- `metadataCache`: hits where a durable metadata task was reusable, and misses where loading was required (including partial refreshes).
+
+No URLs, query strings, cache keys, payloads or credentials are included. HTTP redirects inside a transport and work inside external resolvers that bypass the supplied context are not individually counted. Summed request durations can exceed wall time if requests overlap. Request pacing, retries, fallback behavior and checkpoint contents are unchanged.
+
 ## Offline benchmark
 
 Node v24.22.1 on this workspace; medians of three runs per variant, alternating baseline/optimized. The real sample is shard `00` (blob `54ba4f67d940129112e0388add94e16c2e4eacf9`): 192 records, approximately 6.1 MB. The synthetic fixture has 19,204 deliberately smaller movie records. These are publication-only timings; every benchmark publication is followed by the real verifier outside the timed region. No external API calls are made. These results are not full-catalog production throughput estimates; Actions uses Node 20.

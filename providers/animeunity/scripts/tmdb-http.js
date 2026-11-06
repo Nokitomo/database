@@ -3,6 +3,7 @@
 const {execFile} = require('node:child_process');
 const {promisify} = require('node:util');
 const {assertWarp} = require('./warp');
+const metrics = require('../../../shared/metrics');
 
 const runFile = promisify(execFile);
 const reported = new Set();
@@ -75,7 +76,7 @@ function createTmdbGet(get, {fallback = curlTmdbHtml, log = console.error} = {})
       }
       if (host !== 'www.themoviedb.org' || Number(error?.response?.status) !== 403) throw error;
       try {
-        const html = await fallback(url, options);
+        const html = await metrics.request(url, () => fallback(url, options), 'tmdbWebCurl');
         reportOnce('web-curl-success', '[tmdb-web] Axios HTTP 403; curl fallback succeeded', log);
         return {data: html, status: 200};
       } catch (fallbackError) {
