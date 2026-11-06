@@ -25,37 +25,51 @@ function createPacedGet(get, options = {}) {
   const check = options.check || (() => {});
   const nextAt = new Map();
   const blockedUntil = new Map();
-  return async (url, requestOptions) => {
+  const admissions = new Map();
+  const limitedError = (host, until) => {
+    const error = new Error(`Rate limit deferred for ${host}`);
+    error.response = {status: 429};error.code = 'RATE_LIMIT_DEFERRED';
+    error.retryAt = until;error.retryAfterMs = Math.max(0, until - now());return error;
+  };
+  return async (url, requestOptions, cooldownStore) => {
     const host = new URL(url).hostname.toLowerCase();
     const gap = gaps[host] || 0;
     const bucket = metrics.service(url);
     const pauseFor = async ms => {
       const start = now();
-      try { await wait(ms); } finally { metrics.add(bucket, 'limiterWaitMs', Math.max(0, now() - start)); }
+      try {
+        if (requestOptions?.signal && !options.sleep) await require('node:timers/promises').setTimeout(ms, undefined, {signal: requestOptions.signal});
+        else await wait(ms);
+      } finally { metrics.add(bucket, 'limiterWaitMs', Math.max(0, now() - start)); }
     };
     if (!gap) { check(); return metrics.request(url, () => get(url, requestOptions)); }
     for (let attempt = 0; attempt < 5; attempt++) {
-      const at = now();
-      const slot = Math.max(at, nextAt.get(host) || 0, blockedUntil.get(host) || 0);
-      nextAt.set(host, slot + gap);
-      if (slot > at) await pauseFor(slot - at);
-      while ((blockedUntil.get(host) || 0) > now()) {
-        await pauseFor(blockedUntil.get(host) - now());
-      }
+      const admission = (admissions.get(host) || Promise.resolve()).catch(() => {}).then(async () => {
+        while (true) {
+          requestOptions?.signal?.throwIfAborted();
+          const at = now(), until = Math.max(blockedUntil.get(host) || 0, cooldownStore?.read(host) || 0);
+          if (until - at > MAX_RETRY_WAIT_MS) throw limitedError(host, until);
+          const slot = Math.max(at, nextAt.get(host) || 0, until);
+          if (slot <= at) {nextAt.set(host, at + gap);return;}
+          await pauseFor(slot - at);
+        }
+      });
+      admissions.set(host, admission);
+      await admission;
       check();
       try { return await metrics.request(url, () => get(url, requestOptions)); }
       catch (error) {
-        if (Number(error?.response?.status) !== 429 || attempt === 4) throw error;
-        metrics.add(bucket, 'retryDecisions');
+        if (Number(error?.response?.status) !== 429) throw error;
         const headers = error.response?.headers;
         const header = headers?.get?.('retry-after') ?? headers?.['retry-after'] ?? headers?.['Retry-After'];
         const pause = Math.max(2000, retryAfterMs(header, now()) ?? Math.min(30000, 2000 * 2 ** attempt));
-        if (pause > MAX_RETRY_WAIT_MS) {
-          const limited = new Error(`Rate limit requires waiting more than ${MAX_RETRY_WAIT_MS / 1000} seconds for ${host}`);
-          limited.retryAfterMs = pause;
-          throw limited;
-        }
         blockedUntil.set(host, Math.max(blockedUntil.get(host) || 0, now() + pause));
+        cooldownStore?.write(host, blockedUntil.get(host));
+        if (pause > MAX_RETRY_WAIT_MS) {
+          throw limitedError(host, blockedUntil.get(host));
+        }
+        if (attempt === 4) throw error;
+        metrics.add(bucket, 'retryDecisions');
       }
     }
   };

@@ -42,6 +42,11 @@ function createContext(providerRoot, baseUrl, raw = null, contextOptions = {}) {
   const externalStatus = {tmdbWeb: {attempts: 0, transientFailures: 0, lastFailureCode: null}};
   const failureCounts = {};
   const failureDetails = {};
+  let retryAt = 0;
+  const cooldownStore = contextOptions.componentCacheRoot ? {
+    read: host => readJson(path.join(contextOptions.componentCacheRoot, 'rate-limits', hash(host)+'.json'))?.until || 0,
+    write: (host, until) => writeJson(path.join(contextOptions.componentCacheRoot, 'rate-limits', hash(host)+'.json'), {until}),
+  } : undefined;
   const resources = contextOptions.resources || createResourceCache({
     ...(raw ? {} : {root: path.join(contextOptions.componentCacheRoot || cacheDir, 'tmdb-resources')}),
     ...contextOptions.resourceCacheOptions,
@@ -89,8 +94,9 @@ function createContext(providerRoot, baseUrl, raw = null, contextOptions = {}) {
       }
       if (isTmdbWeb) externalStatus.tmdbWeb.attempts++;
       try {
-        return await (contextOptions.httpGet || tmdbGet)(url, boundedRequestOptions(options, contextOptions.signal));
+        return await (contextOptions.httpGet || tmdbGet)(url, boundedRequestOptions(options, contextOptions.signal), cooldownStore);
       } catch (error) {
+        retryAt = Math.max(retryAt, error.retryAt || 0);
         const status = Number(error?.response?.status) || 0;
         const route = resourcePath(url);
         if (status === 404 && route) resources.save(route, 'missing', {httpStatus: 404});
@@ -125,6 +131,8 @@ function createContext(providerRoot, baseUrl, raw = null, contextOptions = {}) {
   return {
     axios: client, cheerio, Aes: {}, commonHeaders: {}, getBaseUrl: async () => baseUrl,
     externalStatus, resources, signal: contextOptions.signal,
+    failureSnapshot: () => ({...failureCounts}),
+    retryAfterAt: () => retryAt,
     metadataTasks: contextOptions.durableMetadata ? createMetadataTasks({
       root: contextOptions.componentCacheRoot, failures: source => failureCounts[source] || 0,
       failureDetails: source => failureDetails[source] || null,

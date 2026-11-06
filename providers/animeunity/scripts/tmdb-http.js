@@ -58,10 +58,10 @@ async function curlTmdbHtml(url, options = {}, check = assertWarp) {
 }
 
 function createTmdbGet(get, {fallback = curlTmdbHtml, log = console.error} = {}) {
-  return async (url, options) => {
+  return async (url, options, cooldownStore) => {
     const host = new URL(url).hostname.toLowerCase();
     try {
-      const response = await get(url, options);
+      const response = await get(url, options, cooldownStore);
       if (host === 'api.themoviedb.org') {
         reportOnce('api-success', `[tmdb-api] HTTP ${response.status}; credential=${credentialKind(process.env.TMDB_API_KEY)}; authentication=${authenticationMethod(process.env.TMDB_API_KEY)}`, log);
       }

@@ -4,15 +4,40 @@ const {meaningful}=require('./catalog');
 const {explicitTarget,confirmedMatch}=require('./episode-identity');
 const {needsEpisodeIdentity}=require('../../providers/animeunity/scripts/episode-safety');
 const metrics=require('../../shared/metrics');
-async function enrich(record,{providerRoot,cacheRoot,signal,progress={},save=()=>{},services={}}){
+const {createTmdbAdapter,mediaFields}=require('./tmdb-adapter');
+function retainAvailable(old,value){
+  if(value==null||value?.status==='unavailable')return old??value;
+  if(value?.status)return value;
+  if(typeof value!=='object'||Array.isArray(value))return value;
+  const result={...old};for(const [key,next]of Object.entries(value))result[key]=retainAvailable(old?.[key],next);return result;
+}
+async function enrich(record,{providerRoot,cacheRoot,signal,progress={},save=()=>{},services={},previous,now=Date.now()}){
   const load=name=>services[name]||requireProvider(providerRoot,name),context=services.context||createContext(providerRoot,'https://source.invalid',null,{durableMetadata:true,componentCacheRoot:cacheRoot,signal});
   const out=structuredClone(record),tmdb=load('tmdb/index.js'),tvdb=load('tvdb/index.js');
-  const checkpoint=async(key,fn)=>{signal?.throwIfAborted();if(!Object.hasOwn(progress,key)){
+  if(previous){
+    for(const [key,value]of Object.entries(previous.info||{}))if(out.info[key]==null||out.info[key]===''||Array.isArray(out.info[key])&&!out.info[key].length)out.info[key]=value;
+    out.externalMedia=structuredClone(previous.externalMedia||{});out.artworkLibrary=structuredClone(previous.artworkLibrary||{});
+  }
+  const components=progress.__components||={};let phaseFailures=0;
+  const failureCount=()=>Object.values(context.failureSnapshot?.()||{}).reduce((a,b)=>a+b,0)+(context.metadataTasks?.errorCount?.()||0);
+  const checkpoint=async(key,fn)=>{signal?.throwIfAborted();
+    if(components[key]?.nextCheckAt>now){phaseFailures++;return progress[key]??null;}
+    if(!Object.hasOwn(progress,key)||components[key]){
+    const before=failureCount(),webBefore=context.externalStatus?.tmdbWeb?.transientFailures||0,childrenBefore=phaseFailures;
     const phase=key.startsWith('tmdb:')?'tmdbPhases':key.startsWith('tvdb:')?'tvdbPhases':'wikidataPhases';
-    const result=await metrics.phase(phase,fn);
-    if(Object.values(context.metadataTasks?.snapshot()||{}).some(t=>t.status==='error')||context.externalStatus?.tmdbWeb?.transientFailures>0)throw Error('External metadata request failed: '+key);
-    progress[key]=result;save(progress);
+    try{
+      const result=await metrics.phase(phase,fn);
+      if(phaseFailures>childrenBefore)return result;
+      if(failureCount()>before||(context.externalStatus?.tmdbWeb?.transientFailures||0)>webBefore)throw Error('External metadata request failed: '+key);
+      progress[key]=result;delete components[key];save(progress);
+    }catch(error){
+      signal?.throwIfAborted();phaseFailures++;
+      const attempts=(components[key]?.attempts||0)+1;
+      components[key]={attempts,nextCheckAt:Math.max(now+Math.min(86400000,3600000*2**Math.min(attempts-1,5)),error.retryAt||0,context.retryAfterAt?.()||0),status:'retry',httpStatus:Number(error.response?.status)||null};
+      save(progress);return progress[key]??null;
+    }
   }else metrics.add('cache','checkpointHits');return progress[key];};
+  const adapter=providerRoot&&!services['tmdb/index.js']?createTmdbAdapter(load,context,checkpoint):null;
   const type=out.info.type==='movie'?'movie':'tv',tmdbId=Number(out.sourceIds.tmdb);
   let tvdbId=Number(out.sourceIds.tvdb);
   if(tmdbId&&(!out.sourceIds.imdb||!tvdbId)&&(providerRoot||services['wikidata/index.js'])){
@@ -22,13 +47,15 @@ async function enrich(record,{providerRoot,cacheRoot,signal,progress={},save=()=
     else if(conflict)out.warnings.push({reason:'wikidata-external-id-conflict'});
   }
   const conflicts=new Set(out.warnings.filter(w=>w.season!==undefined).map(w=>w.season));
-  if(tmdbId){const media=await checkpoint('tmdb:media',()=>tmdb.resolveTmdbMediaMetadata({providerContext:context,id:tmdbId,type}));
-    out.info.synopsis ||= media?.overview?.value;out.externalMedia={tmdb:media};
-    for(const field of ['year','runtime','rating','genres','cast'])if(out.info[field]==null||Array.isArray(out.info[field])&&!out.info[field].length)out.info[field]=media?.[field]?.value??media?.[field];
-    out.artworkLibrary={tmdb:await checkpoint('tmdb:artwork',()=>load('tmdb/artworkLibrary.js').resolveTmdbArtworkLibrary({providerContext:context,id:tmdbId,type}))};
+  if(tmdbId){const media=await checkpoint('tmdb:media',()=>adapter?adapter.media(tmdbId,type,out.info):tmdb.resolveTmdbMediaMetadata({providerContext:context,id:tmdbId,type}));
+    out.info.synopsis ||= media?.overview?.value;out.externalMedia||={};if(media)out.externalMedia.tmdb=media;
+    const values=mediaFields(media);
+    for(const field of ['year','runtime','rating','genres','cast'])if(out.info[field]==null||out.info[field]===''||Array.isArray(out.info[field])&&!out.info[field].length)out.info[field]=values?.[field]?.value??values?.[field];
+    const artwork=await checkpoint('tmdb:artwork',()=>adapter?adapter.artwork(tmdbId,type):load('tmdb/artworkLibrary.js').resolveTmdbArtworkLibrary({providerContext:context,id:tmdbId,type}));
+    out.artworkLibrary||={};if(artwork)out.artworkLibrary.tmdb=retainAvailable(out.artworkLibrary.tmdb,artwork);
   }
   if(tvdbId&&!out.info.synopsis&&tvdb.resolveTvdbMediaTextMetadata){const media=await checkpoint('tvdb:media',()=>tvdb.resolveTvdbMediaTextMetadata({providerContext:context,tvdbId,mediaType:type==='tv'?'series':'movie'}));out.info.synopsis ||= media?.synopsis;out.externalMedia||={};out.externalMedia.tvdb=media;}
-  if(tvdbId){out.artworkLibrary||={};out.artworkLibrary.tvdb=await checkpoint('tvdb:artwork',()=>load('tvdb/artworkLibrary.js').resolveTvdbArtworkLibrary({providerContext:context,tvdbId,mediaType:type==='tv'?'series':'movie',mappedSeasons:out.seasons.map(s=>s.number)}));}
+  if(tvdbId){out.artworkLibrary||={};const artwork=await checkpoint('tvdb:artwork',()=>load('tvdb/artworkLibrary.js').resolveTvdbArtworkLibrary({providerContext:context,tvdbId,mediaType:type==='tv'?'series':'movie',mappedSeasons:out.seasons.map(s=>s.number)}));if(artwork)out.artworkLibrary.tvdb=artwork;}
   for(const season of out.seasons){
     if(out.episodeMappingUncertain||conflicts.has(season.number))continue;
     const eligible=season.episodes.filter(e=>!needsEpisodeIdentity(e.number));
@@ -55,9 +82,20 @@ async function enrich(record,{providerRoot,cacheRoot,signal,progress={},save=()=
     }
   }
   const tasks=context.metadataTasks?.snapshot()||{};out.metadataTasks=tasks;out.sourceStatus=context.externalStatus;
-  const failed=Object.values(tasks).some(t=>t.status==='error')||context.externalStatus?.tmdbWeb?.transientFailures>0;
+  const failed=phaseFailures>0||Object.keys(components).length>0;
+  if(failed&&previous){
+    for(const season of out.seasons)for(const episode of season.episodes){
+      const old=previous.seasons?.find(s=>s.number===season.number)?.episodes?.find(e=>String(e.number)===String(episode.number));
+      if(!old)continue;
+      for(const field of ['title','synopsis','thumbnail'])if((field==='title'?!meaningful(episode[field]):!episode[field])&&old[field]){
+        episode[field]=old[field];const key=`${season.number}:${episode.number}:${field}`;if(previous.provenance?.[key])out.provenance[key]=previous.provenance[key];
+      }
+      episode.externalMappings={...old.externalMappings,...episode.externalMappings};episode.metadataSources={...old.metadataSources,...episode.metadataSources};
+    }
+  }
   const missing=out.seasons.some(s=>s.episodes.some(e=>!meaningful(e.title)||!e.synopsis||!e.thumbnail));
-  out.enrichment={status:failed?'retry':!tmdbId&&!tvdbId?'unmapped':'ready',hasMissingEpisodeMetadata:missing};
+  out.enrichment={status:failed?'retry':!tmdbId&&!tvdbId?'unmapped':'ready',hasMissingEpisodeMetadata:missing,
+    ...(failed?{pendingComponents:Object.keys(components),nextCheckAt:Math.min(...Object.values(components).map(c=>c.nextCheckAt))}:{} )};
   return out;
 }
 module.exports={enrich};

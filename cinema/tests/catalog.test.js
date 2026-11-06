@@ -61,8 +61,8 @@ test('failed external requests do not checkpoint success; successful phases resu
   const r=mergeGroup(group([entry('streamingunity',1)]).groups[0]),progress={};let calls=0,fail=true;
   const services={context:{},'tmdb/index.js':{resolveTmdbMediaMetadata:async()=>{calls++;return {overview:{value:'Plot'}};},resolveTmdbEpisodeSeasonMetadata:async()=>({episodes:[]})},'tvdb/index.js':{},
     'tmdb/artworkLibrary.js':{resolveTmdbArtworkLibrary:async()=>{if(fail)throw Error('network');return {};}}};
-  await assert.rejects(enrich(r,{services,progress}),/network/);assert(progress['tmdb:media']);assert(!progress['tmdb:artwork']);
-  fail=false;await enrich(r,{services,progress});assert.equal(calls,1);
+  const partial=await enrich(r,{services,progress,now:1});assert.equal(partial.enrichment.status,'retry');assert(progress['tmdb:media']);assert(!progress['tmdb:artwork']);
+  fail=false;const resumed=await enrich(r,{services,progress,now:3600002});assert.equal(calls,1);assert.equal(resumed.enrichment.status,'ready');
 });
 
 

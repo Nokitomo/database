@@ -111,3 +111,19 @@ test('coverage refreshes after one day and corrupt coverage cannot be silently r
   const corrupt=read(file);corrupt.entries=[];write(file,corrupt);
   await assert.rejects(run({...options,now:3}),/coverage/);
 });
+test('retry records retain component drafts and reuse them after more than a day',async t=>{
+  const {options}=fixture(t,1);let calls=0;
+  const enrich=async(r,{progress,save})=>{
+    calls++;if(!progress.saved){progress.saved={ok:true};save(progress);return {...r,enrichment:{status:'retry',nextCheckAt:2*86400000}};}
+    assert(progress.saved.ok);return options.enrich(r);
+  };
+  await run({...options,enrich});
+  assert(read(path.join(options.output,'drafts/work-1.json')).progress.saved.ok);
+  assert.equal((await run({...options,enrich,now:86400001})).processed,0);
+  assert.equal((await run({...options,enrich,now:2*86400000+1})).pendingCount,0);assert.equal(calls,2);
+});
+test('cached year and duration repair needs no new enrichment',async t=>{
+  const {options}=fixture(t,1);await run({...options,enrich:async r=>({...r,externalMedia:{tmdb:{releaseDate:'2001-01-01',facts:{Runtime:'90m'}}},enrichment:{status:'ready'}})});
+  await run({...options,now:2,enrich:async()=>assert.fail('must reuse cached metadata')});
+  const item=read(path.join(options.output,'items/work-1.json'));assert.equal(item.info.year,2001);assert.equal(item.info.runtime,90);
+});

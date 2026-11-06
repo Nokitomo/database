@@ -11,6 +11,7 @@ function createMetadataTasks({root = path.join(DATA, 'enrichment-cache'), now = 
   failures = () => 0, failureDetails = () => null, log = console.log, signal, initialTasks = {}} = {}) {
   const used = new Map(Object.entries(initialTasks));
   const inFlight = new Map();
+  let errorCount = 0;
   const ttl = entry => entry.status === 'error'
     ? Math.min(7 * DAY, 30 * 60000 * 2 ** Math.min(9, Math.max(0, (entry.retryCount || 1) - 1)))
     : entry.status === 'missing' ? 30 * DAY : 90 * DAY;
@@ -34,6 +35,7 @@ function createMetadataTasks({root = path.join(DATA, 'enrichment-cache'), now = 
           usedFields ? usedFields.map(field => entry.fields?.[field]).filter(Boolean) : [entry];
         const status = parts.some(part => part.status === 'error') ? 'error' :
           parts.some(part => part.status === 'missing') ? 'missing' : entry.status;
+        if (status === 'error') errorCount++;
         used.set(key, {source: task.source, kind: task.kind, input: task.input, status,
           episodeNumbers: usedNumbers, fields: usedFields,
           nextCheckAt: Math.min(...(parts.length ? parts : [entry])
@@ -111,7 +113,7 @@ function createMetadataTasks({root = path.join(DATA, 'enrichment-cache'), now = 
     inFlight.set(key, operation);
     try { return await operation; } finally { if (inFlight.get(key) === operation) inFlight.delete(key); }
   };
-  return {run, snapshot: () => Object.fromEntries(used)};
+  return {run, snapshot: () => Object.fromEntries(used), errorCount: () => errorCount};
 }
 
 module.exports = {createMetadataTasks};

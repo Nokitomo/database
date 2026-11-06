@@ -5,6 +5,7 @@ const episodeOverrides=require('../episode-overrides.json');
 const {read,write,hash}=require('../../shared/storage/json');
 const {loadSources,group,mergeGroup,publish}=require('./catalog');
 const {enrich:defaultEnrich}=require('./enrich');
+const {mediaFields}=require('./tmdb-adapter');
 const metrics=require('../../shared/metrics');
 const run=options=>metrics.capture(()=>runBatch(options));
 async function runBatch({roots,output,providerRoot,enrich=defaultEnrich,stage='all',now=Date.now(),budgetMs=180000,limit=100,identityLookup,selectedProviders}){
@@ -29,16 +30,21 @@ async function runBatch({roots,output,providerRoot,enrich=defaultEnrich,stage='a
     const file=path.join(output,'enriched',id+'.json'),old=read(file),due=!state[id]||state[id].fingerprint!==fingerprint||state[id].nextCheckAt<=now;
     timings.enrichedReadMs=(timings.enrichedReadMs||0)+clock()-phaseStart;
     let enriched=old?.fingerprint===fingerprint?old.record:null;
+    if(enriched){
+      const cached=mediaFields(enriched.externalMedia?.tmdb);let repaired=false;
+      for(const field of ['year','runtime'])if((enriched.info[field]==null||enriched.info[field]==='')&&cached[field]!=null){enriched.info[field]=cached[field];repaired=true;}
+      if(repaired)write(file,{fingerprint,record:enriched});
+    }
     if(due&&base.active){pendingCount++;if(stage==='all'&&processed<limit&&Date.now()-start<budgetMs-1000){
       processed++;const draftFile=path.join(output,'drafts',id+'.json'),draft=read(draftFile);
-      const resumable=draft?.fingerprint===fingerprint&&now-draft.startedAt<86400000,progress=resumable?draft.progress:{},startedAt=resumable?draft.startedAt:now;
+      const resumable=draft?.fingerprint===fingerprint&&now-draft.startedAt<30*86400000,progress=resumable?draft.progress:{},startedAt=resumable?draft.startedAt:now;
       const externalStart=clock();
-      try{enriched=await enrich(base,{providerRoot,cacheRoot:path.join(output,'cache'),signal:AbortSignal.timeout(Math.max(1,budgetMs-(Date.now()-start))),progress,
+      try{enriched=await enrich(base,{providerRoot,cacheRoot:path.join(output,'cache'),signal:AbortSignal.timeout(Math.max(1,budgetMs-(Date.now()-start))),progress,previous:enriched,now,
         save:progress=>write(draftFile,{fingerprint,startedAt,progress})});
         const retry=enriched.enrichment?.status==='retry';
         const missing=enriched.enrichment?.hasMissingEpisodeMetadata||enriched.enrichment?.status==='unmapped';
-        state[id]={fingerprint,nextCheckAt:now+(retry?3600000:(missing?7:30)*86400000)};
-        write(file,{fingerprint,record:enriched});write(draftFile,null);if(!retry)pendingCount--;
+        state[id]={fingerprint,nextCheckAt:retry&&Number.isFinite(enriched.enrichment?.nextCheckAt)?Math.max(now+1000,enriched.enrichment.nextCheckAt):now+(retry?3600000:(missing?7:30)*86400000)};
+        write(file,{fingerprint,record:enriched});if(!retry){write(draftFile,null);pendingCount--;}
       }catch(e){state[id]={fingerprint,nextCheckAt:now+3600000,error:String(e.message).slice(0,250)};}
       timings.enrichmentMs=(timings.enrichmentMs||0)+clock()-externalStart;
       const checkpointStart=clock();write(path.join(output,'state.json'),state);
