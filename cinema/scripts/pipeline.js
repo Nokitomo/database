@@ -7,7 +7,8 @@ const {loadSources,group,mergeGroup,publish}=require('./catalog');
 const {enrich:defaultEnrich}=require('./enrich');
 async function run({roots,output,providerRoot,enrich=defaultEnrich,stage='all',now=Date.now(),budgetMs=180000,limit=100,identityLookup,selectedProviders}){
   if(!['all','merge'].includes(stage))throw Error('Invalid stage');
-  if(!Number.isSafeInteger(limit)||limit<0||!Number.isFinite(budgetMs)||budgetMs<0)throw Error('Invalid cinema batch limits');
+  if(!Number.isSafeInteger(limit)||limit<0||!Number.isSafeInteger(budgetMs)||budgetMs<0||
+    (stage==='all'&&(limit===0||budgetMs<=1000)))throw Error('Invalid cinema batch limits: all requires limit >= 1 and budgetMs > 1000 (integer values)');
   const start=Date.now(),timings={},clock=()=>performance.now();let mark=clock();
   const elapsed=key=>{const end=clock();timings[key]=(timings[key]||0)+end-mark;mark=end;};
   const source=loadSources(roots,selectedProviders);elapsed('sourcesMs');

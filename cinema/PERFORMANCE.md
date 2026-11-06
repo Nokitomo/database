@@ -18,6 +18,8 @@ The last nine inter-batch intervals in the retrieved log were 156–192 seconds 
 
 `CINEMA_BATCH.timings` reports source loading, identity, grouping, assembly, enrichment, state checkpoint and publication times. Merge/fingerprint/enriched-read times are breakdowns of assembly time and should not be added to it. Enrichment timing includes draft/cache writes, not just HTTP latency. `CINEMA_CHECKPOINT` reports pipeline, verification, synchronization/WARP and Git wall times in seconds.
 
+Batch limits must be nonnegative safe integers. In `all` mode, the title limit must be at least 1 and the budget must exceed 1,000 ms (the reserved margin before starting an enrichment). Invalid values fail before source loading or output writes, preventing continuation loops that cannot process a title. `merge` mode still permits zero limits because it intentionally performs no enrichment.
+
 ## Offline benchmark
 
 Node v24.22.1 on this workspace; medians of three runs per variant, alternating baseline/optimized. The real sample is shard `00` (blob `54ba4f67d940129112e0388add94e16c2e4eacf9`): 192 records, approximately 6.1 MB. The synthetic fixture has 19,204 deliberately smaller movie records. These are publication-only timings; every benchmark publication is followed by the real verifier outside the timed region. No external API calls are made. These results are not full-catalog production throughput estimates; Actions uses Node 20.

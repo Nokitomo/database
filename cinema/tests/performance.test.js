@@ -48,8 +48,21 @@ test('deadline stops new titles and explicit limits, merge mode, invalid limits 
   const result=await run({...options,budgetMs:1050,enrich:async r=>{calls++;clock+=100;return options.enrich(r);}});
   assert.equal(result.processed,1);assert.equal(calls,1);assert.equal(result.hasImmediateWork,true);
   assert.equal((await run({...options,limit:1,now:2})).processed,1);
-  assert.equal((await run({...options,stage:'merge',now:3})).processed,0);
-  for(const limit of [-1,NaN,1.5])await assert.rejects(run({...options,limit}),/limits/);
+  assert.equal((await run({...options,stage:'merge',limit:0,budgetMs:0,now:3})).processed,0);
+  for(const limit of [-1,0,NaN,Infinity,1.5])await assert.rejects(run({...options,limit}),/limits/);
+  for(const budgetMs of [-1,0,999,1000,NaN,Infinity,1000.5])await assert.rejects(run({...options,budgetMs}),/limits/);
+});
+test('invalid all-mode configuration fails before source reads or output writes',async t=>{
+  const {options}=fixture(t,1),original=fs.readFileSync,writes=[];
+  t.mock.method(fs,'readFileSync',function(file,...args){
+    assert(!String(file).startsWith(options.roots.streamingunity),'invalid configuration must not load sources');
+    return original.call(this,file,...args);
+  });
+  t.mock.method(fs,'writeFileSync',file=>writes.push(file));
+  for(const settings of [{limit:0},{budgetMs:0},{budgetMs:1000}]){
+    await assert.rejects(run({...options,...settings}),/Invalid cinema batch limits/);
+  }
+  assert.equal(writes.length,0);assert.equal(fs.existsSync(options.output),false);
 });
 test('failed titles retain drafts and backoff, then resume saved phases',async t=>{
   const {options}=fixture(t,1);let calls=0;
@@ -67,7 +80,7 @@ test('unchanged records and shards are not rewritten; dirty shard hashes match a
   const {options}=fixture(t,3);await run(options);
   const manifest=read(path.join(options.output,'manifest.json'));
   const before=fs.statSync(path.join(options.output,'coverage.json')).mtimeMs,writes=[],original=fs.writeFileSync;
-  t.mock.method(fs,'writeFileSync',function(file,...args){writes.push(String(file));return original.call(this,file,...args);});
+  t.mock.method(fs,'writeFileSync',function(file,...args){writes.push(String(file).replace(/\\/g,'/'));return original.call(this,file,...args);});
   await run({...options,now:2});
   assert(!writes.some(p=>/\/(items|shards)\//.test(p)));assert.equal(fs.statSync(path.join(options.output,'coverage.json')).mtimeMs,before);
   assert.equal(read(path.join(options.output,'manifest.json')).coverageHash,manifest.coverageHash);
