@@ -24,10 +24,10 @@ test('conflicting episode inventories are preserved per provider and not guessed
   const r=mergeGroup(group([su,alta]).groups[0]);assert.equal(r.seasons[0].episodes.length,1);assert.equal(r.providers.altadefinizione[0].seasons[0].episodes.length,2);assert(r.warnings.length);
 });
 test('TMDB then TVDB fill fields modularly, retaining season zero and skipping fractions',async()=>{
-  const r=mergeGroup(group([entry('streamingunity',1)]).groups[0]);r.sourceIds.tvdb='20';r.seasons[0].episodes.push({number:3.5,title:'Episode 3.5',metadataSources:{}});
+  const r=mergeGroup(group([entry('streamingunity',1)]).groups[0]);r.sourceIds.tvdb='20';r.seasons[0].episodes[0].title='TMDB title';r.seasons[0].episodes.push({number:3.5,title:'Episode 3.5',metadataSources:{}});
   const calls=[],progress={};
-  const services={context:{},'tmdb/index.js':{resolveTmdbMediaMetadata:async()=>({overview:{value:'Series synopsis'}}),resolveTmdbEpisodeSeasonMetadata:async a=>{calls.push('tmdb');assert.equal(a.seasonNumber,0);assert.deepEqual(a.episodeNumbers,[1]);return {episodes:[{episodeNumber:1,title:{value:'TMDB title'},thumbnail:'tmdb.jpg'}]};}},
-    'tvdb/index.js':{resolveTvdbEpisodeFallbacks:async a=>{calls.push('tvdb');assert.equal(a.seasonNumber,0);return [{episodeNumber:1,title:'Other',synopsis:'TVDB synopsis',thumbnail:'other.jpg'}];}},
+  const services={context:{},'tmdb/index.js':{resolveTmdbMediaMetadata:async()=>({overview:{value:'Series synopsis'}}),resolveTmdbEpisodeSeasonMetadata:async a=>{calls.push('tmdb');assert.equal(a.seasonNumber,0);assert.deepEqual(a.episodeNumbers,[]);return {episodes:[{episodeNumber:1,title:{value:'TMDB title'},thumbnail:'tmdb.jpg'}]};}},
+    'tvdb/index.js':{resolveTvdbEpisodeFallbacks:async a=>{calls.push('tvdb');assert.equal(a.seasonNumber,0);return [{episodeNumber:1,title:'TMDB title',synopsis:'TVDB synopsis',thumbnail:'other.jpg'}];}},
     'tmdb/artworkLibrary.js':{resolveTmdbArtworkLibrary:async()=>({})},'tvdb/artworkLibrary.js':{resolveTvdbArtworkLibrary:async()=>({})}};
   let out=await enrich(r,{services,progress});assert.deepEqual(calls,['tmdb','tvdb']);assert.equal(out.seasons[0].episodes[0].title,'TMDB title');assert.equal(out.seasons[0].episodes[0].thumbnail,'tmdb.jpg');assert.equal(out.seasons[0].episodes[0].synopsis,'TVDB synopsis');assert.equal(out.seasons[0].episodes[1].synopsis,undefined);
   await enrich(r,{services,progress});assert.equal(calls.length,2);
@@ -63,4 +63,43 @@ test('failed external requests do not checkpoint success; successful phases resu
     'tmdb/artworkLibrary.js':{resolveTmdbArtworkLibrary:async()=>{if(fail)throw Error('network');return {};}}};
   await assert.rejects(enrich(r,{services,progress}),/network/);assert(progress['tmdb:media']);assert(!progress['tmdb:artwork']);
   fail=false;await enrich(r,{services,progress});assert.equal(calls,1);
+});
+
+
+test('source selection rejects unknown providers and supports streamingunity alone',async t=>{
+ const {selectProviders}=require('../scripts/catalog');assert.deepEqual(selectProviders('streamingunity'),['streamingunity']);assert.throws(()=>selectProviders('bogus'));assert.throws(()=>selectProviders('streamingunity,streamingunity'));
+ const root=tmp(t),source=path.join(root,'source'),store=require('../../providers/streamingunity/scripts/store'),state=store.initialState(),e=entry('streamingunity',1);
+ e.record.info.id=1;state.known[1]={id:1,active:true};state.origins={site:'https://example.invalid'};state.archive={completedAt:1,total:1};write(store.itemFile(source,1),e.record);store.publish(source,state,{complete:true});
+ const output=path.join(root,'out'),options={roots:{streamingunity:source},selectedProviders:['streamingunity'],output,enrich:async r=>({...r,enrichment:{status:'ready'}}),now:1};
+ assert.equal((await run(options)).count,1);assert.equal(verify(output).complete,true);assert.deepEqual(read(path.join(output,'manifest.json')).selectedProviders,['streamingunity']);
+ await assert.rejects(run({...options,selectedProviders:['streamingunity','filmez']}),/selection differs/);
+});
+test('episode identity rejects numbering-only, duplicates and shifted titles',()=>{
+ const {confirmedMatch}=require('../scripts/episode-identity');const e={number:8,title:'Ape regina'},season={episodes:[e]},getTitle=v=>v.title,getNumber=v=>v.episodeNumber;
+ assert.equal(confirmedMatch(e,season,[{episodeNumber:8,title:'Un altro episodio'}],getTitle,getNumber),null);
+ assert.equal(confirmedMatch(e,season,[{episodeNumber:5,title:'Ape regina'}],getTitle,getNumber),null);
+ assert.equal(confirmedMatch(e,season,[{episodeNumber:8,title:'Ape regina'},{episodeNumber:9,title:'Ape regina'}],getTitle,getNumber),null);
+ assert(confirmedMatch(e,season,[{episodeNumber:8,title:'Ape regina'}],getTitle,getNumber));
+});
+test('complete provider episodes avoid external requests; wrong titles never fill gaps',async()=>{
+ const r=mergeGroup(group([entry('streamingunity',1)]).groups[0]);const e=r.seasons[0].episodes[0];e.title='Provider title';e.synopsis='Provider plot';e.thumbnail='provider.jpg';let calls=0;
+ const services={context:{},'tmdb/index.js':{resolveTmdbMediaMetadata:async()=>({}),resolveTmdbEpisodeSeasonMetadata:async()=>{calls++;return {episodes:[{episodeNumber:1,title:{value:'Wrong title'},overview:{value:'Wrong plot'},thumbnail:'wrong.jpg'}]};}},'tvdb/index.js':{},'tmdb/artworkLibrary.js':{resolveTmdbArtworkLibrary:async()=>({})}};
+ let out=await enrich(r,{services});assert.equal(calls,0);assert.equal(out.seasons[0].episodes[0].thumbnail,'provider.jpg');
+ e.thumbnail=null;out=await enrich(r,{services});assert.equal(calls,1);assert.equal(out.seasons[0].episodes[0].thumbnail,null);assert.equal(out.seasons[0].episodes[0].externalMappings.tmdb.status,'unverified');assert.equal(out.enrichment.status,'ready');
+});
+
+test('verified overrides cross seasons and reject stale source titles',async()=>{
+ const overrides=require('../episode-overrides.json'),r=mergeGroup(group([entry('streamingunity',1)]).groups[0]);r.seasons[0].episodes[0].title='Ape regina';
+ overrides['streamingunity:1']={tmdb:{id:10,episodes:{'0:1':{season:2,episode:5,sourceTitle:'Ape regina',evidence:'Manual verification'}}}};
+ try{
+ const services={context:{},'tmdb/index.js':{resolveTmdbMediaMetadata:async()=>({}),resolveTmdbEpisodeSeasonMetadata:async a=>{assert.equal(a.seasonNumber,2);return {episodes:[{episodeNumber:5,title:{value:'Queen Bee'},overview:{value:'Correct plot'},thumbnail:'correct.jpg'}]};}},'tvdb/index.js':{},'tmdb/artworkLibrary.js':{resolveTmdbArtworkLibrary:async()=>({})}};
+ const out=await enrich(r,{services});const e=out.seasons[0].episodes[0];assert.equal(e.number,1);assert.equal(e.title,'Ape regina');assert.equal(e.synopsis,'Correct plot');assert.equal(e.externalMappings.tmdb.episode,5);
+ r.seasons[0].episodes[0].title='Changed';await assert.rejects(enrich(r,{services}),/stale/);
+ }finally{delete overrides['streamingunity:1'];}
+});
+test('Wikidata supplements missing IDs but never overrides conflicting provider identity',async()=>{
+ const r=mergeGroup(group([entry('streamingunity',1)]).groups[0]);r.seasons=[];
+ const services={context:{},'wikidata/index.js':{resolveWikidataExternalIds:async()=>({imdbId:'tt1234567',tvdbId:20,wikidataId:'Q1'})},'tmdb/index.js':{resolveTmdbMediaMetadata:async()=>({})},'tvdb/index.js':{resolveTvdbMediaTextMetadata:async()=>({synopsis:'TVDB plot'})},'tmdb/artworkLibrary.js':{resolveTmdbArtworkLibrary:async()=>({})},'tvdb/artworkLibrary.js':{resolveTvdbArtworkLibrary:async()=>({})}};
+ const out=await enrich(r,{services});assert.equal(out.sourceIds.tvdb,'20');assert.equal(out.info.synopsis,'TVDB plot');
+ services['wikidata/index.js'].resolveWikidataExternalIds=async()=>({imdbId:'tt9999999',tvdbId:30});const conflict=await enrich(r,{services});assert.equal(conflict.sourceIds.tvdb,null);assert(conflict.warnings.some(w=>w.reason==='wikidata-external-id-conflict'));
 });

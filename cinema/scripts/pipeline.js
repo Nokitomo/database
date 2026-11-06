@@ -3,14 +3,16 @@ const path=require('node:path');
 const {read,write,hash}=require('../../shared/storage/json');
 const {loadSources,group,mergeGroup,publish}=require('./catalog');
 const {enrich:defaultEnrich}=require('./enrich');
-async function run({roots,output,providerRoot,enrich=defaultEnrich,stage='all',now=Date.now(),budgetMs=180000,limit=10,identityLookup}){
+async function run({roots,output,providerRoot,enrich=defaultEnrich,stage='all',now=Date.now(),budgetMs=180000,limit=10,identityLookup,selectedProviders}){
   if(!['all','merge'].includes(stage))throw Error('Invalid stage');
-  const start=Date.now(),source=loadSources(roots);
+  const start=Date.now(),source=loadSources(roots,selectedProviders);
+  const priorManifest=read(path.join(output,"manifest.json"));
+  if(priorManifest&&JSON.stringify([...(priorManifest.selectedProviders||Object.keys(priorManifest.sources))].sort())!==JSON.stringify([...source.selectedProviders].sort()))throw Error("Cinema source selection differs from published database; use a separate output for a different selection");
   const identity=await require('./identity').identify(source,{output,providerRoot,now,deadline:start+budgetMs,limit:stage==='all'?limit:0,lookup:identityLookup});
   const g=group(source.entries,read(path.join(output,'registry.json'))||undefined),state=read(path.join(output,'state.json'),{}),records=[];
   let processed=0,pendingCount=identity.pending,hasImmediateWork=stage==='all'&&identity.immediate;
   for(const group of g.groups){const base=mergeGroup(group),id=group.id;
-    const fingerprint=hash({version:1,ids:base.sourceIds,info:base.info,seasons:base.seasons,warnings:base.warnings});
+    const fingerprint=hash({version:2,episodeOverrides:Object.fromEntries(group.entries.map(e=>[e.key,require('../episode-overrides.json')[e.key]||null])),ids:base.sourceIds,info:base.info,seasons:base.seasons,warnings:base.warnings});
     const file=path.join(output,'enriched',id+'.json'),old=read(file),due=!state[id]||state[id].fingerprint!==fingerprint||state[id].nextCheckAt<=now;
     let enriched=old?.fingerprint===fingerprint?old.record:null;
     if(due&&base.active){pendingCount++;if(stage==='all'&&processed<limit&&Date.now()-start<budgetMs-1000){
@@ -27,10 +29,10 @@ async function run({roots,output,providerRoot,enrich=defaultEnrich,stage='all',n
     }else if(stage==='all')hasImmediateWork=true;}
     else if(base.active&&(state[id]?.error||enriched?.enrichment?.status==='retry'||!enriched))pendingCount++;
     // Keep current membership/images even when cached enrichment is reused.
-    records.push(enriched?{...base,info:enriched.info,seasons:enriched.seasons,provenance:enriched.provenance,artworkLibrary:enriched.artworkLibrary,externalMedia:enriched.externalMedia,enrichment:enriched.enrichment}:{...base,enrichment:{status:state[id]?.error?'retry':'pending'}});
+    records.push(enriched?{...base,sourceIds:{...base.sourceIds,...enriched.sourceIds},externalIdsEvidence:enriched.externalIdsEvidence,warnings:[...base.warnings,...(enriched.warnings||[]).filter(w=>!base.warnings.some(b=>hash(b)===hash(w)))],info:enriched.info,seasons:enriched.seasons,provenance:enriched.provenance,artworkLibrary:enriched.artworkLibrary,externalMedia:enriched.externalMedia,enrichment:enriched.enrichment}:{...base,enrichment:{status:state[id]?.error?'retry':'pending'}});
   }
   const manifest=publish(output,records,source,g.registry,g.conflicts,g.aliases,{pendingCount});
   return {complete:manifest.complete,count:manifest.count,pendingCount,hasImmediateWork,processed};
 }
-if(require.main===module){const root=path.resolve(__dirname,'../..');run({roots:Object.fromEntries(['streamingunity','altadefinizione','eurostreaming','filmez'].map(p=>[p,path.join(root,'providers',p,'data')])),output:path.join(root,'cinema/data'),providerRoot:path.join(root,'.cache/vega-providers'),stage:process.env.RUN_STAGE||'all'}).then(r=>console.log('CINEMA_BATCH '+JSON.stringify(r))).catch(e=>{console.error(e);process.exitCode=1;});}
+if(require.main===module){const root=path.resolve(__dirname,'../..');run({roots:Object.fromEntries(['streamingunity','altadefinizione','eurostreaming','filmez'].map(p=>[p,path.join(root,'providers',p,'data')])),output:path.join(root,'cinema/data'),providerRoot:path.join(root,'.cache/vega-providers'),selectedProviders:process.env.CINEMA_SOURCES||undefined,stage:process.env.RUN_STAGE||'all'}).then(r=>console.log('CINEMA_BATCH '+JSON.stringify(r))).catch(e=>{console.error(e);process.exitCode=1;});}
 module.exports={run};

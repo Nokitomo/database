@@ -34,6 +34,7 @@ test('the actual runner creates and resumes its own data branch without changing
   fs.writeFileSync(stub,`
 const fs=require('fs'),path=require('path'),cp=require('child_process'),args=process.argv.slice(2);
 if(args[0]==='--copy') {fs.cpSync(args.at(-2),args.at(-1),{recursive:true,filter:src=>!src.endsWith('.tmp')});}
+else if(args[0]==='-e' && args[1].includes('selectProviders')) {if(process.env.CINEMA_SOURCES!=='streamingunity')throw Error('Wrong sources');}
 else if(args[0]==='-e') {const r=cp.spawnSync(process.execPath,args,{stdio:'inherit'});process.exitCode=r.status;}
 else if(args[0].endsWith('/pipeline.js')) {
   const root='cinema/data',file=path.join(root,'state.json');fs.mkdirSync(path.join(root,'items'),{recursive:true});
@@ -61,10 +62,11 @@ else if(args[0].endsWith('/pipeline.js')) {
     const binPath=process.platform==='win32'?slash(bin).replace(/^([A-Za-z]):/,(_,drive)=>'/'+drive.toLowerCase()):bin;
     const r=spawnSync(bash,['-c','export PATH="$CINEMA_TEST_BIN:$PATH"; bash runner.sh'],{cwd:work,encoding:'utf8',timeout:30000,
       env:{...env,PATH:bin+path.delimiter+env.PATH,GH_REPO:'test/cinema',
-        CINEMA_TEST_NODE:slash(process.execPath),CINEMA_TEST_STUB:slash(stub),CINEMA_TEST_RUN:String(run),CINEMA_TEST_BIN:binPath}});
+        CINEMA_SOURCES:'streamingunity',CINEMA_TEST_NODE:slash(process.execPath),CINEMA_TEST_STUB:slash(stub),CINEMA_TEST_RUN:String(run),CINEMA_TEST_BIN:binPath}});
     assert.equal(r.status,0,r.stdout+'\n'+r.stderr);
-    assert.equal(fs.existsSync(path.join(work,'providers/eurostreaming/data/manifest.json')),run===2);
-    assert.equal(fs.existsSync(path.join(work,'providers/filmez/data/manifest.json')),run===2);
+    assert.equal(fs.existsSync(path.join(work,'providers/eurostreaming/data/manifest.json')),false);
+    assert.equal(fs.existsSync(path.join(work,'providers/altadefinizione/data/manifest.json')),false);
+    assert.equal(fs.existsSync(path.join(work,'providers/filmez/data/manifest.json')),false);
   }
   assert.equal(git(['rev-parse','main'],remote),mainBefore);
   assert.deepEqual(JSON.parse(git(['show','cinema-data:cinema/data/state.json'],remote)),{counter:2});

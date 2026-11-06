@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 case "${RUN_STAGE:-all}" in all|merge) ;; *) exit 2;; esac
+export CINEMA_SOURCES="${CINEMA_SOURCES:-streamingunity,altadefinizione,eurostreaming,filmez}"
+# Validate before fetching any source snapshot.
+node -e 'require("./cinema/scripts/catalog").selectProviders(process.env.CINEMA_SOURCES)'
 cache=.cache/cinema-workflow
 publish_dir="$cache/publish"
 branch=cinema-data
@@ -8,7 +11,9 @@ mkdir -p "$cache"
 bash shared/warp/check.sh
 gh auth setup-git
 # Fetch committed snapshots once; a source workflow may keep publishing meanwhile.
-for provider in streamingunity altadefinizione eurostreaming filmez; do
+IFS=',' read -ra selected <<< "$CINEMA_SOURCES"
+for provider in "${selected[@]}"; do
+provider="${provider//[[:space:]]/}"
 if git ls-remote --exit-code --heads origin "refs/heads/$provider-data" > "$cache/$provider-ref"; then
   git fetch --depth=1 origin "$provider-data"
   git archive FETCH_HEAD "providers/$provider/data" | tar -x
@@ -49,7 +54,7 @@ while true; do
   work=$(node -e 'console.log(JSON.parse(process.argv[1]).hasImmediateWork)' "$summary")
   if [[ "$work" != true || "${RUN_STAGE:-all}" == merge ]]; then exit 0; fi
   if (( $(date +%s)-started >= 240*60-300 )); then
-    gh workflow run update-cinema.yml --ref main -f stage=all
+    gh workflow run update-cinema.yml --ref main -f stage=all -f sources="$CINEMA_SOURCES"
     exit 0
   fi
 done

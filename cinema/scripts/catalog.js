@@ -2,16 +2,22 @@
 const path=require('node:path');
 const {read,write,hash}=require('../../shared/storage/json');
 const PROVIDERS=['streamingunity','altadefinizione','eurostreaming','filmez'];
-function loadSources(roots){
+function selectProviders(value=PROVIDERS){
+  const selected=Array.isArray(value)?value:String(value).split(",").map(v=>v.trim());
+  if(!selected.length||new Set(selected).size!==selected.length||selected.some(p=>!PROVIDERS.includes(p)))throw Error("Invalid cinema sources");
+  return selected;
+}
+function loadSources(roots,selected=PROVIDERS){
+  selected=selectProviders(selected);
   const entries=[],snapshots={},origins={},missingProviders=[];
-  for(const provider of PROVIDERS){
+  for(const provider of selected){
     if(['eurostreaming','filmez'].includes(provider)&&(!roots[provider]||!require('node:fs').existsSync(path.join(roots[provider],'manifest.json')))){missingProviders.push(provider);continue;}
     require(`../../providers/${provider}/scripts/verify`).verify(roots[provider]);
     const m=read(path.join(roots[provider],'manifest.json'));snapshots[provider]={hash:hash(m),complete:m.complete,expectedCount:m.expectedCount};
     for(const [key,value]of Object.entries(m.origins))origins[provider+':'+key]=value;
     for(const id of Object.keys(m.itemHashes)){const r=read(path.join(roots[provider],'items',id+'.json'));entries.push({key:provider+':'+id,provider,record:r});}
   }
-  return {entries,snapshots,origins,missingProviders};
+  return {entries,snapshots,origins,missingProviders,selectedProviders:selected};
 }
 function ids(record){const s=record.sourceIds||{};return {tmdb:positive(s.tmdb_id),imdb:/^tt\d+$/.test(s.imdb_id||'')?s.imdb_id:null,tvdb:positive(s.tvdb_id)};}
 function positive(v){return Number.isSafeInteger(Number(v))&&Number(v)>0?String(v):null;}
@@ -93,8 +99,8 @@ function publish(root,records,source,registry,conflicts,aliases,status){
   const catalog=all.filter(r=>r.active).map(r=>({id:r.id,title:r.info.title,type:r.info.type,year:r.info.year,poster:r.info.poster,background:r.info.background,logo:r.info.logo,sourceIds:r.sourceIds}));write(path.join(root,'catalog.json'),catalog);write(path.join(root,'registry.json'),registry);
   const unknown=all.some(r=>Object.values(r.providers).flat().some(v=>v.availability==='unknown'));
   const identityIssues=all.flatMap(r=>Object.entries(r.providers).flatMap(([provider,variants])=>variants.filter(v=>v.identity&&v.identity.status!=='verified').map(v=>({workId:r.id,provider,id:v.id,...v.identity}))));
-  const m={schemaVersion:1,kind:'cinema',count:all.length,activeCount:catalog.length,itemHashes,shardHashes,catalogHash:hash(catalog),origins:{...old.origins,...source.origins},sources:source.snapshots,awaitingProviders:source.missingProviders||[],identityIssues,conflicts,aliases,...status};
+  const m={schemaVersion:1,kind:'cinema',selectedProviders:source.selectedProviders||Object.keys(source.snapshots),count:all.length,activeCount:catalog.length,itemHashes,shardHashes,catalogHash:hash(catalog),origins:{...old.origins,...source.origins},sources:source.snapshots,awaitingProviders:source.missingProviders||[],identityIssues,conflicts,aliases,...status};
   m.complete=Object.values(source.snapshots).every(s=>s.complete)&&!conflicts.length&&!unknown&&!m.pendingCount;
   write(path.join(root,'changes.json'),{changed:Object.keys(itemHashes).filter(id=>old.itemHashes[id]!==itemHashes[id]),removed:[]});m.coverageHash=require('../../shared/catalog/coverage').publish(root,all,'cinema');write(path.join(root,'manifest.json'),m);return m;
 }
-module.exports={loadSources,ids,compatible,group,mergeGroup,publish,namespace,meaningful};
+module.exports={selectProviders,loadSources,ids,compatible,group,mergeGroup,publish,namespace,meaningful};

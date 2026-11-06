@@ -3,6 +3,10 @@ on:
   # Scheduled runs paused while the primary catalogs are built. Manual runs remain available.
   workflow_dispatch:
     inputs:
+      sources:
+        description: 'Comma-separated providers (kept unchanged by continuation runs)'
+        type: string
+        default: streamingunity
       stage:
         description: 'Merge source snapshots and fill missing metadata, or merge only'
         type: choice
@@ -47,6 +51,7 @@ jobs:
       - name: Merge and enrich with durable checkpoints
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          CINEMA_SOURCES: ${{ inputs.sources || 'streamingunity' }}
           RUN_STAGE: ${{ inputs.stage || 'all' }}
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}

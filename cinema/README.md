@@ -51,9 +51,12 @@ weekly, and errors after an hour. Previously successful per-service tasks are ca
 
 ## Publication
 
-The workflow runs every two hours at minute 49 UTC, manually with `all` or
-`merge`, never on push. It waits for both source branches, loads each committed
-snapshot once, verifies hashes, then publishes only its dedicated branch.
+The workflow is manual (schedules are currently paused), with `all` or `merge`,
+never on push. The `sources` input defaults to `streamingunity`; only selected
+branches are fetched and verified. Continuations preserve this selection.
+It loads each committed snapshot once and publishes only its dedicated branch.
+A different source selection requires an explicitly separate output/migration,
+to prevent previously retained records leaking into a restricted catalog.
 WARP is required; `TMDB_API_KEY` uses the existing GitHub secret. Long runs queue
 continuations. `merge` does not make external enrichment requests.
 
@@ -85,3 +88,23 @@ not exercised by the local merge smoke.
 ## Filmez
 
 Filmez is an optional independent input from `filmez-data`. Before its first snapshot, `awaitingProviders` reports it without preventing other providers from publishing. Direct compatible external IDs permit merging; missing IDs yield a separate work and review candidates, never a title-only automatic match. Playback links and all source image variants are retained.
+
+## Conservative external episode enrichment
+
+Provider season order, episode numbers, metadata and playback references are retained.
+Complete provider episodes cause no external episode requests. Missing fields may be
+filled only when the distinctive title is unique within both season inventories and
+the episode number agrees. Translated, generic, duplicated or shifted titles remain
+unverified; numbering alone never authorizes a match. TVDB must pass its own identity
+check and only fills remaining gaps. Series artwork and TMDB season artwork are stored
+under their external identity; they are not blindly assigned to provider seasons.
+
+`episode-overrides.json` supports manually verified exceptions keyed by `provider:id`,
+then `tmdb`/`tvdb`: `{id, episodes: {"sourceSeason:sourceEpisode":
+{season, episode, sourceTitle, evidence}}}`. Overrides are bound to the external ID
+and current source title, can cross seasons, and invalidate cached enrichment when
+edited. No anime-provider overrides are silently applied to StreamingUnity episodes.
+Unknown mappings leave gaps and are reported in `externalMappings`; they are not
+transport errors and do not cause immediate infinite retry loops.
+Missing IMDb/TVDB IDs may be supplemented through the pinned Wikidata resolver when
+its IDs do not conflict with the source. Source metadata always takes precedence.
