@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tvdb","kind":"artwork-season-layout","input":{"tvdbId":376945,"mediaType":"series"},"checkedAt":1793979794739,"status":"ok","retryCount":0,"value":{"path":"/series/get-even","numbers":[0,1]},"failure":null,"fields":{},"episodes":{}}
