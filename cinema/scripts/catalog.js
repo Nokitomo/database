@@ -22,16 +22,22 @@ function loadSources(roots,selected=PROVIDERS){
 function ids(record){const s=record.sourceIds||{};return {tmdb:positive(s.tmdb_id),imdb:/^tt\d+$/.test(s.imdb_id||'')?s.imdb_id:null,tvdb:positive(s.tvdb_id)};}
 function positive(v){return Number.isSafeInteger(Number(v))&&Number(v)>0?String(v):null;}
 function compatible(a,b){if(a.record.info.type!==b.record.info.type)return false;const x=ids(a.record),y=ids(b.record);return !Object.keys(x).some(k=>x[k]&&y[k]&&x[k]!==y[k]);}
-function group(entries,registry={nextId:1,members:{}}){
+function group(entries,registry={nextId:1,members:{}},policy=require('../identity-overrides.json')){
+  const identityPolicy=require('./identity-policy');identityPolicy.validate(policy);
+  const originalMembers={...registry.members};
+  const bySource=new Map(entries.map(e=>[e.key,e]));
+  for(const rule of policy.decisions.filter(r=>r.decision==='merge')){const present=rule.sources.map(k=>bySource.get(k)).filter(Boolean);if(present.some(a=>present.some(b=>!compatible(a,b))))throw Error('Correct conflicting external IDs before approving a merge');}
+  const keysFor=e=>{const keys=Object.entries(ids(e.record)).filter(([,v])=>v).map(([k,v])=>`${e.record.info.type}:${k}:${v}`);
+    if(e.provider==='filmez'){const alias=e.record.sourceAlias;const canonical=alias?.method==='identical-provider-url-title-and-full-plot'?positive(alias.canonicalId):null;keys.push(e.record.info.type+':filmez-source:'+(canonical||e.record.id));}
+    policy.decisions.forEach((r,i)=>{if(r.decision==='merge'&&r.sources.includes(e.key))keys.push('manual:'+i);});return keys;};
   registry=structuredClone(registry);const groups=[],lookup=new Map(),conflicts=[];
   for(const e of [...entries].sort((a,b)=>a.key.localeCompare(b.key))){
-    const keys=Object.entries(ids(e.record)).filter(([,v])=>v).map(([k,v])=>`${e.record.info.type}:${k}:${v}`);
-    if(e.provider==='filmez'){const alias=e.record.sourceAlias;const canonical=alias?.method==='identical-provider-url-title-and-full-plot'?positive(alias.canonicalId):null;keys.push(e.record.info.type+':filmez-source:'+(canonical||e.record.id));}
+    const keys=keysFor(e);
     const candidates=[...new Set(keys.flatMap(k=>lookup.get(k)||[]))];
     let g;
-    if(candidates.length&&candidates.every(c=>c.entries.every(other=>compatible(e,other)))&&candidates.every(c=>candidates.every(d=>c.entries.every(x=>d.entries.every(y=>compatible(x,y)))))){
+    if(candidates.length&&identityPolicy.mayCombine([e,...candidates.flatMap(c=>c.entries)],policy)&&candidates.every(c=>c.entries.every(other=>compatible(e,other)))&&candidates.every(c=>candidates.every(d=>c.entries.every(x=>d.entries.every(y=>compatible(x,y)))))){
       g=candidates[0];for(const other of candidates.slice(1)){g.entries.push(...other.entries);groups.splice(groups.indexOf(other),1);for(const [k,list]of lookup)lookup.set(k,[...new Set(list.map(v=>v===other?g:v))]);}
-    }else{if(candidates.length)conflicts.push({source:e.key,reason:'conflicting-external-ids',candidates:candidates.flatMap(c=>c.entries.map(x=>x.key))});g={entries:[]};groups.push(g);}
+    }else{if(candidates.length&&candidates.some(c=>c.entries.some(other=>!compatible(e,other))))conflicts.push({source:e.key,reason:'conflicting-external-ids',blocking:false,candidates:candidates.flatMap(c=>c.entries.map(x=>x.key))});g={entries:[]};groups.push(g);}
     g.entries.push(e);for(const k of keys)lookup.set(k,[...new Set([...(lookup.get(k)||[]),g])]);
   }
   const used=new Set(),aliases={};
@@ -40,7 +46,10 @@ function group(entries,registry={nextId:1,members:{}}){
     for(const old of prior)if(old!==g.id&&!used.has(old))aliases[old]=g.id;
     for(const e of g.entries)registry.members[e.key]=g.id;
   }
-  return {groups,registry,conflicts,aliases};
+  const previous=new Map();for(const [key,id]of Object.entries(originalMembers)){if(!previous.has(id))previous.set(id,[]);previous.get(id).push(key);}
+  const splits=[...previous].filter(([,keys])=>new Set(keys.map(k=>registry.members[k])).size>1).map(([workId,keys])=>({workId,members:Object.fromEntries(keys.map(k=>[k,registry.members[k]]))}));
+  const review=identityPolicy.reviews(entries,registry,keysFor,compatible,ids,policy);
+  return {groups,registry,conflicts,aliases,review,splits};
 }
 function namespace(v,p){if(Array.isArray(v))return v.map(x=>namespace(x,p));if(v&&typeof v==='object')return Object.fromEntries(Object.entries(v).map(([k,x])=>[k,k==='base'&&typeof x==='string'&&!x.includes(':')?p+':'+x:namespace(x,p)]));return v;}
 const meaningful=v=>typeof v==='string'&&v.trim()&&!/^(?:episode|episodio)\s*[\d.]+$/i.test(v.trim());
@@ -51,7 +60,7 @@ function mergeGroup(g){
   const info={...namespace(r.info,primary.provider),title:r.info.name,type:r.info.type,year:r.info.year||Number(String(r.info.release_date||'').slice(0,4))||null,synopsis:r.info.plot||r.info.synopsis||null};const provenance={};
   for(const entry of ordered){const record=namespace(entry.record,entry.provider);for(const [k,v]of Object.entries(ids(entry.record)))if(v)external[k]=v;
     warnings.push(...(record.warnings||[]).map(reason=>({source:entry.key,reason})));
-    (providers[entry.provider]||=[]).push({id:record.id,path:record.path,availability:record.active?'present':'unavailable',seasons:record.seasons,info:record.info,...(record.episodeBlocks?{episodeBlocks:record.episodeBlocks}:{}),...(record.sourceAlias?{sourceAlias:record.sourceAlias}:{}),...(record.sourceMetadata?{sourceMetadata:record.sourceMetadata}:{}),...(record.playback?{playback:record.playback}:{}),...(record.identity?{identity:record.identity}:{})});
+    (providers[entry.provider]||=[]).push({id:record.id,path:record.path,availability:record.active?'present':'unavailable',seasons:record.seasons,info:record.info,...(record.episodeBlocks?{episodeBlocks:record.episodeBlocks}:{}),...(record.sourceAlias?{sourceAlias:record.sourceAlias}:{}),...(record.sourceMetadata?{sourceMetadata:record.sourceMetadata}:{}),...(record.playback?{playback:record.playback}:{}),...(record.identity?{identity:record.identity}:{}),...(record.identityCorrection?{identityCorrection:record.identityCorrection}:{})});
     images.push(...record.images.map(x=>({...x,provider:entry.provider})));if(!info.synopsis&&(record.info.plot||record.info.synopsis))info.synopsis=record.info.plot||record.info.synopsis;
     for(const [key,value]of Object.entries(record.info))if((info[key]==null||info[key]===''||Array.isArray(info[key])&&!info[key].length)&&value!=null)info[key]=value;
     for(const field of ['poster','background','logo'])if(!info[field])info[field]=record.images.find(x=>(x.role||x.type)===field)?.reference;
@@ -74,7 +83,7 @@ function mergeGroup(g){
     episodeMappingUncertain:!!r.episodeMappingUncertain||(r.warnings||[]).some(w=>/count-mismatch/.test(w)),
     seasons:[...seasons.values()].sort((a,b)=>a.number-b.number).map(s=>({...s,episodes:s.episodes.sort((a,b)=>Number(a.number)-Number(b.number))})),provenance,warnings};
 }
-function publish(root,records,source,registry,conflicts,aliases,status){
+function publish(root,records,source,registry,conflicts,aliases,status,review=[],splits=[]){
   const old=read(path.join(root,'manifest.json'),{itemHashes:{},origins:{}}),byId=new Map(records.map(r=>[r.id,r]));
   for(const [id,expected]of Object.entries(old.itemHashes)){
     const prior=read(path.join(root,'items',id+'.json'));if(!prior||hash(prior)!==expected)throw Error('Corrupt retained record '+id);
@@ -83,7 +92,7 @@ function publish(root,records,source,registry,conflicts,aliases,status){
       for(const [provider,variants]of Object.entries(prior.providers))for(const variant of variants){
         if(!(current.providers[provider]||[]).some(v=>String(v.id)===String(variant.id))){
           const reassigned=registry.members[provider+':'+variant.id]&&registry.members[provider+':'+variant.id]!==id;
-          (current.providers[provider]||=[]).push({...variant,availability:reassigned?'reassigned':variant.availability==='unavailable'?'unavailable':'unknown'});
+          if(!reassigned)(current.providers[provider]||=[]).push({...variant,availability:variant.availability==='unavailable'?'unavailable':'unknown'});
         }
       }
       current.active=Object.values(current.providers).flat().some(v=>['present','unknown'].includes(v.availability));
@@ -99,8 +108,10 @@ function publish(root,records,source,registry,conflicts,aliases,status){
   const catalog=all.filter(r=>r.active).map(r=>({id:r.id,title:r.info.title,type:r.info.type,year:r.info.year,poster:r.info.poster,background:r.info.background,logo:r.info.logo,sourceIds:r.sourceIds}));write(path.join(root,'catalog.json'),catalog);write(path.join(root,'registry.json'),registry);
   const unknown=all.some(r=>Object.values(r.providers).flat().some(v=>v.availability==='unknown'));
   const identityIssues=all.flatMap(r=>Object.entries(r.providers).flatMap(([provider,variants])=>variants.filter(v=>v.identity&&v.identity.status!=='verified').map(v=>({workId:r.id,provider,id:v.id,...v.identity}))));
-  const m={schemaVersion:1,kind:'cinema',selectedProviders:source.selectedProviders||Object.keys(source.snapshots),count:all.length,activeCount:catalog.length,itemHashes,shardHashes,catalogHash:hash(catalog),origins:{...old.origins,...source.origins},sources:source.snapshots,awaitingProviders:source.missingProviders||[],identityIssues,conflicts,aliases,...status};
-  m.complete=Object.values(source.snapshots).every(s=>s.complete)&&!conflicts.length&&!unknown&&!m.pendingCount;
+  const reviewBody={schemaVersion:1,issues:review};write(path.join(root,'identity-review.json'),reviewBody);
+  if(splits.length){const migration=read(path.join(root,'identity-migration.json'),{schemaVersion:1,splits:[]});for(const split of splits)if(!migration.splits.some(s=>hash(s)===hash(split)))migration.splits.push(split);write(path.join(root,'identity-migration.json'),migration);}
+  const m={schemaVersion:1,kind:'cinema',identityPolicyVersion:2,reviewHash:hash(reviewBody),pendingReviewCount:review.filter(r=>r.status==='pending').length,selectedProviders:source.selectedProviders||Object.keys(source.snapshots),count:all.length,activeCount:catalog.length,itemHashes,shardHashes,catalogHash:hash(catalog),origins:{...old.origins,...source.origins},sources:source.snapshots,awaitingProviders:source.missingProviders||[],identityIssues,conflicts,aliases,...status};
+  m.complete=Object.values(source.snapshots).every(s=>s.complete)&&!unknown&&!m.pendingCount;
   write(path.join(root,'changes.json'),{changed:Object.keys(itemHashes).filter(id=>old.itemHashes[id]!==itemHashes[id]),removed:[]});m.coverageHash=require('../../shared/catalog/coverage').publish(root,all,'cinema');write(path.join(root,'manifest.json'),m);return m;
 }
 module.exports={selectProviders,loadSources,ids,compatible,group,mergeGroup,publish,namespace,meaningful};

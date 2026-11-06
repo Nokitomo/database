@@ -103,3 +103,38 @@ test('Wikidata supplements missing IDs but never overrides conflicting provider 
  const out=await enrich(r,{services});assert.equal(out.sourceIds.tvdb,'20');assert.equal(out.info.synopsis,'TVDB plot');
  services['wikidata/index.js'].resolveWikidataExternalIds=async()=>({imdbId:'tt9999999',tvdbId:30});const conflict=await enrich(r,{services});assert.equal(conflict.sourceIds.tvdb,null);assert(conflict.warnings.some(w=>w.reason==='wikidata-external-id-conflict'));
 });
+
+
+test('same-provider IDs produce review groups, including conflicts, without merging or blocking completion',t=>{
+ const entries=[entry('streamingunity',1),entry('streamingunity',2),entry('streamingunity',3,11)],g=group(entries);
+ assert.equal(g.groups.length,3);assert.equal(g.review.length,1);assert.equal(g.review[0].reason,'conflicting-external-ids');assert.equal(g.review[0].records.length,3);
+ const root=tmp(t),source={snapshots:{streamingunity:{complete:true}},origins:{'streamingunity:site':'https://example.invalid'}};
+ const m=publish(root,g.groups.map(mergeGroup),source,g.registry,g.conflicts,g.aliases,{pendingCount:0},g.review,g.splits);
+ assert.equal(m.complete,true);assert.equal(m.pendingReviewCount,1);assert.equal(verify(root).count,3);
+});
+test('a third provider cannot bridge two distinct records from the same provider',()=>{
+ const g=group([entry('streamingunity',1),entry('streamingunity',2),entry('altadefinizione',3)]);
+ assert.equal(g.groups.length,2);for(const c of g.groups)assert.equal(new Set(c.entries.map(e=>e.provider)).size,c.entries.length);
+});
+test('manual identity corrections and reviewed decisions are durable and source-safe',()=>{
+ const {applyCorrections}=require('../scripts/identity-policy'),a=entry('streamingunity',1),b=entry('streamingunity',2),policy={idCorrections:{},decisions:[{sources:[a.key,b.key],decision:'merge',reason:'User confirmed identical work'}]};
+ assert.equal(group([a,b],undefined,policy).groups.length,1);assert.equal(group([a,b],undefined,policy).review[0].status,'reviewed');
+ assert.throws(()=>group([a,entry('streamingunity',2,99)],undefined,policy),/Correct conflicting/);
+ policy.decisions[0].decision='separate';assert.equal(group([a,b],undefined,policy).groups.length,2);
+ policy.idCorrections[a.key]={ids:{tmdb:30,imdb:null},reason:'Verified external page'};const corrected=applyCorrections([a,b],policy);assert.equal(corrected[0].record.sourceIds.tmdb_id,30);assert.equal(a.record.sourceIds.tmdb_id,10);assert.equal(corrected[0].record.sourceIds.imdb_id,null);
+ policy.idCorrections[a.key].ids.tmdb=-1;assert.throws(()=>applyCorrections([a],policy),/Invalid corrected/);
+});
+test('legacy pair and triple split once, discard merged enrichment, preserve unrelated caches and ownership',async t=>{
+ const root=tmp(t),sourceRoot=path.join(root,'source'),output=path.join(root,'out'),store=require('../../providers/streamingunity/scripts/store'),state=store.initialState();
+ state.origins={site:'https://example.invalid'};state.archive={completedAt:1,total:4};
+ const entries=[entry('streamingunity',1),entry('streamingunity',2),entry('streamingunity',3),entry('streamingunity',4,40,'tt4444444')];
+ for(const e of entries){e.record.info.id=e.record.id;state.known[e.record.id]={id:e.record.id,active:true};write(store.itemFile(sourceRoot,e.record.id),e.record);}store.publish(sourceRoot,state,{complete:true});
+ const policy=require('../identity-overrides.json');policy.decisions.push({sources:entries.slice(0,3).map(e=>e.key),decision:'merge',reason:'Simulate old merged publication'});
+ const calls=[],options={roots:{streamingunity:sourceRoot},selectedProviders:['streamingunity'],output,now:1,enrich:async r=>{calls.push(r.id);return {...r,info:{...r.info,marker:r.providers.streamingunity.length>1?'contaminated':'safe'},enrichment:{status:'ready'}};}};
+ try{await run(options);}finally{policy.decisions.pop();}
+ const oldRegistry=read(path.join(output,'registry.json')),unrelated=oldRegistry.members['streamingunity:4'],before=read(path.join(output,'items',unrelated+'.json'));calls.length=0;
+ const result=await run({...options,now:2});assert.equal(result.count,4);assert.equal(calls.length,3);assert(!calls.includes(unrelated));assert.deepEqual(read(path.join(output,'items',unrelated+'.json')),before);
+ const registry=read(path.join(output,'registry.json'));assert.equal(new Set(Object.values(registry.members)).size,4);assert.equal(registry.members['streamingunity:1'],oldRegistry.members['streamingunity:1']);
+ for(const id of Object.values(registry.members)){const r=read(path.join(output,'items',id+'.json'));assert.equal(r.providers.streamingunity.length,1);assert.equal(r.info.marker,'safe');}
+ assert.equal(read(path.join(output,'identity-migration.json')).splits.length,1);verify(output);calls.length=0;await run({...options,now:3});assert.equal(calls.length,0);assert.deepEqual(read(path.join(output,'registry.json')),registry);
+});

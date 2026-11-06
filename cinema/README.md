@@ -22,8 +22,10 @@ metadata behavior and priority.
 
 ## Identity and metadata
 
-Match direct TMDB, IMDb or TVDB IDs with the media type. Conflicting IDs keep
-records separate and appear in `manifest.conflicts`; titles alone never merge.
+Match direct TMDB, IMDb or TVDB IDs with the media type across providers.
+Different source IDs within the same provider remain separate by default, even
+when all external IDs agree. Conflicting IDs keep records separate and appear
+in `manifest.conflicts`; titles alone never merge.
 A persistent source-to-work registry keeps IDs stable as providers arrive.
 Merged historic works retain inactive alias records. Missing source membership
 stays `unknown` and prevents full-completion claims; source-confirmed inactive
@@ -67,8 +69,8 @@ commit and activate only after validation. `registry`, `state`, `drafts`,
 `enriched` and `cache` are internal. Private GitHub delivery authentication must
 be designed before app integration; never embed a personal GitHub token.
 
-`complete` requires complete sources, no identity conflicts/unknown availability,
-and no pending enrichment. It does not promise every optional external field
+`complete` requires complete sources, no unknown availability and no pending
+enrichment. Identity review alerts are independent and do not block completion. It does not promise every optional external field
 exists. Warnings and `hasMissingEpisodeMetadata` expose remaining uncertainty.
 
 Commands: `npm run cinema`, `npm run verify:cinema`, `npm run verify:cinema:data`.
@@ -108,3 +110,25 @@ Unknown mappings leave gaps and are reported in `externalMappings`; they are not
 transport errors and do not cause immediate infinite retry loops.
 Missing IMDb/TVDB IDs may be supplemented through the pinned Wikidata resolver when
 its IDs do not conflict with the source. Source metadata always takes precedence.
+
+## Identity review and repair
+
+`identity-review.json` groups shared external identifiers into review cases. Each
+case includes stable source keys, work IDs, titles, typed external IDs and relative
+provider page references resolved with `manifest.origins`. `possible-duplicate`
+means compatible IDs; `conflicting-external-ids` means at least one disagreement.
+`pendingReviewCount` and `reviewHash` expose the report in the manifest.
+
+`identity-overrides.json` is durable code configuration. `idCorrections` maps a
+source key to `{ids: {tmdb, imdb, tvdb}, reason}` (null clears an incorrect ID).
+Corrections apply before identification/grouping and preserve original IDs as
+provenance. `decisions` contains `{sources: ["provider:id", ...], decision:
+"separate" | "merge", reason}`. A merge requires compatible corrected IDs and type;
+a separate decision prevents automatic matching across providers as well.
+
+When loading a legacy registry, the first split record retains the previous work
+ID and the others receive new IDs. `identity-migration.json` preserves the resulting
+source-to-work assignments. Reassigned variants are removed from the former work,
+not retained as ghost memberships. Membership-sensitive fingerprints invalidate
+merged metadata/drafts only for affected groups; unrelated enrichment is reused.
+The migration is idempotent and runs in both `merge` and `all` modes.
