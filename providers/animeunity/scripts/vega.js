@@ -17,6 +17,7 @@ const {buildArtworkFallbacks} = require('./artwork-fallbacks');
 const {createMetadataTasks} = require('./metadata-tasks');
 const {refreshPlan, matchesMapping, componentDependencies, ENRICHMENT_SCHEMA_VERSION} = require('./incremental');
 const {reusableEpisodes} = require('./episode-reuse');
+const metrics = require('../../../shared/metrics');
 
 const pacedGet = createPacedGet((url, options) => axios.get(url, options), {check: assertWarp});
 const tmdbGet = createTmdbGet(pacedGet);
@@ -81,6 +82,7 @@ function createContext(providerRoot, baseUrl, raw = null, contextOptions = {}) {
       const isTmdbWeb = new URL(url).hostname.toLowerCase() === 'www.themoviedb.org';
       const absent = resources.missing(url);
       if (absent) {
+        metrics.add('cache', 'confirmedMissingHits');
         const error = new Error(`TMDB resource confirmed missing: ${absent.route}`);
         error.response = {status: 404};
         throw error;
@@ -110,7 +112,7 @@ function createContext(providerRoot, baseUrl, raw = null, contextOptions = {}) {
     post: async (url, data, options) => {
       contextOptions.signal?.throwIfAborted();
       assertWarp();
-      try { return await axios.post(url, data, boundedRequestOptions(options, contextOptions.signal)); }
+      try { return await metrics.request(url, () => axios.post(url, data, boundedRequestOptions(options, contextOptions.signal))); }
       catch (error) {
         if (Number(error?.response?.status) !== 404) {
           const source = sourceOf(url);
@@ -130,12 +132,18 @@ function createContext(providerRoot, baseUrl, raw = null, contextOptions = {}) {
       initialTasks: contextOptions.initialTasks,
     }) : undefined,
     cache: {
-      getString: key => memory.get(key) ?? readJson(cachePath(key))?.value,
+      getString: key => {
+        const cached=memory.get(key) ?? readJson(cachePath(key))?.value;
+        metrics.add('cache', cached == null ? 'stringMisses' : 'stringHits');return cached;
+      },
       setString: (key, value) => {memory.set(key, value); writeJson(cachePath(key), {value});},
       delete: key => {memory.delete(key);},
     },
     fileCache: {
-      read: async key => readJson(cachePath(`file:${key}`)),
+      read: async key => {
+        const cached=readJson(cachePath(`file:${key}`));
+        metrics.add('cache', cached == null ? 'fileMisses' : 'fileHits');return cached;
+      },
       write: async (key, value) => writeJson(cachePath(`file:${key}`), {value, updatedAt: Date.now()}),
     },
     kvStore: {

@@ -3,14 +3,16 @@ const {createContext,requireProvider}=require('../../providers/animeunity/script
 const {meaningful}=require('./catalog');
 const {explicitTarget,confirmedMatch}=require('./episode-identity');
 const {needsEpisodeIdentity}=require('../../providers/animeunity/scripts/episode-safety');
+const metrics=require('../../shared/metrics');
 async function enrich(record,{providerRoot,cacheRoot,signal,progress={},save=()=>{},services={}}){
   const load=name=>services[name]||requireProvider(providerRoot,name),context=services.context||createContext(providerRoot,'https://source.invalid',null,{durableMetadata:true,componentCacheRoot:cacheRoot,signal});
   const out=structuredClone(record),tmdb=load('tmdb/index.js'),tvdb=load('tvdb/index.js');
   const checkpoint=async(key,fn)=>{signal?.throwIfAborted();if(!Object.hasOwn(progress,key)){
-    const result=await fn();
+    const phase=key.startsWith('tmdb:')?'tmdbPhases':key.startsWith('tvdb:')?'tvdbPhases':'wikidataPhases';
+    const result=await metrics.phase(phase,fn);
     if(Object.values(context.metadataTasks?.snapshot()||{}).some(t=>t.status==='error')||context.externalStatus?.tmdbWeb?.transientFailures>0)throw Error('External metadata request failed: '+key);
     progress[key]=result;save(progress);
-  }return progress[key];};
+  }else metrics.add('cache','checkpointHits');return progress[key];};
   const type=out.info.type==='movie'?'movie':'tv',tmdbId=Number(out.sourceIds.tmdb);
   let tvdbId=Number(out.sourceIds.tvdb);
   if(tmdbId&&(!out.sourceIds.imdb||!tvdbId)&&(providerRoot||services['wikidata/index.js'])){

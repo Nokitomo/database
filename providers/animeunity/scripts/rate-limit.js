@@ -1,6 +1,7 @@
 'use strict';
 
 const {sleep} = require('./lib');
+const metrics = require('../../../shared/metrics');
 
 const MIN_GAP_MS = Object.freeze({
   'api.themoviedb.org': 250,
@@ -27,19 +28,25 @@ function createPacedGet(get, options = {}) {
   return async (url, requestOptions) => {
     const host = new URL(url).hostname.toLowerCase();
     const gap = gaps[host] || 0;
-    if (!gap) { check(); return get(url, requestOptions); }
+    const bucket = metrics.service(url);
+    const pauseFor = async ms => {
+      const start = now();
+      try { await wait(ms); } finally { metrics.add(bucket, 'limiterWaitMs', Math.max(0, now() - start)); }
+    };
+    if (!gap) { check(); return metrics.request(url, () => get(url, requestOptions)); }
     for (let attempt = 0; attempt < 5; attempt++) {
       const at = now();
       const slot = Math.max(at, nextAt.get(host) || 0, blockedUntil.get(host) || 0);
       nextAt.set(host, slot + gap);
-      if (slot > at) await wait(slot - at);
+      if (slot > at) await pauseFor(slot - at);
       while ((blockedUntil.get(host) || 0) > now()) {
-        await wait(blockedUntil.get(host) - now());
+        await pauseFor(blockedUntil.get(host) - now());
       }
       check();
-      try { return await get(url, requestOptions); }
+      try { return await metrics.request(url, () => get(url, requestOptions)); }
       catch (error) {
         if (Number(error?.response?.status) !== 429 || attempt === 4) throw error;
+        metrics.add(bucket, 'retryDecisions');
         const headers = error.response?.headers;
         const header = headers?.get?.('retry-after') ?? headers?.['retry-after'] ?? headers?.['Retry-After'];
         const pause = Math.max(2000, retryAfterMs(header, now()) ?? Math.min(30000, 2000 * 2 ** attempt));
