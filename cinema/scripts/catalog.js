@@ -12,10 +12,9 @@ function loadSources(roots,selected=PROVIDERS){
   const entries=[],snapshots={},origins={},missingProviders=[];
   for(const provider of selected){
     if(['eurostreaming','filmez'].includes(provider)&&(!roots[provider]||!require('node:fs').existsSync(path.join(roots[provider],'manifest.json')))){missingProviders.push(provider);continue;}
-    require(`../../providers/${provider}/scripts/verify`).verify(roots[provider]);
+    require(`../../providers/${provider}/scripts/verify`).verify(roots[provider],{onRecord:r=>entries.push({key:provider+':'+r.id,provider,record:r})});
     const m=read(path.join(roots[provider],'manifest.json'));snapshots[provider]={hash:hash(m),complete:m.complete,expectedCount:m.expectedCount};
     for(const [key,value]of Object.entries(m.origins))origins[provider+':'+key]=value;
-    for(const id of Object.keys(m.itemHashes)){const r=read(path.join(roots[provider],'items',id+'.json'));entries.push({key:provider+':'+id,provider,record:r});}
   }
   return {entries,snapshots,origins,missingProviders,selectedProviders:selected};
 }
@@ -103,8 +102,19 @@ function publish(root,records,source,registry,conflicts,aliases,status,review=[]
     }
   }
   const all=[...byId.values()].sort((a,b)=>a.id.localeCompare(b.id)),itemHashes={},shards=Array.from({length:100},()=>[]),shardHashes={};
-  for(const r of all){write(path.join(root,'items',r.id+'.json'),r);itemHashes[r.id]=hash(r);shards[Number(r.id.split('-')[1])%100].push(r);}
-  shards.forEach((v,i)=>{const key=String(i).padStart(2,'0');write(path.join(root,'shards',key+'.json'),v);shardHashes[key]=hash(v);});
+  const changed=[],dirtyShards=new Set();
+  for(const r of all){
+    itemHashes[r.id]=hash(r);const shard=Number(r.id.split('-')[1])%100;
+    if(itemHashes[r.id]!==old.itemHashes[r.id]){
+      changed.push(r.id);dirtyShards.add(shard);write(path.join(root,'items',r.id+'.json'),r);
+    }
+    shards[shard].push(r);
+  }
+  // Retained items were verified above. The runner still verifies every shard before push.
+  shards.forEach((v,i)=>{const key=String(i).padStart(2,'0'),file=path.join(root,'shards',key+'.json');
+    if(!dirtyShards.has(i)&&old.shardHashes?.[key]&&require('node:fs').existsSync(file))shardHashes[key]=old.shardHashes[key];
+    else{write(file,v);shardHashes[key]=hash(v);}
+  });
   const catalog=all.filter(r=>r.active).map(r=>({id:r.id,title:r.info.title,type:r.info.type,year:r.info.year,poster:r.info.poster,background:r.info.background,logo:r.info.logo,sourceIds:r.sourceIds}));write(path.join(root,'catalog.json'),catalog);write(path.join(root,'registry.json'),registry);
   const unknown=all.some(r=>Object.values(r.providers).flat().some(v=>v.availability==='unknown'));
   const identityIssues=all.flatMap(r=>Object.entries(r.providers).flatMap(([provider,variants])=>variants.filter(v=>v.identity&&v.identity.status!=='verified').map(v=>({workId:r.id,provider,id:v.id,...v.identity}))));
@@ -112,6 +122,13 @@ function publish(root,records,source,registry,conflicts,aliases,status,review=[]
   if(splits.length){const migration=read(path.join(root,'identity-migration.json'),{schemaVersion:1,splits:[]});for(const split of splits)if(!migration.splits.some(s=>hash(s)===hash(split)))migration.splits.push(split);write(path.join(root,'identity-migration.json'),migration);}
   const m={schemaVersion:1,kind:'cinema',identityPolicyVersion:2,reviewHash:hash(reviewBody),pendingReviewCount:review.filter(r=>r.status==='pending').length,selectedProviders:source.selectedProviders||Object.keys(source.snapshots),count:all.length,activeCount:catalog.length,itemHashes,shardHashes,catalogHash:hash(catalog),origins:{...old.origins,...source.origins},sources:source.snapshots,awaitingProviders:source.missingProviders||[],identityIssues,conflicts,aliases,...status};
   m.complete=Object.values(source.snapshots).every(s=>s.complete)&&!unknown&&!m.pendingCount;
-  write(path.join(root,'changes.json'),{changed:Object.keys(itemHashes).filter(id=>old.itemHashes[id]!==itemHashes[id]),removed:[]});m.coverageHash=require('../../shared/catalog/coverage').publish(root,all,'cinema');write(path.join(root,'manifest.json'),m);return m;
+  write(path.join(root,'changes.json'),{changed,removed:[]});
+  // Keep coverage fresh for consumers (7-day expiry), without timestamp-only churn per batch.
+  const coverageModule=require('../../shared/catalog/coverage'),coverage=read(path.join(root,'coverage.json'));
+  if(!changed.length&&coverage&&old.coverageHash&&Date.now()>=coverage.generatedAt&&Date.now()-coverage.generatedAt<86400000){
+    coverageModule.verifyPublication(root,old.coverageHash,'cinema');m.coverageHash=old.coverageHash;
+  }else m.coverageHash=coverageModule.publish(root,all,'cinema');
+  write(path.join(root,'manifest.json'),m);return m;
 }
 module.exports={selectProviders,loadSources,ids,compatible,group,mergeGroup,publish,namespace,meaningful};
+

@@ -1,7 +1,7 @@
 'use strict';
 const path=require('node:path');
 const {read,hash,DEFAULT_DATA,itemFile}=require('./store');
-function verify(root=DEFAULT_DATA){
+function verify(root=DEFAULT_DATA,{onRecord}={}){
   const m=read(path.join(root,'manifest.json')),catalog=read(path.join(root,'catalog.json'));
   if(!m||m.provider!=='filmez'||m.locale!=='it'||!catalog||hash(catalog)!==m.catalogHash)throw new Error('Invalid manifest/catalog');
   const active=new Set(catalog.map(r=>r.id));if(active.size!==catalog.length||catalog.length!==m.availableCount)throw new Error('Invalid catalog count');
@@ -12,10 +12,11 @@ function verify(root=DEFAULT_DATA){
     if(new Set(r.seasons.map(s=>s.number)).size!==r.seasons.length)throw Error('Duplicate season');
     for(const s of r.seasons){if(!Number.isSafeInteger(s.number)||s.number<0||!Array.isArray(s.episodes)||new Set(s.episodes.map(e=>String(e.number))).size!==s.episodes.length)throw Error('Invalid episodes');
       for(const e of s.episodes)if(!/^(?:\d+(?:[.,]\d+)?)(?:[-–]\d+(?:[.,]\d+)?)?$/.test(String(e.number)))throw Error('Invalid episode label');}
-    walk(r);}
+    walk(r);onRecord?.(r);}
   const seen=new Set();for(const [key,expected]of Object.entries(m.shardHashes)){const rows=read(path.join(root,'shards',key+'.json'));if(!rows||hash(rows)!==expected)throw new Error('Invalid shard');for(const r of rows){if(seen.has(r.id)||m.itemHashes[r.id]!==hash(r))throw new Error('Invalid shard item');seen.add(r.id);}}
   if(seen.size!==ids.size)throw new Error('Incomplete shards');
   if(m.complete&&(m.expectedCount!==m.availableCount||!m.archive||Object.keys(m.errors).length))throw new Error('Invalid completion');
   return {count:ids.size,active:active.size,complete:m.complete};
 }
 if(require.main===module)console.log(verify());module.exports={verify};
+

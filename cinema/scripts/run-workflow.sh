@@ -40,16 +40,22 @@ fi
 started=$(date +%s)
 while true; do
   bash shared/warp/check.sh
+  batch_started=$(date +%s)
   node cinema/scripts/pipeline.js | tee "$cache/batch.log"
+  pipeline_finished=$(date +%s)
   node cinema/scripts/verify.js
+  verification_finished=$(date +%s)
   bash shared/warp/check.sh
   mkdir -p "$publish_dir/cinema/data"
   rsync -a --exclude='*.tmp' cinema/data/ "$publish_dir/cinema/data/"
+  sync_finished=$(date +%s)
   git -C "$publish_dir" add -- ':(glob)cinema/data/**/*.json'
   if ! git -C "$publish_dir" diff --cached --quiet; then
     git -C "$publish_dir" commit -m 'Update cinema film and series database checkpoint'
     git -C "$publish_dir" push origin "HEAD:refs/heads/$branch"
   fi
+  checkpoint_finished=$(date +%s)
+  echo "CINEMA_CHECKPOINT pipelineSeconds=$((pipeline_finished-batch_started)) verificationSeconds=$((verification_finished-pipeline_finished)) syncSeconds=$((sync_finished-verification_finished)) gitSeconds=$((checkpoint_finished-sync_finished))"
   summary=$(sed -n 's/^CINEMA_BATCH //p' "$cache/batch.log" | tail -n 1)
   work=$(node -e 'console.log(JSON.parse(process.argv[1]).hasImmediateWork)' "$summary")
   if [[ "$work" != true || "${RUN_STAGE:-all}" == merge ]]; then exit 0; fi
@@ -58,3 +64,4 @@ while true; do
     exit 0
   fi
 done
+
