@@ -30,6 +30,14 @@ test('the actual runner creates and resumes its own data branch without changing
   executable('warp-cli','echo "Status update: Connected"');executable('curl','echo "warp=on"');
   executable('node','exec "$CINEMA_TEST_NODE" "$CINEMA_TEST_STUB" "$@"');
   executable('rsync','exec "$CINEMA_TEST_NODE" "$CINEMA_TEST_STUB" --copy "$@"');
+  const pushMarker=path.join(tmp,'transient-push-failure');
+  const gitBinary=spawnSync(process.platform==='win32'?'where.exe':'which',['git'],{encoding:'utf8'}).stdout.trim().split(/\r?\n/)[0];
+  executable('git',`if [[ "$*" == *"push origin HEAD:refs/heads/cinema-data"* && ! -f "$CINEMA_TEST_PUSH_MARKER" ]]; then
+  touch "$CINEMA_TEST_PUSH_MARKER"
+  echo 'remote: Internal Server Error' >&2
+  exit 1
+fi
+exec "$CINEMA_TEST_GIT" "$@"`);
   const stub=path.join(tmp,'stub.js');
   fs.writeFileSync(stub,`
 const fs=require('fs'),path=require('path'),cp=require('child_process'),args=process.argv.slice(2);
@@ -62,8 +70,9 @@ else if(args[0].endsWith('/pipeline.js')) {
     const binPath=process.platform==='win32'?slash(bin).replace(/^([A-Za-z]):/,(_,drive)=>'/'+drive.toLowerCase()):bin;
     const r=spawnSync(bash,['-c','export PATH="$CINEMA_TEST_BIN:$PATH"; bash runner.sh'],{cwd:work,encoding:'utf8',timeout:30000,
       env:{...env,PATH:bin+path.delimiter+env.PATH,GH_REPO:'test/cinema',
-        CINEMA_SOURCES:'streamingunity',CINEMA_TEST_NODE:slash(process.execPath),CINEMA_TEST_STUB:slash(stub),CINEMA_TEST_RUN:String(run),CINEMA_TEST_BIN:binPath}});
+        CINEMA_SOURCES:'streamingunity',CINEMA_TEST_NODE:slash(process.execPath),CINEMA_TEST_STUB:slash(stub),CINEMA_TEST_RUN:String(run),CINEMA_TEST_BIN:binPath,CINEMA_TEST_PUSH_MARKER:slash(pushMarker),CINEMA_TEST_GIT:slash(gitBinary)}});
     assert.equal(r.status,0,r.stdout+'\n'+r.stderr);
+    if(run===1){assert.equal(fs.existsSync(pushMarker),true);assert.match(r.stdout,/CINEMA_PUSH_RETRY attempt=1/);}
     assert.equal(fs.existsSync(path.join(work,'providers/eurostreaming/data/manifest.json')),false);
     assert.equal(fs.existsSync(path.join(work,'providers/altadefinizione/data/manifest.json')),false);
     assert.equal(fs.existsSync(path.join(work,'providers/filmez/data/manifest.json')),false);

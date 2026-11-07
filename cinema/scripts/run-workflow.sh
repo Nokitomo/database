@@ -52,7 +52,23 @@ while true; do
   git -C "$publish_dir" add -- ':(glob)cinema/data/**/*.json'
   if ! git -C "$publish_dir" diff --cached --quiet; then
     git -C "$publish_dir" commit -m 'Update cinema film and series database checkpoint'
-    git -C "$publish_dir" push origin "HEAD:refs/heads/$branch"
+    # Keep the committed batch on the runner while GitHub recovers from a
+    # transient server error. A failed push must never count as a checkpoint.
+    pushed=false
+    for attempt in 1 2 3 4 5; do
+      if git -C "$publish_dir" push origin "HEAD:refs/heads/$branch"; then
+        pushed=true
+        break
+      fi
+      if (( attempt < 5 )); then
+        echo "CINEMA_PUSH_RETRY attempt=$attempt"
+        sleep $(( 2 ** attempt ))
+      fi
+    done
+    if [[ "$pushed" != true ]]; then
+      echo 'CINEMA_PUSH_FAILED: checkpoint was not published; the next run will resume from the previous checkpoint.' >&2
+      exit 1
+    fi
   fi
   checkpoint_finished=$(date +%s)
   echo "CINEMA_CHECKPOINT pipelineSeconds=$((pipeline_finished-batch_started)) verificationSeconds=$((verification_finished-pipeline_finished)) syncSeconds=$((sync_finished-verification_finished)) gitSeconds=$((checkpoint_finished-sync_finished))"
@@ -64,4 +80,3 @@ while true; do
     exit 0
   fi
 done
-

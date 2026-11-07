@@ -12,6 +12,10 @@ on:
         type: choice
         options: [all, merge]
         default: all
+      recovery_attempt:
+        description: 'Internal retry counter for failed runs'
+        type: number
+        default: 0
 permissions:
   contents: write
   actions: write
@@ -56,3 +60,24 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: bash cinema/scripts/run-workflow.sh
+      - name: Resume after a failed run
+        if: ${{ failure() && inputs.stage != 'merge' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CINEMA_SOURCES: ${{ inputs.sources || 'streamingunity' }}
+          CINEMA_RECOVERY_ATTEMPT: ${{ inputs.recovery_attempt || 0 }}
+        run: |
+          if (( CINEMA_RECOVERY_ATTEMPT >= 2 )); then
+            echo 'CINEMA_RECOVERY_LIMIT: stopping after two consecutive recovery runs.'
+            exit 0
+          fi
+          next_attempt=$(( CINEMA_RECOVERY_ATTEMPT + 1 ))
+          for delay in 5 15 30; do
+            if gh workflow run update-cinema.yml --ref main -f stage=all -f sources="$CINEMA_SOURCES" -f recovery_attempt="$next_attempt"; then
+              echo "CINEMA_RECOVERY_QUEUED attempt=$next_attempt"
+              exit 0
+            fi
+            sleep "$delay"
+          done
+          echo 'CINEMA_RECOVERY_DISPATCH_FAILED' >&2
+          exit 1
