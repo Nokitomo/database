@@ -2,6 +2,7 @@
 const path=require('node:path');
 const {read,write,hash}=require('../../shared/storage/json');
 const PROVIDERS=['streamingunity','altadefinizione','eurostreaming','filmez'];
+const sourceFingerprint=manifest=>hash({itemHashes:manifest.itemHashes,origins:manifest.origins,expectedCount:manifest.expectedCount});
 function selectProviders(value=PROVIDERS){
   const selected=Array.isArray(value)?value:String(value).split(",").map(v=>v.trim());
   if(!selected.length||new Set(selected).size!==selected.length||selected.some(p=>!PROVIDERS.includes(p)))throw Error("Invalid cinema sources");
@@ -13,7 +14,7 @@ function loadSources(roots,selected=PROVIDERS){
   for(const provider of selected){
     if(['eurostreaming','filmez'].includes(provider)&&(!roots[provider]||!require('node:fs').existsSync(path.join(roots[provider],'manifest.json')))){missingProviders.push(provider);continue;}
     require(`../../providers/${provider}/scripts/verify`).verify(roots[provider],{onRecord:r=>entries.push({key:provider+':'+r.id,provider,record:r})});
-    const m=read(path.join(roots[provider],'manifest.json'));snapshots[provider]={hash:hash(m),complete:m.complete,expectedCount:m.expectedCount};
+    const m=read(path.join(roots[provider],'manifest.json'));snapshots[provider]={hash:hash(m),contentHash:sourceFingerprint(m),complete:m.complete,expectedCount:m.expectedCount};
     for(const [key,value]of Object.entries(m.origins))origins[provider+':'+key]=value;
   }
   return {entries,snapshots,origins,missingProviders,selectedProviders:selected};
@@ -130,5 +131,5 @@ function publish(root,records,source,registry,conflicts,aliases,status,review=[]
   }else m.coverageHash=coverageModule.publish(root,all,'cinema');
   write(path.join(root,'manifest.json'),m);return m;
 }
-module.exports={selectProviders,loadSources,ids,compatible,group,mergeGroup,publish,namespace,meaningful};
+module.exports={selectProviders,sourceFingerprint,loadSources,ids,compatible,group,mergeGroup,publish,namespace,meaningful};
 

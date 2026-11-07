@@ -1,0 +1,29 @@
+name: Schedule cinema database updates
+on:
+  schedule:
+    - cron: '47 */2 * * *'
+  workflow_dispatch:
+permissions:
+  actions: write
+  contents: read
+concurrency:
+  group: cinema-update-scheduler
+  cancel-in-progress: false
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          sparse-checkout: |
+            cinema/scripts
+            shared/storage
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Dispatch cinema when a source changed or enrichment remains
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: node cinema/scripts/schedule-update.js
