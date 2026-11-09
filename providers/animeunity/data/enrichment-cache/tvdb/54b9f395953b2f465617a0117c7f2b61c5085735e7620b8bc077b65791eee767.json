@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tvdb","kind":"episodes","input":{"tvdbShowId":470961,"seasonNumber":1},"checkedAt":1794218783389,"status":"ok","retryCount":0,"value":[{"episodeNumber":40,"title":"Luluka's Answer","titleLanguage":"eng"}],"failure":null,"fields":{},"episodes":{"40":{"checkedAt":1794218783389,"status":"missing","retryCount":0}}}
