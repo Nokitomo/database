@@ -17,6 +17,8 @@ function applyCorrections(entries,policy){
     const out=structuredClone(entry),before={...out.record.sourceIds};
     if(rule.metadata){
       const m=rule.metadata,t=m.tmdb;
+      if(m.imdb&&(!/^tt\d+$/.test(m.imdb.id)||m.imdb.id!==rule.ids.imdb||!Array.isArray(m.imdb.seasons)||!m.imdb.seasons.length||m.imdb.seasons.some(n=>!Number.isInteger(n)||n<0)))throw Error('Invalid scoped IMDb target');
+      if(m.providerArtworkOnly!==undefined&&typeof m.providerArtworkOnly!=='boolean')throw Error('Invalid artwork policy');
       if(m.sourceOnly&&Object.values(rule.ids).some(v=>v!==null))throw Error('Source-only correction must clear external IDs');
       if(t&&(!['movie','tv'].includes(t.type)||!Number.isSafeInteger(t.id)||t.id<=0||!['work','season-compilation','episode'].includes(t.scope)||t.type==='movie'&&t.scope!=='work'||t.scope!=='work'&&(!Number.isInteger(t.season)||t.season<0)||t.scope==='episode'&&(!Number.isInteger(t.episode)||t.episode<0)))throw Error('Invalid typed TMDB target');
       if(t&&(t.type!==out.record.info.type||t.scope!=='work')&&rule.ids.tmdb!==null)throw Error('Scoped TMDB target must not become a whole-work identity');

@@ -128,5 +128,1301 @@
         }
       }
     }
+  },
+  "streamingunity:3235": {
+    "tmdb": {
+      "id": 1600,
+      "episodes": {
+        "1:1": {
+          "season": 1,
+          "episode": 1,
+          "sourceTitle": "Guide to: The First Day & Lockers",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:2": {
+          "season": 1,
+          "episode": 2,
+          "sourceTitle": "Guide to: Bathrooms & Project Partners",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:3": {
+          "season": 1,
+          "episode": 3,
+          "sourceTitle": "Guide to: Detention & Teachers",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:4": {
+          "season": 1,
+          "episode": 4,
+          "sourceTitle": "Guide to: Seating & Tryouts",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:5": {
+          "season": 1,
+          "episode": 5,
+          "sourceTitle": "Guide to: Crushes & Dances",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:6": {
+          "season": 1,
+          "episode": 6,
+          "sourceTitle": "Guide to: Sick Days & Spelling Bees",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:7": {
+          "season": 1,
+          "episode": 7,
+          "sourceTitle": "Guide to: Rumors & Photo Day",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:8": {
+          "season": 1,
+          "episode": 8,
+          "sourceTitle": "Guide to: Talent Show & School Elections",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:9": {
+          "season": 1,
+          "episode": 9,
+          "sourceTitle": "Guide to: Computer Lab & Backpacks",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:10": {
+          "season": 1,
+          "episode": 10,
+          "sourceTitle": "Guide to: Notes & Best Friends",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:11": {
+          "season": 1,
+          "episode": 11,
+          "sourceTitle": "Guide to: Day Dreaming & Gym",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:12": {
+          "season": 1,
+          "episode": 12,
+          "sourceTitle": "Guide to: Cheaters & Bullies",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:13": {
+          "season": 1,
+          "episode": 13,
+          "sourceTitle": "Guide to: Emergency Drills & Late Bus",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "2:1": {
+          "season": 2,
+          "episode": 1,
+          "sourceTitle": "Guide to: The New Semester and Electives",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "2:2": {
+          "season": 2,
+          "episode": 2,
+          "sourceTitle": "Guide to: Pep Rallies and Lunch",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "2:3": {
+          "season": 2,
+          "episode": 3,
+          "sourceTitle": "Guide to: School Clubs and Video Projects",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "2:4": {
+          "season": 2,
+          "episode": 4,
+          "sourceTitle": "Guide to: Notebooks & Math",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "2:5": {
+          "season": 2,
+          "episode": 5,
+          "sourceTitle": "Guide to: Vice Principals and Mondays",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "2:6": {
+          "season": 2,
+          "episode": 6,
+          "sourceTitle": "Guide to: Your Body and Procrastination",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "2:7": {
+          "season": 2,
+          "episode": 7,
+          "sourceTitle": "Guide to: Gross Biology Dissection & Upper Classmen",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "2:8": {
+          "season": 2,
+          "episode": 8,
+          "sourceTitle": "Guide to: Dares and Bad Habits",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "2:9": {
+          "season": 2,
+          "episode": 9,
+          "sourceTitle": "Guide to: Substitute Teachers and The New Kid",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "2:10": {
+          "season": 2,
+          "episode": 10,
+          "sourceTitle": "Guide to: Valentine's Day & School Websites",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "2:11": {
+          "season": 2,
+          "episode": 11,
+          "sourceTitle": "Guide to: Shyness & Nicknames",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "2:12": {
+          "season": 2,
+          "episode": 12,
+          "sourceTitle": "Guide to: Asking Someone Out and Recycling",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "2:13": {
+          "season": 2,
+          "episode": 13,
+          "sourceTitle": "Guide to: April Fools Day & Excuses",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "2:14": {
+          "season": 2,
+          "episode": 14,
+          "sourceTitle": "Guide to: Secrets & School Car Wash",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "2:15": {
+          "season": 2,
+          "episode": 15,
+          "sourceTitle": "Guide to: Spirit Week & Clothes",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "2:16": {
+          "season": 2,
+          "episode": 16,
+          "sourceTitle": "Guide to: Yearbook & Career Week",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "2:17": {
+          "season": 2,
+          "episode": 17,
+          "sourceTitle": "Guide to: Music Class & Class Clown",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "2:18": {
+          "season": 2,
+          "episode": 18,
+          "sourceTitle": "Guide to: Failing & Tutors",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "2:19": {
+          "season": 2,
+          "episode": 19,
+          "sourceTitle": "Guide to: Science Fair & Study Hall",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "2:20": {
+          "season": 2,
+          "episode": 20,
+          "sourceTitle": "Guide to: Double Dating & The Last Day",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "3:1": {
+          "season": 3,
+          "episode": 1,
+          "sourceTitle": "Guide to: New Grade & Dodgeball",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "3:2": {
+          "season": 3,
+          "episode": 2,
+          "sourceTitle": "Guide to: Reading & Principals",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "3:3": {
+          "season": 3,
+          "episode": 3,
+          "sourceTitle": "Guide to: Popularity & Stressin' Out",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "3:4": {
+          "season": 3,
+          "episode": 4,
+          "sourceTitle": "Guide to: Dismissal & The School Play",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "3:5": {
+          "season": 3,
+          "episode": 5,
+          "sourceTitle": "Guide to: Halloween & Vampires, Ghosts, Werewolves and Zombies",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "3:6": {
+          "season": 3,
+          "episode": 6,
+          "sourceTitle": "Guide to: Art Class & Lost and Found",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "3:7": {
+          "season": 3,
+          "episode": 7,
+          "sourceTitle": "Guide to: Social Studies & Embarrassment",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "3:8": {
+          "season": 3,
+          "episode": 8,
+          "sourceTitle": "Guide to: The Bus & Bad Hair Days",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "3:9": {
+          "season": 3,
+          "episode": 9,
+          "sourceTitle": "Guide to: Revenge & School Records",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "3:10": {
+          "season": 3,
+          "episode": 10,
+          "sourceTitle": "Guide to: Volunteering & The Library",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "3:11": {
+          "season": 3,
+          "episode": 11,
+          "sourceTitle": "Guide to: Hallways & Friends Moving",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "3:12": {
+          "season": 3,
+          "episode": 12,
+          "sourceTitle": "Guide to: Boys & Girls",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "3:13": {
+          "season": 3,
+          "episode": 13,
+          "sourceTitle": "Guide to: Cell Phones & Woodshop",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "3:14": {
+          "season": 3,
+          "episode": 14,
+          "sourceTitle": "Guide to: Getting Organized & Extra Credit",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "3:15": {
+          "season": 3,
+          "episode": 15,
+          "sourceTitle": "Guide to: Fundraising and Competition",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "3:16": {
+          "season": 3,
+          "episode": 16,
+          "sourceTitle": "Guide to:Making New Friends & Positives & Negatives",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "3:17": {
+          "season": 3,
+          "episode": 17,
+          "sourceTitle": "Guide to: Money & Parties",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "3:18": {
+          "season": 3,
+          "episode": 18,
+          "sourceTitle": "Guide to: Spring Fever & School Newspaper",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "3:19": {
+          "season": 3,
+          "episode": 19,
+          "sourceTitle": "Guide to: Health & Jealousy",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "3:20": {
+          "season": 3,
+          "episode": 20,
+          "sourceTitle": "Guide to: Tests and When You Like Someone Who Is Going Out With Someone Else",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "3:21": {
+          "season": 3,
+          "sourceTitle": "Guide to: Field Trips, Permission Slips, Signs and Weasels [21-22]",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10.",
+          "episodes": [
+            21,
+            22
+          ],
+          "providerOnly": true
+        }
+      }
+    }
+  },
+  "streamingunity:3544": {
+    "tmdb": {
+      "id": 100572,
+      "episodes": {
+        "1:1": {
+          "season": 1,
+          "episode": 1,
+          "sourceTitle": "Episodio 1",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:2": {
+          "season": 1,
+          "episode": 2,
+          "sourceTitle": "Episodio 2",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:3": {
+          "season": 1,
+          "episode": 3,
+          "sourceTitle": "Episodio 3",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:4": {
+          "season": 1,
+          "episode": 4,
+          "sourceTitle": "Episodio 4",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:5": {
+          "season": 1,
+          "episode": 5,
+          "sourceTitle": "Episodio 5",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:6": {
+          "season": 1,
+          "episode": 6,
+          "sourceTitle": "Episodio 6",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:7": {
+          "season": 1,
+          "episode": 7,
+          "sourceTitle": "Episodio 7",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:8": {
+          "season": 1,
+          "episode": 8,
+          "sourceTitle": "Episodio 8",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        }
+      }
+    }
+  },
+  "streamingunity:3758": {
+    "tmdb": {
+      "id": 128068,
+      "episodes": {
+        "1:1": {
+          "season": 1,
+          "episode": 1,
+          "sourceTitle": "Guillaume",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:2": {
+          "season": 1,
+          "episode": 2,
+          "sourceTitle": "Inès",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:3": {
+          "season": 1,
+          "episode": 3,
+          "sourceTitle": "Daco",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:4": {
+          "season": 1,
+          "episode": 4,
+          "sourceTitle": "Nora",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:5": {
+          "season": 1,
+          "episode": 5,
+          "sourceTitle": "Fred",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        }
+      }
+    }
+  },
+  "streamingunity:5131": {
+    "tmdb": {
+      "id": 203281,
+      "episodes": {
+        "1:1": {
+          "season": 1,
+          "episode": 1,
+          "sourceTitle": "The Future Is Female",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:2": {
+          "season": 1,
+          "episode": 2,
+          "sourceTitle": "The Lesser of Two Evils",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:3": {
+          "season": 1,
+          "episode": 3,
+          "sourceTitle": "Inuit Nunaat: Land of the People",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:4": {
+          "season": 1,
+          "episode": 4,
+          "sourceTitle": "The Minister Doesn’t Wish to Comment",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:5": {
+          "season": 1,
+          "episode": 5,
+          "sourceTitle": "A Near-Arctic State",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:6": {
+          "season": 1,
+          "episode": 6,
+          "sourceTitle": "Power in Denmark",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:7": {
+          "season": 1,
+          "episode": 7,
+          "sourceTitle": "Just Make It Go Away",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:8": {
+          "season": 1,
+          "episode": 8,
+          "sourceTitle": "Mother of the Sea",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        }
+      }
+    }
+  },
+  "streamingunity:8848": {
+    "tmdb": {
+      "id": 42445,
+      "episodes": {
+        "1:1": {
+          "season": 1,
+          "episode": 1,
+          "sourceTitle": "Episodio 1",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:2": {
+          "season": 1,
+          "episode": 2,
+          "sourceTitle": "Episodio 2",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:3": {
+          "season": 1,
+          "episode": 3,
+          "sourceTitle": "Episodio 3",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:4": {
+          "season": 1,
+          "episode": 4,
+          "sourceTitle": "Episodio 4",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:5": {
+          "season": 1,
+          "episode": 5,
+          "sourceTitle": "Episodio 5",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:6": {
+          "season": 1,
+          "episode": 6,
+          "sourceTitle": "Episodio 6",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:7": {
+          "season": 1,
+          "episode": 7,
+          "sourceTitle": "Episodio 7",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:8": {
+          "season": 1,
+          "episode": 8,
+          "sourceTitle": "Episodio 8",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:9": {
+          "season": 1,
+          "episode": 9,
+          "sourceTitle": "Episodio 9",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:10": {
+          "season": 1,
+          "episode": 10,
+          "sourceTitle": "Episodio 10",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "2:1": {
+          "season": 2,
+          "episode": 1,
+          "sourceTitle": "Episodio 1",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "2:2": {
+          "season": 2,
+          "episode": 2,
+          "sourceTitle": "Episodio 2",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "2:3": {
+          "season": 2,
+          "episode": 3,
+          "sourceTitle": "Episodio 3",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "2:4": {
+          "season": 2,
+          "episode": 4,
+          "sourceTitle": "Episodio 4",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "2:5": {
+          "season": 2,
+          "episode": 5,
+          "sourceTitle": "Episodio 5",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "2:6": {
+          "season": 2,
+          "episode": 6,
+          "sourceTitle": "Episodio 6",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "2:7": {
+          "season": 2,
+          "episode": 7,
+          "sourceTitle": "Episodio 7",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "2:8": {
+          "season": 2,
+          "episode": 8,
+          "sourceTitle": "Episodio 8",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "2:9": {
+          "season": 2,
+          "episode": 9,
+          "sourceTitle": "Episodio 9",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "2:10": {
+          "season": 2,
+          "episode": 10,
+          "sourceTitle": "Episodio 10",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "3:1": {
+          "season": 3,
+          "episode": 1,
+          "sourceTitle": "Episodio 1",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "3:2": {
+          "season": 3,
+          "episode": 2,
+          "sourceTitle": "Episodio 2",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "3:3": {
+          "season": 3,
+          "episode": 3,
+          "sourceTitle": "Episodio 3",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "3:4": {
+          "season": 3,
+          "episode": 4,
+          "sourceTitle": "Episodio 4",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "3:5": {
+          "season": 3,
+          "episode": 5,
+          "sourceTitle": "Episodio 5",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "3:6": {
+          "season": 3,
+          "episode": 6,
+          "sourceTitle": "Episodio 6",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "3:7": {
+          "season": 3,
+          "episode": 7,
+          "sourceTitle": "Episodio 7",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "3:8": {
+          "season": 3,
+          "episode": 8,
+          "sourceTitle": "Episodio 8",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "3:9": {
+          "season": 3,
+          "episode": 9,
+          "sourceTitle": "Episodio 9",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "3:10": {
+          "season": 3,
+          "episode": 10,
+          "sourceTitle": "Episodio 10",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        }
+      }
+    }
+  },
+  "streamingunity:5225": {
+    "tmdb": {
+      "id": 67915,
+      "episodes": {
+        "1:1": {
+          "season": 1,
+          "episode": 1,
+          "sourceTitle": "What Kind Of A Guardian Are You?",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:2": {
+          "season": 1,
+          "episode": 2,
+          "sourceTitle": "I'll Become Your Bride In 200 Years",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:3": {
+          "season": 1,
+          "episode": 3,
+          "sourceTitle": "I See The Sword",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:4": {
+          "season": 1,
+          "episode": 4,
+          "sourceTitle": "I Won't Leave You",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:5": {
+          "season": 1,
+          "episode": 5,
+          "sourceTitle": "I Have To End My Life",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:6": {
+          "season": 1,
+          "episode": 6,
+          "sourceTitle": "Tomorrow",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:7": {
+          "season": 1,
+          "episode": 7,
+          "sourceTitle": "I Think It's Your Face",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:8": {
+          "season": 1,
+          "episode": 8,
+          "sourceTitle": "You Gave Her That Fate",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:9": {
+          "season": 1,
+          "episode": 9,
+          "sourceTitle": "He'll Vanish Forever From This World To Another",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:10": {
+          "season": 1,
+          "episode": 10,
+          "sourceTitle": "Is She Really Your Sister?",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:11": {
+          "season": 1,
+          "episode": 11,
+          "sourceTitle": "The Deity Is So Cruel To You And Me",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:12": {
+          "season": 1,
+          "episode": 12,
+          "sourceTitle": "Forget About Me",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:13": {
+          "season": 1,
+          "episode": 13,
+          "sourceTitle": "Protect Her",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:14": {
+          "season": 1,
+          "episode": 14,
+          "sourceTitle": "Whom Have I Forgotten?",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:15": {
+          "season": 1,
+          "episode": 15,
+          "sourceTitle": "Will You Be My Bride?",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:16": {
+          "season": 1,
+          "episode": 16,
+          "sourceTitle": "Goodbye and See You Again",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        }
+      }
+    }
+  },
+  "streamingunity:5757": {
+    "tmdb": {
+      "id": 200945,
+      "episodes": {
+        "1:1": {
+          "season": 1,
+          "episode": 1,
+          "sourceTitle": "Profonda dedizione",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:2": {
+          "season": 1,
+          "episode": 2,
+          "sourceTitle": "Il Tribunale",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:3": {
+          "season": 1,
+          "episode": 3,
+          "sourceTitle": "L’asso della Jangsan",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:4": {
+          "season": 1,
+          "episode": 4,
+          "sourceTitle": "Giustizia è fatta",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:5": {
+          "season": 1,
+          "episode": 5,
+          "sourceTitle": "Casa Famiglia",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:6": {
+          "season": 1,
+          "episode": 6,
+          "sourceTitle": "Sospetti",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:7": {
+          "season": 1,
+          "episode": 7,
+          "sourceTitle": "Gioco d’astuzia",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:8": {
+          "season": 1,
+          "episode": 8,
+          "sourceTitle": "Prova Regina",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:9": {
+          "season": 1,
+          "episode": 9,
+          "sourceTitle": "Svolte improvvise",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:10": {
+          "season": 1,
+          "episode": 10,
+          "sourceTitle": "Confessioni",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:11": {
+          "season": 1,
+          "episode": 11,
+          "sourceTitle": "Identità svelate",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:12": {
+          "season": 1,
+          "episode": 12,
+          "sourceTitle": "Con il permesso della corte",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        }
+      }
+    }
+  },
+  "streamingunity:3355": {
+    "tmdb": {
+      "id": 127623,
+      "episodes": {
+        "1:1": {
+          "season": 1,
+          "episode": 1,
+          "sourceTitle": "Episodio 1",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:2": {
+          "season": 1,
+          "episode": 2,
+          "sourceTitle": "Episodio 2",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:3": {
+          "season": 1,
+          "episode": 3,
+          "sourceTitle": "Episodio 3",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:4": {
+          "season": 1,
+          "episode": 4,
+          "sourceTitle": "Episodio 4",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:5": {
+          "season": 1,
+          "episode": 5,
+          "sourceTitle": "Episodio 5",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:6": {
+          "season": 1,
+          "episode": 6,
+          "sourceTitle": "Episodio 6",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:7": {
+          "season": 1,
+          "episode": 7,
+          "sourceTitle": "Episodio 7 - Hot shots",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:8": {
+          "season": 1,
+          "episode": 8,
+          "sourceTitle": "Episodio 8",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:9": {
+          "season": 1,
+          "episode": 9,
+          "sourceTitle": "Episodio 9",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:10": {
+          "season": 1,
+          "episode": 10,
+          "sourceTitle": "Episodio 10",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:11": {
+          "season": 1,
+          "episode": 11,
+          "sourceTitle": "Episodio 11",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:12": {
+          "season": 1,
+          "episode": 12,
+          "sourceTitle": "Episodio 12",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:13": {
+          "season": 1,
+          "episode": 13,
+          "sourceTitle": "Episodio 13",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:14": {
+          "season": 1,
+          "episode": 14,
+          "sourceTitle": "Episodio 14 - Hot Shots",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:15": {
+          "season": 1,
+          "episode": 15,
+          "sourceTitle": "Episodio 15",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:16": {
+          "season": 1,
+          "episode": 16,
+          "sourceTitle": "Episodio 16",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:17": {
+          "season": 1,
+          "episode": 17,
+          "sourceTitle": "Episodio 17",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:18": {
+          "season": 1,
+          "episode": 18,
+          "sourceTitle": "Episodio 18",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:19": {
+          "season": 1,
+          "episode": 19,
+          "sourceTitle": "Episodio 19",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:20": {
+          "season": 1,
+          "episode": 20,
+          "sourceTitle": "Episodio 20",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:21": {
+          "season": 1,
+          "episode": 21,
+          "sourceTitle": "Episodio 21 - Hot Shots",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:22": {
+          "season": 1,
+          "episode": 22,
+          "sourceTitle": "Episodio 22",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:23": {
+          "season": 1,
+          "episode": 23,
+          "sourceTitle": "Episodio 23",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:24": {
+          "season": 1,
+          "episode": 24,
+          "sourceTitle": "Episodio 24",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:25": {
+          "season": 1,
+          "episode": 25,
+          "sourceTitle": "Episodio 25",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:26": {
+          "season": 1,
+          "episode": 26,
+          "sourceTitle": "Episodio 26",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:27": {
+          "season": 1,
+          "episode": 27,
+          "sourceTitle": "Episodio 27 - Hot shots parte 1",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:28": {
+          "season": 1,
+          "episode": 28,
+          "sourceTitle": "Episodio 28 - Hot Shots parte 2",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:29": {
+          "season": 1,
+          "episode": 29,
+          "sourceTitle": "Episodio 29 Finale",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:30": {
+          "season": 1,
+          "episode": 30,
+          "sourceTitle": "La Reunion",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10.",
+          "providerOnly": true
+        }
+      }
+    }
+  },
+  "streamingunity:3368": {
+    "tmdb": {
+      "id": 126526,
+      "episodes": {
+        "1:1": {
+          "season": 1,
+          "episode": 1,
+          "sourceTitle": "Parte 1",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:2": {
+          "season": 1,
+          "episode": 2,
+          "sourceTitle": "Parte 2",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:3": {
+          "season": 1,
+          "episode": 3,
+          "sourceTitle": "Parte 3",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        }
+      }
+    }
+  },
+  "streamingunity:55357": {
+    "tmdb": {
+      "id": 220102,
+      "episodes": {
+        "1:1": {
+          "season": 1,
+          "episode": 1,
+          "sourceTitle": "Entra nel mio ufficio",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:2": {
+          "season": 1,
+          "episode": 2,
+          "sourceTitle": "Cammina con cautela",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:3": {
+          "season": 1,
+          "episode": 3,
+          "sourceTitle": "Doppio gioco",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:4": {
+          "season": 1,
+          "episode": 4,
+          "sourceTitle": "Un errore che non ripeterò",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:5": {
+          "season": 1,
+          "episode": 5,
+          "sourceTitle": "Tradimento",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:6": {
+          "season": 1,
+          "episode": 6,
+          "sourceTitle": "Incubo su una barella",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:7": {
+          "season": 1,
+          "episode": 7,
+          "sourceTitle": "L'eroe di nessuno",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:8": {
+          "season": 1,
+          "episode": 8,
+          "sourceTitle": "L'uomo mascherato",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        }
+      }
+    }
+  },
+  "streamingunity:59153": {
+    "tmdb": {
+      "id": 220102,
+      "episodes": {
+        "1:1": {
+          "season": 1,
+          "episode": 1,
+          "sourceTitle": "Entra nel mio ufficio",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:2": {
+          "season": 1,
+          "episode": 2,
+          "sourceTitle": "Cammina con cautela",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:3": {
+          "season": 1,
+          "episode": 3,
+          "sourceTitle": "Doppio gioco",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:4": {
+          "season": 1,
+          "episode": 4,
+          "sourceTitle": "Un errore che non ripeterò",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:5": {
+          "season": 1,
+          "episode": 5,
+          "sourceTitle": "Tradimento",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:6": {
+          "season": 1,
+          "episode": 6,
+          "sourceTitle": "Incubo su una barella",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:7": {
+          "season": 1,
+          "episode": 7,
+          "sourceTitle": "L'eroe di nessuno",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:8": {
+          "season": 1,
+          "episode": 8,
+          "sourceTitle": "L'uomo mascherato",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        }
+      }
+    }
+  },
+  "streamingunity:5578": {
+    "tmdb": {
+      "id": 113988,
+      "episodes": {
+        "1:1": {
+          "season": 1,
+          "episode": 1,
+          "sourceTitle": "Episodio uno",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:2": {
+          "season": 1,
+          "episode": 2,
+          "sourceTitle": "Please Don't Go",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:3": {
+          "season": 1,
+          "episode": 3,
+          "sourceTitle": "Doin' A Dahmer",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:4": {
+          "season": 1,
+          "episode": 4,
+          "sourceTitle": "The Good Boy Box",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:5": {
+          "season": 1,
+          "episode": 5,
+          "sourceTitle": "Blood On Their Hands",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:6": {
+          "season": 1,
+          "episode": 6,
+          "sourceTitle": "Silenced",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:7": {
+          "season": 1,
+          "episode": 7,
+          "sourceTitle": "Cassandra",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:8": {
+          "season": 1,
+          "episode": 8,
+          "sourceTitle": "Lionel",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:9": {
+          "season": 1,
+          "episode": 9,
+          "sourceTitle": "The Bogeyman",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:10": {
+          "season": 1,
+          "episode": 10,
+          "sourceTitle": "God of Forgiveness, God of Vengeance",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        }
+      }
+    }
+  },
+  "streamingunity:65820": {
+    "tmdb": {
+      "id": 299939,
+      "episodes": {
+        "1:1": {
+          "season": 1,
+          "episode": 1,
+          "sourceTitle": "Bagno di sangue",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:2": {
+          "season": 1,
+          "episode": 2,
+          "sourceTitle": "Micia forte",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:3": {
+          "season": 1,
+          "episode": 3,
+          "sourceTitle": "Colpo… di follia!",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:4": {
+          "season": 1,
+          "episode": 4,
+          "sourceTitle": "R.I.P. (riposa in pena) Abby Borden",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:5": {
+          "season": 1,
+          "episode": 5,
+          "sourceTitle": "41",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:6": {
+          "season": 1,
+          "episode": 6,
+          "sourceTitle": "Bed and breakfast",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:7": {
+          "season": 1,
+          "episode": 7,
+          "sourceTitle": "Il processo del secolo",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        },
+        "1:8": {
+          "season": 1,
+          "episode": 8,
+          "sourceTitle": "Carnevale",
+          "evidence": "Individual provider/TMDB title and plot comparison, with user confirmation on 2026-11-10."
+        }
+      }
+    }
   }
 }

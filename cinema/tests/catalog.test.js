@@ -142,7 +142,7 @@ test('legacy pair and triple split once, discard merged enrichment, preserve unr
 
 test('all confirmed corrections preserve source records and typed playback identities',async()=>{
  const policy=require('../identity-overrides.json'),{applyCorrections}=require('../scripts/identity-policy');
- assert.equal(Object.keys(policy.idCorrections).length,19);
+ assert.equal(Object.keys(policy.idCorrections).length,35);
  for(const key of Object.keys(policy.idCorrections)){
   const id=Number(key.split(':')[1]),source=entry('streamingunity',id,999,'tt123', [11560,6914,5508,55440,7356,10323,4838].includes(id)?'tv':'movie');
   const before=structuredClone(source),corrected=applyCorrections([source],policy)[0];
@@ -199,4 +199,42 @@ test('metadata-only policy change refreshes the affected record once and preserv
  await run({...options,now:2});assert.equal(calls.length,1);const changed=calls[0],after=read(path.join(output,'manifest.json')).itemHashes;
  for(const id of Object.keys(before))if(id!==changed)assert.equal(after[id],before[id]);
  calls.length=0;await run({...options,now:3});assert.equal(calls.length,0);assert.equal(verify(output).count,2);
+});
+
+test('confirmed parent IMDb seasons cannot merge through an unscoped third provider',()=>{
+ const {applyCorrections}=require('../scripts/identity-policy'),policy=require('../identity-overrides.json');
+ const entries=applyCorrections([entry('streamingunity',3368),entry('altadefinizione',900,null,'tt14668192')],policy);
+ assert.equal(group(entries).groups.length,2);
+ assert.deepEqual(entries[0].record.metadataPolicy.imdb,{id:'tt14668192',seasons:[2]});
+});
+test('confirmed episodes persist mappings even when every provider field is complete',async()=>{
+ const r=mergeGroup(group([entry('streamingunity',3235,1600)]).groups[0]);
+ const rule=require('../episode-overrides.json')['streamingunity:3235'].tmdb.episodes['3:10'];
+ r.seasons=[{number:3,episodes:[{number:10,title:rule.sourceTitle,synopsis:'Provider plot',thumbnail:'provider.jpg'}]}];
+ const out=await enrich(r,{services:{context:{},'tmdb/index.js':{resolveTmdbMediaMetadata:async()=>({}),resolveTmdbEpisodeSeasonMetadata:async()=>{throw Error('No request needed');}},'tvdb/index.js':{},'tmdb/artworkLibrary.js':{resolveTmdbArtworkLibrary:async()=>({})}}});
+ assert.equal(out.seasons[0].episodes[0].externalMappings.tmdb.episode,10);
+ assert.equal(out.seasons[0].episodes[0].synopsis,'Provider plot');
+});
+test('Ned composite and Love Island reunion preserve provider episodes without external fallbacks',async()=>{
+ for(const [id,tmdb,season,number]of [[3235,1600,3,21],[3355,127623,1,30]]){
+ const r=mergeGroup(group([entry('streamingunity',id,tmdb)]).groups[0]),rule=require('../episode-overrides.json')['streamingunity:'+id].tmdb.episodes[season+':'+number];
+ r.sourceIds.tvdb='123';r.seasons=[{number:season,episodes:[{number,title:rule.sourceTitle,synopsis:null,thumbnail:null}]}];
+ const forbidden=async()=>{throw Error('Provider-only episode request forbidden');};
+ const out=await enrich(r,{services:{context:{},'tmdb/index.js':{resolveTmdbMediaMetadata:async()=>({}),resolveTmdbEpisodeSeasonMetadata:forbidden},'tvdb/index.js':{resolveTvdbEpisodeFallbacks:forbidden},'tmdb/artworkLibrary.js':{resolveTmdbArtworkLibrary:async()=>({})},'tvdb/artworkLibrary.js':{resolveTvdbArtworkLibrary:async()=>({})}}});
+ assert.equal(out.enrichment.status,'ready');assert.equal(out.seasons[0].episodes.length,1);assert.equal(out.seasons[0].episodes[0].thumbnail,null);
+ if(id===3235)assert.deepEqual(out.seasons[0].episodes[0].externalMappings.tmdb.episodes,[21,22]);else assert.equal(out.seasons[0].episodes[0].externalMappings.tmdb.status,'provider-only');
+ }
+});
+test('black and white edition never imports external artwork or episode thumbnails',async()=>{
+ const {applyCorrections}=require('../scripts/identity-policy'),policy=require('../identity-overrides.json');
+ const r=mergeGroup(group(applyCorrections([entry('streamingunity',59153)],policy)).groups[0]);
+ const rule=require('../episode-overrides.json')['streamingunity:59153'].tmdb.episodes['1:1'];
+ r.seasons=[{number:1,episodes:[{number:1,title:rule.sourceTitle,synopsis:null,thumbnail:null}]}];
+ const out=await enrich(r,{previous:{artworkLibrary:{tmdb:{poster:'color.jpg'}}},services:{context:{},'tmdb/index.js':{resolveTmdbMediaMetadata:async()=>({}),resolveTmdbEpisodeSeasonMetadata:async()=>({episodes:[{episodeNumber:1,overview:{value:'Text'},thumbnail:'color.jpg'}]})},'tvdb/index.js':{},'tmdb/artworkLibrary.js':{resolveTmdbArtworkLibrary:async()=>{throw Error('Artwork forbidden');}}}});
+ assert.deepEqual(out.artworkLibrary,{});assert.equal(out.seasons[0].episodes[0].thumbnail,null);assert.equal(out.seasons[0].episodes[0].synopsis,'Text');assert.equal(out.enrichment.status,'ready');
+});
+test('Primo Appuntamento refuses the Spanish IMDb even if rediscovered by Wikidata',async()=>{
+ const {applyCorrections}=require('../scripts/identity-policy');const r=mergeGroup(group(applyCorrections([entry('streamingunity',3359)],require('../identity-overrides.json'))).groups[0]);
+ const out=await enrich(r,{services:{context:{},'wikidata/index.js':{resolveWikidataExternalIds:async()=>({imdbId:'tt13232504'})},'tmdb/index.js':{resolveTmdbMediaMetadata:async()=>({}),resolveTmdbEpisodeSeasonMetadata:async()=>{throw Error('Episode request forbidden');}},'tvdb/index.js':{},'tmdb/artworkLibrary.js':{resolveTmdbArtworkLibrary:async()=>({})}}});
+ assert.equal(out.sourceIds.imdb,null);assert.equal(out.enrichment.status,'ready');
 });

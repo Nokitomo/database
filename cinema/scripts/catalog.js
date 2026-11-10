@@ -27,7 +27,7 @@ function group(entries,registry={nextId:1,members:{}},policy=require('../identit
   const originalMembers={...registry.members};
   const bySource=new Map(entries.map(e=>[e.key,e]));
   for(const rule of policy.decisions.filter(r=>r.decision==='merge')){const present=rule.sources.map(k=>bySource.get(k)).filter(Boolean);if(present.some(a=>present.some(b=>!compatible(a,b))))throw Error('Correct conflicting external IDs before approving a merge');}
-  const keysFor=e=>{const keys=Object.entries(ids(e.record)).filter(([,v])=>v).map(([k,v])=>`${e.record.info.type}:${k}:${v}`);
+  const keysFor=e=>{const keys=Object.entries(ids(e.record)).filter(([,v])=>v).map(([k,v])=>`${e.record.info.type}:${k}:${v}${k==='imdb'&&e.record.metadataPolicy?.imdb?':seasons:'+e.record.metadataPolicy.imdb.seasons.join(','):''}`);
     if(e.provider==='filmez'){const alias=e.record.sourceAlias;const canonical=alias?.method==='identical-provider-url-title-and-full-plot'?positive(alias.canonicalId):null;keys.push(e.record.info.type+':filmez-source:'+(canonical||e.record.id));}
     policy.decisions.forEach((r,i)=>{if(r.decision==='merge'&&r.sources.includes(e.key))keys.push('manual:'+i);});return keys;};
   registry=structuredClone(registry);const groups=[],lookup=new Map(),conflicts=[];

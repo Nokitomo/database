@@ -149,7 +149,200 @@
       "metadata": {
         "sourceOnly": true
       }
+    },
+    "streamingunity:5994": {
+      "reason": "Identity and episode correspondence verified individually; user confirmation 2026-11-10.",
+      "ids": {
+        "tmdb": 1050746,
+        "imdb": "tt24265682"
+      }
+    },
+    "streamingunity:6086": {
+      "reason": "Identity and episode correspondence verified individually; user confirmation 2026-11-10.",
+      "ids": {
+        "tmdb": 1082339,
+        "imdb": "tt26593352"
+      }
+    },
+    "streamingunity:3235": {
+      "reason": "Identity and episode correspondence verified individually; user confirmation 2026-11-10.",
+      "ids": {
+        "tmdb": 1600,
+        "imdb": "tt0405576"
+      }
+    },
+    "streamingunity:3359": {
+      "reason": "Identity and episode correspondence verified individually; user confirmation 2026-11-10.",
+      "ids": {
+        "tmdb": 273005,
+        "imdb": null
+      },
+      "metadata": {
+        "providerEpisodesOnly": true,
+        "rejectedImdbIds": [
+          "tt0405576",
+          "tt13232504"
+        ]
+      }
+    },
+    "streamingunity:3544": {
+      "reason": "Identity and episode correspondence verified individually; user confirmation 2026-11-10.",
+      "ids": {
+        "tmdb": 100572,
+        "imdb": "tt11962166"
+      }
+    },
+    "streamingunity:3758": {
+      "reason": "Identity and episode correspondence verified individually; user confirmation 2026-11-10.",
+      "ids": {
+        "tmdb": 128068,
+        "imdb": "tt14252964"
+      }
+    },
+    "streamingunity:5131": {
+      "reason": "Identity and episode correspondence verified individually; user confirmation 2026-11-10.",
+      "ids": {
+        "tmdb": 203281,
+        "imdb": "tt1526318"
+      },
+      "metadata": {
+        "imdb": {
+          "id": "tt1526318",
+          "seasons": [
+            4
+          ]
+        }
+      }
+    },
+    "streamingunity:8848": {
+      "reason": "Identity and episode correspondence verified individually; user confirmation 2026-11-10.",
+      "ids": {
+        "tmdb": 42445,
+        "imdb": "tt1526318"
+      },
+      "metadata": {
+        "imdb": {
+          "id": "tt1526318",
+          "seasons": [
+            1,
+            2,
+            3
+          ]
+        }
+      }
+    },
+    "streamingunity:5225": {
+      "reason": "Identity and episode correspondence verified individually; user confirmation 2026-11-10.",
+      "ids": {
+        "tmdb": 67915,
+        "imdb": "tt5994364"
+      }
+    },
+    "streamingunity:5757": {
+      "reason": "Identity and episode correspondence verified individually; user confirmation 2026-11-10.",
+      "ids": {
+        "tmdb": 200945,
+        "imdb": "tt22181096"
+      }
+    },
+    "streamingunity:3355": {
+      "reason": "Identity and episode correspondence verified individually; user confirmation 2026-11-10.",
+      "ids": {
+        "tmdb": 127623,
+        "imdb": "tt16405458"
+      }
+    },
+    "streamingunity:3368": {
+      "reason": "Identity and episode correspondence verified individually; user confirmation 2026-11-10.",
+      "ids": {
+        "tmdb": 126526,
+        "imdb": "tt14668192"
+      },
+      "metadata": {
+        "imdb": {
+          "id": "tt14668192",
+          "seasons": [
+            2
+          ]
+        }
+      }
+    },
+    "streamingunity:55357": {
+      "reason": "Identity and episode correspondence verified individually; user confirmation 2026-11-10.",
+      "ids": {
+        "tmdb": 220102,
+        "imdb": "tt30460310"
+      },
+      "metadata": {
+        "edition": "color"
+      }
+    },
+    "streamingunity:59153": {
+      "reason": "Identity and episode correspondence verified individually; user confirmation 2026-11-10.",
+      "ids": {
+        "tmdb": 220102,
+        "imdb": "tt30460310"
+      },
+      "metadata": {
+        "providerArtworkOnly": true,
+        "edition": "black-and-white"
+      }
+    },
+    "streamingunity:5578": {
+      "reason": "Identity and episode correspondence verified individually; user confirmation 2026-11-10.",
+      "ids": {
+        "tmdb": 113988,
+        "imdb": "tt13207736"
+      },
+      "metadata": {
+        "imdb": {
+          "id": "tt13207736",
+          "seasons": [
+            1
+          ]
+        }
+      }
+    },
+    "streamingunity:65820": {
+      "reason": "Identity and episode correspondence verified individually; user confirmation 2026-11-10.",
+      "ids": {
+        "tmdb": 299939,
+        "imdb": "tt13207736"
+      },
+      "metadata": {
+        "imdb": {
+          "id": "tt13207736",
+          "seasons": [
+            4
+          ]
+        }
+      }
     }
   },
-  "decisions": []
+  "decisions": [
+    {
+      "sources": [
+        "streamingunity:5131",
+        "streamingunity:8848"
+      ],
+      "decision": "separate",
+      "reason": "Confirmed distinct seasons/editions sharing a parent identifier; preserve separate provider works."
+    },
+    {
+      "sources": [
+        "streamingunity:55357",
+        "streamingunity:59153"
+      ],
+      "decision": "separate",
+      "reason": "Confirmed distinct seasons/editions sharing a parent identifier; preserve separate provider works."
+    },
+    {
+      "sources": [
+        "streamingunity:5578",
+        "streamingunity:65820"
+      ],
+      "decision": "separate",
+      "reason": "Confirmed distinct seasons/editions sharing a parent identifier; preserve separate provider works."
+    }
+  ]
 }
