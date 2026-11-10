@@ -138,3 +138,65 @@ test('legacy pair and triple split once, discard merged enrichment, preserve unr
  for(const id of Object.values(registry.members)){const r=read(path.join(output,'items',id+'.json'));assert.equal(r.providers.streamingunity.length,1);assert.equal(r.info.marker,'safe');}
  assert.equal(read(path.join(output,'identity-migration.json')).splits.length,1);verify(output);calls.length=0;await run({...options,now:3});assert.equal(calls.length,0);assert.deepEqual(read(path.join(output,'registry.json')),registry);
 });
+
+
+test('all confirmed corrections preserve source records and typed playback identities',async()=>{
+ const policy=require('../identity-overrides.json'),{applyCorrections}=require('../scripts/identity-policy');
+ assert.equal(Object.keys(policy.idCorrections).length,19);
+ for(const key of Object.keys(policy.idCorrections)){
+  const id=Number(key.split(':')[1]),source=entry('streamingunity',id,999,'tt123', [11560,6914,5508,55440,7356,10323,4838].includes(id)?'tv':'movie');
+  const before=structuredClone(source),corrected=applyCorrections([source],policy)[0];
+  assert.deepEqual(source,before);assert.equal(corrected.record.info.type,before.record.info.type);
+  assert.deepEqual(corrected.record.seasons,before.record.seasons);assert.equal(corrected.record.path,before.record.path);
+  const record=mergeGroup(group([corrected]).groups[0]);
+  assert.deepEqual(record.providers.streamingunity[0].identityCorrection.originalIds,before.record.sourceIds);
+  if([11560,8643,22305].includes(id)){assert.equal(record.sourceIds.tmdb,null);assert(record.metadataPolicy.tmdb);}
+ }
+});
+
+test('scoped TV metadata never replaces movie playback or imports unrelated episode/series identity',async()=>{
+ const {applyCorrections}=require('../scripts/identity-policy');
+ for(const id of [8643,22305]){
+  const source=entry('streamingunity',id,999,'tt123','movie');source.record.seasons=[];
+  const r=mergeGroup(group(applyCorrections([source],require('../identity-overrides.json'))).groups[0]);
+  let media=0,wikidata=0,episodes=0;
+  const out=await enrich(r,{services:{context:{},'wikidata/index.js':{resolveWikidataExternalIds:async()=>{wikidata++;}},'tvdb/index.js':{},
+   'tmdb/index.js':{resolveTmdbMediaMetadata:async()=>{media++;return {overview:{value:'WRONG SERIES PLOT'}};},resolveTmdbEpisodeSeasonMetadata:async a=>{episodes++;assert.equal(id,22305);assert.equal(a.mediaId,303267);assert.equal(a.seasonNumber,1);return {episodes:[{episodeNumber:1,overview:{value:'Correct episode plot'}}]};}},
+   'tmdb/artworkLibrary.js':{resolveTmdbArtworkLibrary:async a=>{assert.equal(a.type,'tv');return {id:a.id,seasons:{0:{},1:{},2:{}}};}}}});
+  assert.equal(media,0);assert.equal(wikidata,0);assert.equal(episodes,id===22305?1:0);
+  assert.equal(out.info.type,'movie');assert.equal(out.sourceIds.tmdb,null);assert.equal(out.sourceIds.imdb,'tt123');assert.deepEqual(out.seasons,[]);
+  assert.deepEqual(Object.keys(out.artworkLibrary.tmdb.seasons),[id===8643?'2':'1']);assert.equal(out.enrichment.status,'ready');
+ }
+});
+
+test('movie target for provider documentary preserves its one playable episode',async()=>{
+ const {applyCorrections}=require('../scripts/identity-policy'),s=entry('streamingunity',11560);
+ s.record.seasons=[{number:1,episodes:[{number:1,name:'Documentario',images:[]}]}];
+ const r=mergeGroup(group(applyCorrections([s],require('../identity-overrides.json'))).groups[0]);
+ const out=await enrich(r,{services:{context:{},'tvdb/index.js':{},'tmdb/index.js':{resolveTmdbMediaMetadata:async a=>{assert.equal(a.type,'movie');assert.equal(a.id,1433947);return {overview:{value:'Documentary plot'}};},resolveTmdbEpisodeSeasonMetadata:async()=>{throw Error('Must not query TV episodes');}},'tmdb/artworkLibrary.js':{resolveTmdbArtworkLibrary:async()=>({})}}});
+ assert.equal(out.enrichment.status,'ready');assert.equal(out.info.type,'tv');assert.equal(out.seasons[0].episodes.length,1);assert.equal(out.seasons[0].episodes[0].externalMappings.tmdb.type,'movie');
+});
+
+test('source-only resolution and Peanuts do not guess episode mappings',async()=>{
+ const {applyCorrections}=require('../scripts/identity-policy');
+ for(const id of [4838,10323]){
+  const r=mergeGroup(group(applyCorrections([entry('streamingunity',id)],require('../identity-overrides.json'))).groups[0]);
+  let calls=0;
+  const out=await enrich(r,{services:{context:{},'tvdb/index.js':{},'tmdb/index.js':{resolveTmdbMediaMetadata:async()=>{calls++;return {};},resolveTmdbEpisodeSeasonMetadata:async()=>{throw Error('Episode request forbidden');}},'tmdb/artworkLibrary.js':{resolveTmdbArtworkLibrary:async()=>{calls++;return {};}}}});
+  assert.equal(out.enrichment.status,'ready');if(id===4838){assert.equal(calls,0);assert.equal(out.sourceIds.imdb,null);}else assert.equal(calls,2);
+  assert.deepEqual(out.seasons,r.seasons);
+ }
+});
+
+test('metadata-only policy change refreshes the affected record once and preserves unrelated caches',async t=>{
+ const root=tmp(t),source=path.join(root,'source'),output=path.join(root,'out'),store=require('../../providers/streamingunity/scripts/store'),state=store.initialState();
+ for(const id of [10323,999999]){const e=entry('streamingunity',id,id);e.record.info.id=id;state.known[id]={id,active:true};write(store.itemFile(source,id),e.record);}
+ state.origins={site:'https://example.invalid'};state.archive={completedAt:1,total:2};store.publish(source,state,{complete:true});
+ const policy=require('../identity-overrides.json'),rule=policy.idCorrections['streamingunity:10323'],metadata=rule.metadata;delete rule.metadata;
+ const calls=[],options={roots:{streamingunity:source},selectedProviders:['streamingunity'],output,enrich:async r=>{calls.push(r.id);return {...r,enrichment:{status:'ready'}};}};
+ try{await run({...options,now:1});}finally{rule.metadata=metadata;}
+ const before=read(path.join(output,'manifest.json')).itemHashes;calls.length=0;
+ await run({...options,now:2});assert.equal(calls.length,1);const changed=calls[0],after=read(path.join(output,'manifest.json')).itemHashes;
+ for(const id of Object.keys(before))if(id!==changed)assert.equal(after[id],before[id]);
+ calls.length=0;await run({...options,now:3});assert.equal(calls.length,0);assert.equal(verify(output).count,2);
+});

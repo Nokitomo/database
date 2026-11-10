@@ -79,7 +79,7 @@ function mergeGroup(g){
     }
   }
   const active=ordered.some(x=>x.record.active);
-  return {id:g.id,active,sourceIds:external,info,providers,images,
+  return {id:g.id,active,sourceIds:external,info,providers,images,...(r.metadataPolicy?{metadataPolicy:r.metadataPolicy}:{}),
     episodeMappingUncertain:!!r.episodeMappingUncertain||(r.warnings||[]).some(w=>/count-mismatch/.test(w)),
     seasons:[...seasons.values()].sort((a,b)=>a.number-b.number).map(s=>({...s,episodes:s.episodes.sort((a,b)=>Number(a.number)-Number(b.number))})),provenance,warnings};
 }

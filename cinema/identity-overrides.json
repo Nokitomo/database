@@ -1,4 +1,155 @@
 {
-  "idCorrections": {},
+  "idCorrections": {
+    "streamingunity:9358": {
+      "reason": "User-confirmed TMDB correction; title and provider content checked on 2026-11-10.",
+      "ids": {
+        "tmdb": 1761346
+      }
+    },
+    "streamingunity:9410": {
+      "reason": "User-confirmed TMDB correction; title and provider content checked on 2026-11-10.",
+      "ids": {
+        "tmdb": 1594977
+      }
+    },
+    "streamingunity:55440": {
+      "reason": "User-confirmed TMDB correction; title and provider content checked on 2026-11-10.",
+      "ids": {
+        "tmdb": 255522
+      }
+    },
+    "streamingunity:6914": {
+      "reason": "User-confirmed TMDB correction; title and provider content checked on 2026-11-10.",
+      "ids": {
+        "tmdb": 303264
+      }
+    },
+    "streamingunity:7356": {
+      "reason": "User-confirmed TMDB correction; title and provider content checked on 2026-11-10.",
+      "ids": {
+        "tmdb": 256188
+      }
+    },
+    "streamingunity:10323": {
+      "reason": "User-confirmed TMDB correction; title and provider content checked on 2026-11-10.",
+      "ids": {
+        "tmdb": 335652
+      },
+      "metadata": {
+        "providerEpisodesOnly": true
+      }
+    },
+    "streamingunity:26517": {
+      "reason": "User-confirmed TMDB correction; title and provider content checked on 2026-11-10.",
+      "ids": {
+        "tmdb": 1038967
+      }
+    },
+    "streamingunity:27809": {
+      "reason": "User-confirmed TMDB correction; title and provider content checked on 2026-11-10.",
+      "ids": {
+        "tmdb": 1720323
+      }
+    },
+    "streamingunity:35246": {
+      "reason": "User-confirmed TMDB correction; title and provider content checked on 2026-11-10.",
+      "ids": {
+        "tmdb": 1446358
+      }
+    },
+    "streamingunity:3934": {
+      "reason": "User-confirmed TMDB correction; title and provider content checked on 2026-11-10.",
+      "ids": {
+        "tmdb": 1763901
+      }
+    },
+    "streamingunity:4482": {
+      "reason": "User-confirmed TMDB correction; title and provider content checked on 2026-11-10.",
+      "ids": {
+        "tmdb": 1225160
+      }
+    },
+    "streamingunity:49824": {
+      "reason": "User-confirmed TMDB correction; title and provider content checked on 2026-11-10.",
+      "ids": {
+        "tmdb": 1162046
+      }
+    },
+    "streamingunity:5508": {
+      "reason": "User-confirmed TMDB correction; title and provider content checked on 2026-11-10.",
+      "ids": {
+        "tmdb": 341183
+      }
+    },
+    "streamingunity:55102": {
+      "reason": "User-confirmed TMDB correction; title and provider content checked on 2026-11-10.",
+      "ids": {
+        "tmdb": 1098378
+      }
+    },
+    "streamingunity:17644": {
+      "reason": "User-confirmed TMDB correction; title and provider content checked on 2026-11-10.",
+      "ids": {
+        "tmdb": 1744692
+      }
+    },
+    "streamingunity:11560": {
+      "reason": "The provider documentary S1E1 is TMDB movie 1433947. Preserve the provider episode and playback type.",
+      "ids": {
+        "tmdb": null
+      },
+      "metadata": {
+        "tmdb": {
+          "id": 1433947,
+          "type": "movie",
+          "scope": "work"
+        },
+        "singleEpisode": {
+          "season": 1,
+          "episode": 1
+        }
+      }
+    },
+    "streamingunity:8643": {
+      "reason": "User confirmed the single movie is the compilation of Die Hart season 2; not the whole TV series. Preserve film IMDb tt32094375 and one movie stream.",
+      "ids": {
+        "tmdb": null
+      },
+      "metadata": {
+        "tmdb": {
+          "id": 99072,
+          "type": "tv",
+          "scope": "season-compilation",
+          "season": 2
+        }
+      }
+    },
+    "streamingunity:22305": {
+      "reason": "Provider movie matches TV 303267 S1E1 by plot, release date and duration; movie/303267 is unrelated. Preserve film IMDb tt24802882.",
+      "ids": {
+        "tmdb": null
+      },
+      "metadata": {
+        "tmdb": {
+          "id": 303267,
+          "type": "tv",
+          "scope": "episode",
+          "season": 1,
+          "episode": 1
+        }
+      }
+    },
+    "streamingunity:4838": {
+      "reason": "User could not identify a reliable external resource. Keep provider metadata without retrying invalid IDs.",
+      "ids": {
+        "tmdb": null,
+        "imdb": null,
+        "tvdb": null
+      },
+      "metadata": {
+        "sourceOnly": true
+      }
+    }
+  },
   "decisions": []
 }

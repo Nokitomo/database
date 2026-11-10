@@ -25,7 +25,7 @@ async function runBatch({roots,output,providerRoot,enrich=defaultEnrich,stage='a
   let processed=0,pendingCount=identity.pending,hasImmediateWork=stage==='all'&&identity.immediate;
   for(const group of g.groups){let phaseStart=clock();const base=mergeGroup(group),id=group.id;
     timings.mergeMs=(timings.mergeMs||0)+clock()-phaseStart;phaseStart=clock();
-    const fingerprint=hash({version:2,episodeOverrides:Object.fromEntries(group.entries.map(e=>[e.key,episodeOverrides[e.key]||null])),ids:base.sourceIds,info:base.info,seasons:base.seasons,warnings:base.warnings});
+    const fingerprint=hash({version:2,...(base.metadataPolicy?{metadataPolicy:base.metadataPolicy}:{}),episodeOverrides:Object.fromEntries(group.entries.map(e=>[e.key,episodeOverrides[e.key]||null])),ids:base.sourceIds,info:base.info,seasons:base.seasons,warnings:base.warnings});
     timings.fingerprintMs=(timings.fingerprintMs||0)+clock()-phaseStart;phaseStart=clock();
     const file=path.join(output,'enriched',id+'.json'),old=read(file),due=!state[id]||state[id].fingerprint!==fingerprint||state[id].nextCheckAt<=now;
     timings.enrichedReadMs=(timings.enrichedReadMs||0)+clock()-phaseStart;

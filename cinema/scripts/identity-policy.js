@@ -15,6 +15,13 @@ function applyCorrections(entries,policy){
     const rule=policy.idCorrections[entry.key];if(!rule)return entry;
     if(!rule.reason||!rule.ids||Object.keys(rule.ids).some(k=>!['tmdb','imdb','tvdb'].includes(k)))throw Error('Invalid identity correction '+entry.key);
     const out=structuredClone(entry),before={...out.record.sourceIds};
+    if(rule.metadata){
+      const m=rule.metadata,t=m.tmdb;
+      if(m.sourceOnly&&Object.values(rule.ids).some(v=>v!==null))throw Error('Source-only correction must clear external IDs');
+      if(t&&(!['movie','tv'].includes(t.type)||!Number.isSafeInteger(t.id)||t.id<=0||!['work','season-compilation','episode'].includes(t.scope)||t.type==='movie'&&t.scope!=='work'||t.scope!=='work'&&(!Number.isInteger(t.season)||t.season<0)||t.scope==='episode'&&(!Number.isInteger(t.episode)||t.episode<0)))throw Error('Invalid typed TMDB target');
+      if(t&&(t.type!==out.record.info.type||t.scope!=='work')&&rule.ids.tmdb!==null)throw Error('Scoped TMDB target must not become a whole-work identity');
+      out.record.metadataPolicy=structuredClone(m);
+    }
     for(const [key,value]of Object.entries(rule.ids)){
       if(value!==null&&(key==='imdb'?!/^tt\d+$/.test(String(value)):!Number.isSafeInteger(Number(value))||Number(value)<=0))throw Error('Invalid corrected ID '+entry.key);
       const field=key+'_id';out.record.sourceIds[field]=value;out.record.info[field]=value;

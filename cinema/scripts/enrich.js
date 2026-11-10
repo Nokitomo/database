@@ -38,26 +38,39 @@ async function enrich(record,{providerRoot,cacheRoot,signal,progress={},save=()=
     }
   }else metrics.add('cache','checkpointHits');return progress[key];};
   const adapter=providerRoot&&!services['tmdb/index.js']?createTmdbAdapter(load,context,checkpoint):null;
-  const type=out.info.type==='movie'?'movie':'tv',tmdbId=Number(out.sourceIds.tmdb);
+  const policy=out.metadataPolicy||{},target=policy.tmdb;
+  const type=target?.type||(out.info.type==='movie'?'movie':'tv'),tmdbId=policy.sourceOnly?0:Number(target?.id??out.sourceIds.tmdb);
+  const scoped=target&&target.scope!=='work',differentType=type!==out.info.type;
   let tvdbId=Number(out.sourceIds.tvdb);
-  if(tmdbId&&(!out.sourceIds.imdb||!tvdbId)&&(providerRoot||services['wikidata/index.js'])){
+  if(policy.sourceOnly||scoped||differentType)tvdbId=0;
+  if(tmdbId&&!scoped&&!differentType&&(!out.sourceIds.imdb||!tvdbId)&&(providerRoot||services['wikidata/index.js'])){
     const ids=await checkpoint('wikidata:ids',()=>load('wikidata/index.js').resolveWikidataExternalIds({providerContext:context,tmdbId,type}));
     const conflict=ids&&((out.sourceIds.imdb&&ids.imdbId&&out.sourceIds.imdb!==ids.imdbId)||(tvdbId&&ids.tvdbId&&tvdbId!==Number(ids.tvdbId)));
     if(ids&&!conflict){out.externalIdsEvidence={wikidata:ids};out.sourceIds.imdb ||= ids.imdbId||null;out.sourceIds.tvdb ||= ids.tvdbId?String(ids.tvdbId):null;out.sourceIds.wikidata=ids.wikidataId;tvdbId=Number(out.sourceIds.tvdb);}
     else if(conflict)out.warnings.push({reason:'wikidata-external-id-conflict'});
   }
   const conflicts=new Set(out.warnings.filter(w=>w.season!==undefined).map(w=>w.season));
-  if(tmdbId){const media=await checkpoint('tmdb:media',()=>adapter?adapter.media(tmdbId,type,out.info):tmdb.resolveTmdbMediaMetadata({providerContext:context,id:tmdbId,type}));
+  if(tmdbId){const media=scoped?null:await checkpoint('tmdb:media',()=>adapter?adapter.media(tmdbId,type,out.info):tmdb.resolveTmdbMediaMetadata({providerContext:context,id:tmdbId,type}));
     out.info.synopsis ||= media?.overview?.value;out.externalMedia||={};if(media)out.externalMedia.tmdb=media;
     const values=mediaFields(media);
     for(const field of ['year','runtime','rating','genres','cast'])if(out.info[field]==null||out.info[field]===''||Array.isArray(out.info[field])&&!out.info[field].length)out.info[field]=values?.[field]?.value??values?.[field];
-    const artwork=await checkpoint('tmdb:artwork',()=>adapter?adapter.artwork(tmdbId,type):load('tmdb/artworkLibrary.js').resolveTmdbArtworkLibrary({providerContext:context,id:tmdbId,type}));
+    const artwork=await checkpoint('tmdb:artwork',()=>adapter?adapter.artwork(tmdbId,type,scoped?[target.season]:undefined):load('tmdb/artworkLibrary.js').resolveTmdbArtworkLibrary({providerContext:context,id:tmdbId,type,mappedSeasons:scoped?[target.season]:undefined}));
+    if(artwork&&scoped)artwork.seasons=Object.fromEntries(Object.entries(artwork.seasons||{}).filter(([number])=>Number(number)===target.season));
     out.artworkLibrary||={};if(artwork)out.artworkLibrary.tmdb=retainAvailable(out.artworkLibrary.tmdb,artwork);
+    if(target?.scope==='episode'){
+      const data=await checkpoint('tmdb:scoped-episode',()=>tmdb.resolveTmdbEpisodeSeasonMetadata({providerContext:context,mediaId:tmdbId,seasonNumber:target.season,episodeNumbers:[target.episode]}));
+      const episode=data?.episodes?.find(e=>Number(e.episodeNumber)===target.episode);
+      if(episode){out.externalMedia||={};out.externalMedia.tmdbEpisode=episode;out.info.synopsis ||= episode.overview?.value;}
+    }
+    if(differentType&&type==='movie'&&policy.singleEpisode){
+      const episode=out.seasons.find(s=>s.number===policy.singleEpisode.season)?.episodes.find(e=>Number(e.number)===policy.singleEpisode.episode);
+      if(episode){episode.synopsis ||= media?.overview?.value;episode.externalMappings||={};episode.externalMappings.tmdb={status:'verified',id:tmdbId,type:'movie',method:'verified-override'};}
+    }
   }
   if(tvdbId&&!out.info.synopsis&&tvdb.resolveTvdbMediaTextMetadata){const media=await checkpoint('tvdb:media',()=>tvdb.resolveTvdbMediaTextMetadata({providerContext:context,tvdbId,mediaType:type==='tv'?'series':'movie'}));out.info.synopsis ||= media?.synopsis;out.externalMedia||={};out.externalMedia.tvdb=media;}
   if(tvdbId){out.artworkLibrary||={};const artwork=await checkpoint('tvdb:artwork',()=>load('tvdb/artworkLibrary.js').resolveTvdbArtworkLibrary({providerContext:context,tvdbId,mediaType:type==='tv'?'series':'movie',mappedSeasons:out.seasons.map(s=>s.number)}));if(artwork)out.artworkLibrary.tvdb=artwork;}
   for(const season of out.seasons){
-    if(out.episodeMappingUncertain||conflicts.has(season.number))continue;
+    if(policy.sourceOnly||policy.providerEpisodesOnly||scoped||differentType||out.episodeMappingUncertain||conflicts.has(season.number))continue;
     const eligible=season.episodes.filter(e=>!needsEpisodeIdentity(e.number));
     for(const service of ['tmdb','tvdb']){
       const id=service==='tmdb'?tmdbId:tvdbId;if(!id)continue;
@@ -94,7 +107,7 @@ async function enrich(record,{providerRoot,cacheRoot,signal,progress={},save=()=
     }
   }
   const missing=out.seasons.some(s=>s.episodes.some(e=>!meaningful(e.title)||!e.synopsis||!e.thumbnail));
-  out.enrichment={status:failed?'retry':!tmdbId&&!tvdbId?'unmapped':'ready',hasMissingEpisodeMetadata:missing,
+  out.enrichment={status:failed?'retry':policy.sourceOnly?'ready':!tmdbId&&!tvdbId?'unmapped':'ready',hasMissingEpisodeMetadata:missing,...(policy.sourceOnly?{resolution:'provider-only-confirmed'}:{}),
     ...(failed?{pendingComponents:Object.keys(components),nextCheckAt:Math.min(...Object.values(components).map(c=>c.nextCheckAt))}:{} )};
   return out;
 }

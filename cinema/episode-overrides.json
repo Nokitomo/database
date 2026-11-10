@@ -1,1 +1,132 @@
-{}
+{
+  "streamingunity:6914": {
+    "tmdb": {
+      "id": 303264,
+      "episodes": {
+        "1:1": {
+          "season": 1,
+          "episode": 1,
+          "sourceTitle": "Amazing - Fabio De Luigi",
+          "evidence": "Provider episode title/plot and TMDB season page compared individually on 2026-11-10."
+        }
+      }
+    }
+  },
+  "streamingunity:5508": {
+    "tmdb": {
+      "id": 341183,
+      "episodes": {
+        "1:1": {
+          "season": 1,
+          "episode": 1,
+          "sourceTitle": "Episodio 1",
+          "evidence": "Provider episode title/plot and TMDB season page compared individually on 2026-11-10."
+        },
+        "1:2": {
+          "season": 1,
+          "episode": 2,
+          "sourceTitle": "Episodio 2",
+          "evidence": "Provider episode title/plot and TMDB season page compared individually on 2026-11-10."
+        },
+        "1:3": {
+          "season": 1,
+          "episode": 3,
+          "sourceTitle": "Episodio 3",
+          "evidence": "Provider episode title/plot and TMDB season page compared individually on 2026-11-10."
+        },
+        "1:4": {
+          "season": 1,
+          "episode": 4,
+          "sourceTitle": "Episodio 4",
+          "evidence": "Provider episode title/plot and TMDB season page compared individually on 2026-11-10."
+        },
+        "1:5": {
+          "season": 1,
+          "episode": 5,
+          "sourceTitle": "Episodio 5",
+          "evidence": "Provider episode title/plot and TMDB season page compared individually on 2026-11-10."
+        },
+        "1:6": {
+          "season": 1,
+          "episode": 6,
+          "sourceTitle": "Episodio 6",
+          "evidence": "Provider episode title/plot and TMDB season page compared individually on 2026-11-10."
+        }
+      }
+    }
+  },
+  "streamingunity:55440": {
+    "tmdb": {
+      "id": 255522,
+      "episodes": {
+        "1:1": {
+          "season": 1,
+          "episode": 1,
+          "sourceTitle": "Baixa",
+          "evidence": "Provider episode title/plot and TMDB season page compared individually on 2026-11-10."
+        },
+        "1:2": {
+          "season": 1,
+          "episode": 2,
+          "sourceTitle": "Alfama",
+          "evidence": "Provider episode title/plot and TMDB season page compared individually on 2026-11-10."
+        },
+        "1:3": {
+          "season": 1,
+          "episode": 3,
+          "sourceTitle": "Belém",
+          "evidence": "Provider episode title/plot and TMDB season page compared individually on 2026-11-10."
+        },
+        "1:4": {
+          "season": 1,
+          "episode": 4,
+          "sourceTitle": "Ajuda",
+          "evidence": "Provider episode title/plot and TMDB season page compared individually on 2026-11-10."
+        },
+        "1:5": {
+          "season": 1,
+          "episode": 5,
+          "sourceTitle": "Bairro Alto",
+          "evidence": "Provider episode title/plot and TMDB season page compared individually on 2026-11-10."
+        },
+        "1:6": {
+          "season": 1,
+          "episode": 6,
+          "sourceTitle": "Sintra",
+          "evidence": "Provider episode title/plot and TMDB season page compared individually on 2026-11-10."
+        },
+        "1:7": {
+          "season": 1,
+          "episode": 7,
+          "sourceTitle": "Liberdade",
+          "evidence": "Provider episode title/plot and TMDB season page compared individually on 2026-11-10."
+        }
+      }
+    }
+  },
+  "streamingunity:7356": {
+    "tmdb": {
+      "id": 256188,
+      "episodes": {
+        "1:1": {
+          "season": 1,
+          "episode": 1,
+          "sourceTitle": "Lella",
+          "evidence": "Provider episode title/plot and TMDB season page compared individually on 2026-11-10."
+        },
+        "1:2": {
+          "season": 1,
+          "episode": 2,
+          "sourceTitle": "Rafaela",
+          "evidence": "Provider episode title/plot and TMDB season page compared individually on 2026-11-10."
+        },
+        "1:3": {
+          "season": 1,
+          "episode": 3,
+          "sourceTitle": "Carrà",
+          "evidence": "Provider episode title/plot and TMDB season page compared individually on 2026-11-10."
+        }
+      }
+    }
+  }
+}

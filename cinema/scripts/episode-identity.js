@@ -5,7 +5,7 @@ const normalize=v=>String(v||'').normalize('NFKC').toLocaleLowerCase('it').repla
 function explicitTarget(record,season,episode,service){
   for(const [provider,variants] of Object.entries(record.providers||{}))for(const variant of variants){
     const rule=overrides[`${provider}:${variant.id}`]?.[service];
-    if(!rule||String(rule.id)!==String(record.sourceIds[service]))continue;
+    if(!rule||String(rule.id)!==String(service==='tmdb'?(record.metadataPolicy?.tmdb?.id??record.sourceIds.tmdb):record.sourceIds[service]))continue;
     const target=rule.episodes?.[`${season.number}:${episode.number}`];
     if(!target)continue;
     if(!target.evidence||!target.sourceTitle||normalize(target.sourceTitle)!==normalize(episode.title)||!Number.isInteger(target.season)||target.season<0||!Number.isInteger(target.episode)||target.episode<0)throw Error('Invalid or stale cinema episode override');

@@ -36,7 +36,7 @@ function createTmdbAdapter(load, context, checkpoint) {
       const fallback=await tmdb.resolveTmdbInfoFields({...args,fields:fields.map(f=>f==='synopsis'?'overview':f)});
       if(!fallback)throw Error('TMDB media unavailable');return fallback;
     },
-    async artwork(id,type){
+    async artwork(id,type,mappedSeasons){
       const args=argsFor(id,type),apiKey=await api.readTmdbApiKey(checkedContext);
       if(!apiKey){const fallback=await load('tmdb/artworkLibrary.js').resolveTmdbArtworkLibrary(args);if(!fallback)throw Error('TMDB artwork unavailable');return fallback;}
       const getInventory=seasonNumber=>checkpoint(`tmdb:inventory-v2:${seasonNumber??'series'}`,async()=>{
@@ -65,7 +65,7 @@ function createTmdbAdapter(load, context, checkpoint) {
           if(!data)throw Error('TMDB season layout unavailable');
           return data.seasons;
         });
-        for(const season of layout||[]){
+        for(const season of (layout||[]).filter(s=>!mappedSeasons||mappedSeasons.includes(s.seasonNumber))){
           const value=await getInventory(season.seasonNumber);
           seasons[season.seasonNumber]={images:slots(value,true),logo:{status:'unsupported',inheritedFrom:'series.logo'},background:{status:'unsupported',inheritedFrom:'series.background'}};
         }

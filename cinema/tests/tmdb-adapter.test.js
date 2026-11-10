@@ -59,3 +59,7 @@ test('independent phases continue after an error and only failed components retr
   out=await enrich(r,{services,progress,now:2});assert.equal(tmdbCalls,1);assert.equal(tvdbCalls,1);
   fail=false;out=await enrich(r,{services,progress,now:3600002});assert.equal(out.enrichment.status,'ready');assert.equal(tmdbCalls,2);assert.equal(tvdbCalls,1);
 });
+
+test('scoped artwork collects only the verified season while preserving series image slots',async()=>{
+ const f=setup(),out=await f.adapter.artwork(1,'tv',[1]);assert.deepEqual(f.calls,['series',1]);assert.deepEqual(Object.keys(out.seasons),['1']);assert(out.series.poster.it.selected);
+});
