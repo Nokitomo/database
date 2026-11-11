@@ -91,11 +91,11 @@ test('incomplete season does not overwrite the prior record',async t=>{
   const client={async get(){return {html:page(1,[{id:101,number:1,episodes_count:2}],1)};}};
   await assert.rejects(collect(client,state,root,1,{now:100,save(){}}),/Incomplete season/);assert.deepEqual(read(itemFile(root,1)),old);
 });
-test('HTTP error after two archive omissions retires without deleting metadata',async t=>{
+test('HTTP error after two archive omissions without health controls fails closed',async t=>{
   const root=tmp(t),state=initialState();observe(state,card(1),1);state.known[1].missingScans=2;
   state.origins={site:base,images:'https://cdn.streamingunity.fun'};write(itemFile(root,1),{id:1,path:'/it/titles/1-title-1',info:{name:'Kept'},seasons:[],seasonIndex:[],active:true});write(path.join(root,'state.json'),state);
   const client={async discover(){return {baseUrl:base,cdn:state.origins.images,genres:[]};},async get(){throw Object.assign(new Error('HTTP 404'),{status:404});}};
-  const result=await run({root,client,stage:'details'});assert.equal(result.state.known[1].active,false);assert.equal(read(itemFile(root,1)).info.name,'Kept');assert.equal(verify(root).active,0);
+  const result=await run({root,client,stage:'details'});assert.equal(result.state.known[1].active,true);assert.equal(read(itemFile(root,1)).info.name,'Kept');assert.equal(verify(root).active,1);
 });
 test('wrong season 200 is rejected and images are domain independent',()=>{
   const seasons=[{id:101,number:1,episodes_count:1}];assert.throws(()=>detail(page(1,seasons,1),1,{},2),/wrong season/);

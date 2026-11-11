@@ -19,7 +19,7 @@
     "verify:animesaturn:data": "node providers/animesaturn/scripts/verify.js",
     "verify:animesaturn:live": "node providers/animesaturn/scripts/smoke.js",
     "streamingunity": "node providers/streamingunity/scripts/pipeline.js",
-    "verify:streamingunity": "node --test providers/streamingunity/tests/provider.test.js providers/streamingunity/tests/workflow.test.js",
+    "verify:streamingunity": "node --test providers/streamingunity/tests/provider.test.js providers/streamingunity/tests/workflow.test.js providers/streamingunity/tests/retirement.test.js",
     "verify:streamingunity:data": "node providers/streamingunity/scripts/verify.js",
     "verify:streamingunity:live": "node providers/streamingunity/scripts/smoke.js",
     "altadefinizione": "node providers/altadefinizione/scripts/pipeline.js",
@@ -42,7 +42,8 @@
     "verify:filmez": "node --test providers/filmez/tests/provider.test.js providers/filmez/tests/workflow.test.js",
     "verify:filmez:data": "node providers/filmez/scripts/verify.js",
     "verify:filmez:live": "node providers/filmez/scripts/smoke.js",
-    "verify:all": "node shared/testing/all.js"
+    "verify:all": "node shared/testing/all.js",
+    "verify:cinema:sqlite": "node --test cinema/tests/sqlite.test.js cinema/tests/sqlite-workflow.test.js"
   },
   "dependencies": {
     "axios": "^1.10.0",

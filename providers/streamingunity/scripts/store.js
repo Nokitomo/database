@@ -10,7 +10,10 @@ function observe(state,card,now){const old=state.known[card.id];const fingerprin
   // otherwise refresh once rather than discard a potentially real change.
   const changed=old&&(old.fingerprintVersion===2?old.fingerprint!==fingerprint:old.fingerprint!==hash(card));
   state.known[card.id]={...old,id:card.id,path:require('./urls').titlePath(card.id,card.slug),active:true,missingScans:0,
-    lastSeenAt:now,fingerprint,fingerprintVersion:2,activityCounters:activityCounters(card),refresh:!!(old?.refresh||old&&(!old.active||changed))};}
+    lastSeenAt:now,fingerprint,fingerprintVersion:2,activityCounters:activityCounters(card),refresh:!!(old?.refresh||old&&(!old.active||changed))};
+  delete state.known[card.id].notFound;
+  if(old&&!old.active&&old.retirement)state.known[card.id].reactivatedAt=now;
+}
 function publish(root,state,status){
   const records=Object.values(state.known).map(k=>{const r=read(itemFile(root,k.id));if(!r)return null;r.active=k.active;write(itemFile(root,k.id),r);return r;}).filter(Boolean).sort((a,b)=>a.id-b.id);
   const old=read(path.join(root,'manifest.json'),{itemHashes:{}}),itemHashes=Object.fromEntries(records.map(r=>[r.id,hash(r)]));

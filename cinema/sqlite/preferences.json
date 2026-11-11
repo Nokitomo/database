@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "selectionContract": "Only eligible artwork_assignments may be selected. A forced assignment takes precedence over every preference. A null verified thumbnail override disables all episode thumbnail fallbacks.",
+  "order": {
+    "poster": ["tmdb:it", "tmdb:en", "tmdb:original", "tmdb:xx", "tvdb:*", "streamingunity:it"],
+    "background": ["tmdb:xx", "tvdb:*", "streamingunity:*"],
+    "logo": ["tmdb:it", "tmdb:en", "tmdb:xx", "streamingunity:*", "tvdb:*"],
+    "seasonPoster": ["tmdb:it", "tmdb:en", "tvdb:*", "tmdb:xx"],
+    "episodeThumbnail": ["streamingunity:*", "tmdb:*", "tvdb:*"]
+  },
+  "seasonPosterFallback": "selectedWorkPoster",
+  "heroBackground": "selectedWorkBackground",
+  "quality": {"poster":"original", "background":"original", "logo":"original", "seasonPoster":"original", "episodeThumbnail":"original"},
+  "tmdbSizes": {
+    "poster": ["w92", "w154", "w185", "w342", "w500", "w780", "original"],
+    "background": ["w300", "w780", "w1280", "original"],
+    "logo": ["w45", "w92", "w154", "w185", "w300", "w500", "original"],
+    "seasonPoster": ["w92", "w154", "w185", "w342", "w500", "w780", "original"],
+    "episodeThumbnail": ["w92", "w185", "w300", "original"]
+  },
+  "qualityPolicy": "For assignments sourced from tmdb on image.tmdb.org, change only /t/p/ size segments using supported sizes per image type. SVG, provider and TVDB URLs stay unchanged, including provider references hosted on TMDB. Keep original URLs in storage.",
+  "homeSections": ["movies", "series"],
+  "automaticUpdates": {"enabled":true, "cellular":false},
+  "globalSearch": "allInstalledProviders"
+}

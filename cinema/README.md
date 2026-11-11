@@ -152,3 +152,11 @@ Episode overrides can include a `replacement` with `title`, `synopsis`, and an o
 Composite targets use `{season, episodes: [...], providerOnly: true}`: one playable provider episode stays one item, with all confirmed TMDB segments recorded. Text can describe both segments; ordinary gap filling must never substitute just one segment or infer a TVDB mapping.
 
 Identity metadata may set `displayTitle` for a verified edition. Variant compositions may set `excludedMetadataSources` for a mislabeled movie copy: its original data and playback ID remain available, but cannot fill canonical text or artwork. These exceptions and their evidence participate in incremental fingerprints.
+
+## SQLite distribution
+
+The independent [SQLite exporter and publisher](sqlite/README.md) consumes pinned,
+verified complete Cinema snapshots. It creates `cinema-sqlite` as a publication
+pointer and stores full snapshots/deltas in GitHub Releases. It preserves raw
+artwork separately from eligible app choices and does not alter the source JSON
+format or the Vega app.

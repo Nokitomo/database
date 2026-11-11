@@ -1,0 +1,33 @@
+name: Publish Cinema SQLite
+on:
+  workflow_dispatch:
+  # Recovery for a failed dispatch/upload; incomplete sources are always skipped.
+  schedule:
+    - cron: '17 */2 * * *'
+permissions:
+  contents: write
+concurrency:
+  group: cinema-sqlite-publication
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci
+      - run: npm run verify:cinema:sqlite
+      - name: Verify snapshot, build SQLite and activate release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: python -B cinema/sqlite/publish.py

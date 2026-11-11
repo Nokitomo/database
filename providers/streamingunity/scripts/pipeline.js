@@ -8,7 +8,7 @@ const HOUR=3600000,DAY=24*HOUR,WEEK=7*DAY;
 function archivePath(filters={},page=1){return '/it/archive?'+new URLSearchParams({sort:'created_at',...filters,page:String(page)});}
 const signature=p=>hash(p.data.map(x=>[x.id,x.slug]));
 const retry=(state,key,now)=>!state.errors[key]||state.errors[key].retryAt<=now;
-function due(state,id,now){const k=state.known[id],r=state.records[id];return k.active&&retry(state,'item:'+id,now)&&(!r?.complete||k.refresh||r.missingScans!==(k.missingScans||0)||r.nextCheckAt<=now||state.fullSince&&r.checkedAt<state.fullSince);}
+function due(state,id,now){const k=state.known[id],r=state.records[id];return k.active&&retry(state,'item:'+id,now)&&(!!state.errors['item:'+id]||!r?.complete||k.refresh||r.missingScans!==(k.missingScans||0)||r.nextCheckAt<=now||state.fullSince&&r.checkedAt<state.fullSince);}
 function status(state,now,stage){const pending=Object.keys(state.known).filter(id=>due(state,id,now));
   const discover=(!state.archive.completedAt||state.archive.scan||now-state.archive.completedAt>=WEEK||state.fullSince&&state.archive.completedAt<state.fullSince)&&retry(state,'archive',now);
   const feeds=['created_at','last_air_date'].some(key=>(!state.feeds[key]?.checkedAt||now-state.feeds[key].checkedAt>=2*HOUR||state.feeds[key].scan)&&retry(state,'feed:'+key,now));
@@ -115,8 +115,8 @@ async function run({root=DEFAULT_DATA,client=new Client(),mode='update',stage='a
   const state=read(path.join(root,'state.json'))||initialState(),save=()=>write(path.join(root,'state.json'),state);
   if(mode==='full'&&!state.fullSince){state.fullSince=now;state.archive.completedAt=0;}const started=Date.now();
   client.signal ||= AbortSignal.timeout(budgetMs);
-  let fatal=null;
-  const attempt=async(key,fn)=>{try{await fn();}catch(e){state.errors[key]={message:String(e.message).slice(0,300),retryAt:now+HOUR};if(key==='archive'&&/changed|repeated|mismatch|coverage incomplete/i.test(e.message))delete state.archive.scan;save();if(client.signal?.aborted||/WARP_REQUIRED/.test(e.message))throw e;}};
+  let fatal=null;const retirementHealth={ok:false};
+  const attempt=async(key,fn)=>{try{await fn();}catch(e){state.errors[key]={message:String(e.message).slice(0,300),retryAt:now+HOUR,...(Number.isInteger(e.status)?{httpStatus:e.status}:{})};if(key==='archive'&&/changed|repeated|mismatch|coverage incomplete/i.test(e.message))delete state.archive.scan;save();if(client.signal?.aborted||/WARP_REQUIRED/.test(e.message))throw e;}};
   try{
     if(stage!=='publish'){
       const d=await client.discover();state.origins.site=d.baseUrl;state.origins.images=new URL(d.cdn).origin;state.discovery={baseUrl:d.baseUrl,pasteError:d.pasteError};state.genres=d.genres;delete state.errors.discovery;save();
@@ -128,7 +128,7 @@ async function run({root=DEFAULT_DATA,client=new Client(),mode='update',stage='a
         if(Date.now()-started>=budgetMs-1000)break;
         await attempt('item:'+id,async()=>{
           const k=state.known[id];
-          if(k.missingScans>=2)try{await client.get(k.path);}catch(e){if([404,410].includes(e.status)){k.active=false;delete state.errors['item:'+id];save();return;}throw e;}
+          if(k.missingScans&&await require('./retirement').checkRetirement(client,state,root,id,{now,save,health:retirementHealth}))return;
           await collect(client,state,root,id,{now,save});
         });
       }

@@ -22,7 +22,13 @@ Anime and cinema unifiers publish to unified-data and cinema-data respectively.
 They read committed source snapshots; the global anime/cinema merger and Vega
 client download integration remain separate work.
 
-Secondary-provider and unifier schedules are currently paused; manual workflows
-remain available. AnimeUnity activation is controlled in GitHub during migration.
+The [Cinema SQLite publisher](cinema/sqlite/README.md) exports verified complete
+`cinema-data` snapshots to GitHub Releases, with a version pointer on
+`cinema-sqlite`. It is dispatched after Cinema updates and checks every two hours
+for recovery. Incomplete snapshots never replace the published version.
+
+Secondary-provider schedules are currently paused; manual workflows remain
+available. Cinema has its own two-hour scheduler. AnimeUnity activation is
+controlled in GitHub during migration.
 StreamingUnity continues independently. All network scraping workflows require
 Cloudflare WARP. Run npm run verify:all for the full regression suite.

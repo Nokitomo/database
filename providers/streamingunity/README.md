@@ -59,8 +59,21 @@ its previous version only after all declared seasons have been collected.
 Season inventory changes discard the partial draft and schedule a retry.
 
 Source records remain retained with `active:false` after confirmed retirement.
-Retirement requires two successful full archive omissions and HTTP 404/410 from
-the title page. Network failures never mean absence. Reactivation reuses the
+Retirement requires at least one successful full archive omission and HTTP
+404/410 from the title page. After one omission, two observations at least six
+hours apart are required; two omissions retain the older path to confirmation.
+Reviewed removals in `retirements.json` (currently LEGO 66477 and 66478) can skip
+the six-hour wait, but never the fresh 404, complete targeted archive search and
+two healthy title controls. A changed slug is rediscovered by provider ID and
+stale drafts are invalidated. Missing seasons never retire a title.
+
+All paths stop during an unfinished archive scan or when suspects exceed the
+larger of five titles and 0.1% of active titles. Network/403/429/5xx responses
+reset consecutive 404 evidence; control/search failures leave records active.
+Evidence and review reasons persist in state. Rediscovery resets missing evidence,
+reactivates the same ID and requires fresh detail collection. Item errors remain
+scheduled after their hourly backoff even if archive rediscovery cleared omissions.
+Network failures never mean absence. Reactivation reuses the
 same source ID. Item hashes and shards include inactive records; catalog contains
 only active ones. This is a provider source contract, separate from unified v2.
 
