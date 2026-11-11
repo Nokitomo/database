@@ -65,6 +65,10 @@ function mergeGroup(g){
   for(const entry of ordered){const record=namespace(entry.record,entry.provider);for(const [k,v]of Object.entries(ids(entry.record)))if(v)external[k]=v;
     warnings.push(...(record.warnings||[]).map(reason=>({source:entry.key,reason})));
     (providers[entry.provider]||=[]).push({id:record.id,path:record.path,availability:record.active?'present':'unavailable',...(composition?{preferred:entry.key===composition.primary,timelineCompatibility:composition.timelineCompatibility||'not-applicable',...(composition.observations?.[entry.key]?{streamObservation:composition.observations[entry.key]}:{})}:{}),seasons:record.seasons,info:record.info,...(record.episodeBlocks?{episodeBlocks:record.episodeBlocks}:{}),...(record.sourceAlias?{sourceAlias:record.sourceAlias}:{}),...(record.sourceMetadata?{sourceMetadata:record.sourceMetadata}:{}),...(record.playback?{playback:record.playback}:{}),...(record.identity?{identity:record.identity}:{}),...(record.identityCorrection?{identityCorrection:record.identityCorrection}:{})});
+    if(composition?.excludedMetadataSources?.includes(entry.key)){
+      providers[entry.provider].at(-1).images=record.images;
+      continue;
+    }
     images.push(...record.images.map(x=>({...x,provider:entry.provider})));if(!info.synopsis&&(record.info.plot||record.info.synopsis))info.synopsis=record.info.plot||record.info.synopsis;
     for(const [key,value]of Object.entries(record.info))if((info[key]==null||info[key]===''||Array.isArray(info[key])&&!info[key].length)&&value!=null)info[key]=value;
     for(const field of ['poster','background','logo'])if(!info[field])info[field]=record.images.find(x=>(x.role||x.type)===field)?.reference;

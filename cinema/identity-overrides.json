@@ -317,6 +317,41 @@
           ]
         }
       }
+    },
+    "streamingunity:9452": {
+      "reason": "User verified playable content and edition on 2026-11-11.",
+      "ids": {},
+      "metadata": {
+        "displayTitle": "Rebel Moon - Parte 2: La sfregiatrice (Director’s Cut)",
+        "edition": "directors-cut"
+      }
+    },
+    "streamingunity:9451": {
+      "reason": "User verified playable content and edition on 2026-11-11.",
+      "ids": {},
+      "metadata": {
+        "displayTitle": "Rebel Moon - Parte 1: Figlia del fuoco (Director’s Cut)",
+        "edition": "directors-cut"
+      }
+    },
+    "streamingunity:47768": {
+      "reason": "User verified playable content and edition on 2026-11-11.",
+      "ids": {},
+      "metadata": {
+        "displayTitle": "Le belve (Versione estesa)",
+        "edition": "extended"
+      }
+    },
+    "streamingunity:3466": {
+      "reason": "User confirmed D’amore e d’accordo is unrelated to Solos; retain provider metadata only.",
+      "ids": {
+        "tmdb": null,
+        "imdb": null,
+        "tvdb": null
+      },
+      "metadata": {
+        "sourceOnly": true
+      }
     }
   },
   "decisions": [
@@ -545,6 +580,334 @@
           }
         },
         "evidence": "Names and years checked on TMDB season pages; user confirmed source season mapping."
+      }
+    },
+    {
+      "sources": [
+        "streamingunity:7431",
+        "streamingunity:9452"
+      ],
+      "decision": "separate",
+      "reason": "User verified playable content and edition on 2026-11-11."
+    },
+    {
+      "sources": [
+        "streamingunity:7245",
+        "streamingunity:9451"
+      ],
+      "decision": "separate",
+      "reason": "User verified playable content and edition on 2026-11-11."
+    },
+    {
+      "sources": [
+        "streamingunity:47768",
+        "streamingunity:65813"
+      ],
+      "decision": "separate",
+      "reason": "User verified playable content and edition on 2026-11-11."
+    },
+    {
+      "sources": [
+        "streamingunity:3403",
+        "streamingunity:3466"
+      ],
+      "decision": "separate",
+      "reason": "User verified playable content and edition on 2026-11-11."
+    },
+    {
+      "sources": [
+        "streamingunity:7656",
+        "streamingunity:8110"
+      ],
+      "decision": "separate",
+      "reason": "User verified playable content and edition on 2026-11-11."
+    },
+    {
+      "sources": [
+        "streamingunity:34060",
+        "streamingunity:34152"
+      ],
+      "decision": "merge",
+      "reason": "User verified playable content and edition on 2026-11-11.",
+      "catalog": {
+        "kind": "variants",
+        "primary": "streamingunity:34060",
+        "observations": {
+          "streamingunity:34060": {
+            "audioLanguages": [
+              "en"
+            ],
+            "verifiedBy": "user",
+            "verifiedOn": "2026-11-11",
+            "scope": "observed-stream",
+            "recheckOnPlayback": true
+          },
+          "streamingunity:34152": {
+            "audioLanguages": [
+              "en"
+            ],
+            "verifiedBy": "user",
+            "verifiedOn": "2026-11-11",
+            "scope": "observed-stream",
+            "recheckOnPlayback": true
+          }
+        },
+        "timelineCompatibility": "unverified",
+        "excludedMetadataSources": [
+          "streamingunity:34152"
+        ]
+      }
+    },
+    {
+      "sources": [
+        "streamingunity:4754",
+        "streamingunity:7214"
+      ],
+      "decision": "merge",
+      "reason": "User verified playable content and edition on 2026-11-11.",
+      "catalog": {
+        "kind": "variants",
+        "primary": "streamingunity:7214",
+        "observations": {
+          "streamingunity:4754": {
+            "audioLanguages": null,
+            "verifiedBy": "user",
+            "verifiedOn": "2026-11-11",
+            "scope": "observed-stream",
+            "recheckOnPlayback": true
+          },
+          "streamingunity:7214": {
+            "audioLanguages": null,
+            "verifiedBy": "user",
+            "verifiedOn": "2026-11-11",
+            "scope": "observed-stream",
+            "recheckOnPlayback": true
+          }
+        },
+        "timelineCompatibility": "unverified"
+      }
+    },
+    {
+      "sources": [
+        "streamingunity:23151",
+        "streamingunity:5952"
+      ],
+      "decision": "merge",
+      "reason": "User verified playable content and edition on 2026-11-11.",
+      "catalog": {
+        "kind": "variants",
+        "primary": "streamingunity:23151",
+        "observations": {
+          "streamingunity:23151": {
+            "audioLanguages": [
+              "en"
+            ],
+            "verifiedBy": "user",
+            "verifiedOn": "2026-11-11",
+            "scope": "observed-stream",
+            "recheckOnPlayback": true
+          },
+          "streamingunity:5952": {
+            "audioLanguages": [
+              "it"
+            ],
+            "verifiedBy": "user",
+            "verifiedOn": "2026-11-11",
+            "scope": "observed-stream",
+            "recheckOnPlayback": true
+          }
+        },
+        "timelineCompatibility": "unverified"
+      }
+    },
+    {
+      "sources": [
+        "streamingunity:40870",
+        "streamingunity:6463"
+      ],
+      "decision": "merge",
+      "reason": "User verified playable content and edition on 2026-11-11.",
+      "catalog": {
+        "kind": "variants",
+        "primary": "streamingunity:6463",
+        "observations": {
+          "streamingunity:40870": {
+            "audioLanguages": null,
+            "verifiedBy": "user",
+            "verifiedOn": "2026-11-11",
+            "scope": "observed-stream",
+            "recheckOnPlayback": true
+          },
+          "streamingunity:6463": {
+            "audioLanguages": [
+              "it"
+            ],
+            "verifiedBy": "user",
+            "verifiedOn": "2026-11-11",
+            "scope": "observed-stream",
+            "recheckOnPlayback": true
+          }
+        },
+        "timelineCompatibility": "unverified"
+      }
+    },
+    {
+      "sources": [
+        "streamingunity:5644",
+        "streamingunity:8753"
+      ],
+      "decision": "merge",
+      "reason": "User verified playable content and edition on 2026-11-11.",
+      "catalog": {
+        "kind": "variants",
+        "primary": "streamingunity:8753",
+        "observations": {
+          "streamingunity:5644": {
+            "audioLanguages": [
+              "it"
+            ],
+            "verifiedBy": "user",
+            "verifiedOn": "2026-11-11",
+            "scope": "observed-stream",
+            "recheckOnPlayback": true
+          },
+          "streamingunity:8753": {
+            "audioLanguages": [
+              "it",
+              "en"
+            ],
+            "verifiedBy": "user",
+            "verifiedOn": "2026-11-11",
+            "scope": "observed-stream",
+            "recheckOnPlayback": true
+          }
+        },
+        "timelineCompatibility": "unverified"
+      }
+    },
+    {
+      "sources": [
+        "streamingunity:35283",
+        "streamingunity:48455"
+      ],
+      "decision": "merge",
+      "reason": "User verified playable content and edition on 2026-11-11.",
+      "catalog": {
+        "kind": "variants",
+        "primary": "streamingunity:35283",
+        "observations": {
+          "streamingunity:35283": {
+            "audioLanguages": null,
+            "verifiedBy": "user",
+            "verifiedOn": "2026-11-11",
+            "scope": "observed-stream",
+            "recheckOnPlayback": true
+          },
+          "streamingunity:48455": {
+            "audioLanguages": null,
+            "verifiedBy": "user",
+            "verifiedOn": "2026-11-11",
+            "scope": "observed-stream",
+            "recheckOnPlayback": true
+          }
+        },
+        "timelineCompatibility": "unverified"
+      }
+    },
+    {
+      "sources": [
+        "streamingunity:3027",
+        "streamingunity:30544"
+      ],
+      "decision": "merge",
+      "reason": "User verified playable content and edition on 2026-11-11.",
+      "catalog": {
+        "kind": "variants",
+        "primary": "streamingunity:3027",
+        "observations": {
+          "streamingunity:3027": {
+            "audioLanguages": [
+              "en"
+            ],
+            "verifiedBy": "user",
+            "verifiedOn": "2026-11-11",
+            "scope": "observed-stream",
+            "recheckOnPlayback": true
+          },
+          "streamingunity:30544": {
+            "audioLanguages": [
+              "en"
+            ],
+            "verifiedBy": "user",
+            "verifiedOn": "2026-11-11",
+            "scope": "observed-stream",
+            "recheckOnPlayback": true
+          }
+        },
+        "timelineCompatibility": "unverified"
+      }
+    },
+    {
+      "sources": [
+        "streamingunity:7084",
+        "streamingunity:7213"
+      ],
+      "decision": "merge",
+      "reason": "User verified playable content and edition on 2026-11-11.",
+      "catalog": {
+        "kind": "variants",
+        "primary": "streamingunity:7213",
+        "observations": {
+          "streamingunity:7084": {
+            "audioLanguages": null,
+            "verifiedBy": "user",
+            "verifiedOn": "2026-11-11",
+            "scope": "observed-stream",
+            "recheckOnPlayback": true
+          },
+          "streamingunity:7213": {
+            "audioLanguages": null,
+            "verifiedBy": "user",
+            "verifiedOn": "2026-11-11",
+            "scope": "observed-stream",
+            "recheckOnPlayback": true
+          }
+        },
+        "timelineCompatibility": "unverified"
+      }
+    },
+    {
+      "sources": [
+        "streamingunity:10066",
+        "streamingunity:11425"
+      ],
+      "decision": "merge",
+      "reason": "User verified playable content and edition on 2026-11-11.",
+      "catalog": {
+        "kind": "variants",
+        "primary": "streamingunity:11425",
+        "observations": {
+          "streamingunity:10066": {
+            "audioLanguages": [
+              "en"
+            ],
+            "verifiedBy": "user",
+            "verifiedOn": "2026-11-11",
+            "scope": "observed-stream",
+            "recheckOnPlayback": true
+          },
+          "streamingunity:11425": {
+            "audioLanguages": [
+              "it",
+              "en"
+            ],
+            "verifiedBy": "user",
+            "verifiedOn": "2026-11-11",
+            "scope": "observed-stream",
+            "recheckOnPlayback": true
+          }
+        },
+        "timelineCompatibility": "unverified"
       }
     }
   ]

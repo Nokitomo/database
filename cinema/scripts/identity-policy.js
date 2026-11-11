@@ -8,6 +8,7 @@ function validate(policy){
     if(rule.catalog){
       const c=rule.catalog;
       if(rule.decision!=='merge'||!['variants','seasons'].includes(c.kind)||!rule.sources.includes(c.primary))throw Error('Invalid catalog composition');
+      if(c.excludedMetadataSources&&(!Array.isArray(c.excludedMetadataSources)||c.excludedMetadataSources.some(k=>!rule.sources.includes(k)||k===c.primary)))throw Error('Invalid excluded metadata source');
       if(c.kind==='seasons'){
         if(!Number.isSafeInteger(c.tmdbId)||c.tmdbId<=0||!c.title||!c.evidence||!c.seasonMaps||!c.seasonMetadata)throw Error('Invalid season composition');
         const targets=[];

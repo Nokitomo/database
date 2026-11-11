@@ -1426,5 +1426,1628 @@
         }
       }
     }
+  },
+  "streamingunity:8110": {
+    "tmdb": {
+      "id": 127635,
+      "episodes": {
+        "1:1": {
+          "season": 1,
+          "episodes": [
+            1,
+            2
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Spidey, potere al cubo / La pazienza di Pantera",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Spidey, potere al cubo / La pazienza di Pantera",
+            "synopsis": "Spidey ricorda a Spin e Ghost-Spider di lavorare come una squadra per rintracciare Rhino. Spidey impara la pazienza quando con Pantera Nera deve sconfiggere Doc Ock!",
+            "thumbnail": "https://image.tmdb.org/t/p/original/qe7p2Dz3XUUejTL3oCuGNOgxo1Q.jpg"
+          }
+        },
+        "1:2": {
+          "season": 1,
+          "episodes": [
+            3,
+            4
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Singhiozzi da supereroe / Perduto e trovato",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Singhiozzi da supereroe / Perduto e trovato",
+            "synopsis": "Spin si sente scoraggiato quando il suo singhiozzo impedisce alla squadra di fermare Green Goblin. Spidey è stressato perché si trova davanti a tre missione in una notte!",
+            "thumbnail": "https://image.tmdb.org/t/p/original/8GpJY84MXQ5bRxuDvesAuZc91RP.jpg"
+          }
+        },
+        "1:3": {
+          "season": 1,
+          "episodes": [
+            5,
+            6
+          ],
+          "providerOnly": true,
+          "sourceTitle": "La Super Piovra di Doc Ock / L'attacco delle risate verdi",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "La Super Piovra di Doc Ock / L'attacco delle risate verdi",
+            "synopsis": "Quando il siero per la crescita di Doc Ock viene utilizzato su una piccola piovra, lo Spidey Team deve fermarla perché potrebbe scatenarsi accidentalmente in città! Il Green Goblin spara il suo gas su tutta la città.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/uqs5Qdc2aNaHfB2bCwzGrb7F77k.jpg"
+          }
+        },
+        "1:4": {
+          "season": 1,
+          "episodes": [
+            7,
+            8
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Un bug nel sistema/ Metti alla prova la tua forza",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Un bug nel sistema / Metti alla prova la tua forza",
+            "synopsis": "Doc Ock affida al suo octo-bot preferito, CAL, la missione di infiltrarsi nei Quartieri WEB con una nuova invenzione. Spidey raccomanda a Hulk di mantenere il controllo, dopo che Rhino lo ha sfidato a una gara di forza.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/xTvy3QDQq8C8M4K6Cb9YIDyHPzC.jpg"
+          }
+        },
+        "1:5": {
+          "season": 1,
+          "episodes": [
+            9,
+            10
+          ],
+          "providerOnly": true,
+          "sourceTitle": "I piccioni radiocomandati / Pollice verde",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "I piccioni radiocomandati / Pollice verde",
+            "synopsis": "Green Goblin utilizza un telecomando per controllare i piccioni della città e inventa una macchina meteorologica malvagia per devastare la città!",
+            "thumbnail": "https://image.tmdb.org/t/p/original/pkryqjfapzI01mBQwXFVa29wuXN.jpg"
+          }
+        },
+        "1:6": {
+          "season": 1,
+          "episodes": [
+            11,
+            12
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Una Folle Festa della Mamma / Il Parco del Non-Divertimento",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Una Folle Festa della Mamma / Il Parco del Non-Divertimento",
+            "synopsis": "La fuga di Doc Ock dal carcere interrompe il picnic della festa della mamma dello Spidey Team. Miles deve prendere delle grandi decisioni per salvare sua madre dal parco dei non-divertimenti di Green Goblin.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/jrgnBJvzjWUu9pemAXZ3wyqCpZQ.jpg"
+          }
+        },
+        "1:7": {
+          "season": 1,
+          "episodes": [
+            13,
+            14
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Campeggio a rischio / Il crimine è verde",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Campeggio a rischio / Il crimine è verde",
+            "synopsis": "Lo Spidey Team va in campeggio, ma la Vecchia Diga sta per cedere e rischia di allagare il parco. Green Goblin incastra Hulk e Spidey e Ghosty sono decisi a dimostrarne l’innocenza.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/ltTiHwioLTxR9gscva5jlb4EAqq.jpg"
+          }
+        },
+        "1:9": {
+          "season": 1,
+          "episodes": [
+            17,
+            18
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Gob-zilla / Spidey, fattorino superveloce",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Gob-zilla / Spidey, fattorino superveloce",
+            "synopsis": "La Squadra Spidey affronta uno scatenato dinosauro per poi scoprire che è controllato da Green Goblin. Spidey è responsabile della consegna della torta per la festa di compleanno di Hulk.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/gd7q8cdgAZlZkS7k9NCTVPjYmgU.jpg"
+          }
+        },
+        "1:10": {
+          "season": 1,
+          "episodes": [
+            19,
+            20
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Gobby il buono / Scimmia ragno",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Gobby il buono / Scimmia ragno",
+            "synopsis": "Green Goblin decide di smettere di essere cattivo e diventa buono! Rhino rapisce una scimmia ragno dallo zoo e tocca a Spidey e Ghost-Spider riportarla a casa.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/xu6ooRpwCefkXFqjvSvEsnrOX4a.jpg"
+          }
+        },
+        "1:11": {
+          "season": 1,
+          "episodes": [
+            21,
+            22
+          ],
+          "providerOnly": true,
+          "sourceTitle": "GATT-astrofe / A colpi di ritmo",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "GATT-astrofe / A colpi di ritmo",
+            "synopsis": "Bootsie si perde alla mostra felina e Doc Ock la trasforma in uno spaventoso gatto gigante! Durante il concerto, Doc Ock ruba la batteria e la usa per ipnotizzare l'intero pubblico!",
+            "thumbnail": "https://image.tmdb.org/t/p/original/5yTTjLZc9UWTwZnskyUk3LFPnTq.jpg"
+          }
+        },
+        "1:12": {
+          "season": 1,
+          "episodes": [
+            23,
+            24
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Il Natale di Spidey / Gobby sul ghiaccio",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Il Natale di Spidey / Gobby sul ghiaccio",
+            "synopsis": "Doc Ock diventa una minaccia per il Natale perché vuole rubare i regali a tutti. Il team di Spidey mette da parte il meritato riposo quando Green Goblin crea un gigantesco mostro di neve!",
+            "thumbnail": "https://image.tmdb.org/t/p/original/cxJtIAVNCiIOLN5ts8HfPzRkmoi.jpg"
+          }
+        },
+        "1:13": {
+          "season": 1,
+          "episodes": [
+            25,
+            26
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Pensa verde / L'aspiratutto",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Pensa verde / L'aspiratutto",
+            "synopsis": "Il Team Spidey pianta alberi nel parco, ma Green Goblin interrompe il loro lavoro diffondendo gas ovunque. Peter usa la sua nuova invenzione per ripulire tutto.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/c3Xj7DWnDrqVmOGa7oFYKN81Tea.jpg"
+          }
+        },
+        "1:14": {
+          "season": 1,
+          "episodes": [
+            27,
+            28
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Il tesoro di Barba-Ragno / Spazzati via",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Il tesoro di Barba-Ragno / Spazzati via",
+            "synopsis": "Doc Ock inganna i nostri eroi per ottenere un tesoro. Spidey e Miss Marvel scendono nei tunnel delle fogne per salvare TRACE-E, ma scoprono che laggiù c'è Green Goblin!",
+            "thumbnail": "https://image.tmdb.org/t/p/original/jpyZr0rtR9w7agdkUw1OLcLdHPa.jpg"
+          }
+        },
+        "1:15": {
+          "season": 1,
+          "episodes": [
+            29,
+            30
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Spin il frettoloso / I banditi del ponte",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Spin il frettoloso / I banditi del ponte",
+            "synopsis": "Doc Ock ruba l’aracno-potere e il Team Spidey deve riprenderselo prima che faccia cadere la città in un profondo sonno. Green Goblin e Rhino prendono il controllo di un ponte e minacciano di distruggerlo!",
+            "thumbnail": "https://image.tmdb.org/t/p/original/fNXzhDVYTv9PqbvsMAah4r70Wig.jpg"
+          }
+        },
+        "1:16": {
+          "season": 1,
+          "episode": 16,
+          "sourceTitle": "Rhino Razzo!",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Rhino Razzo!",
+            "synopsis": "Rhino ruba il jet pack!",
+            "thumbnail": "https://image.tmdb.org/t/p/original/kNBwkVacvk4G18AqmninLq3tilQ.jpg"
+          }
+        },
+        "1:17": {
+          "season": 1,
+          "episodes": [
+            33,
+            34
+          ],
+          "providerOnly": true,
+          "sourceTitle": "L'isola di Goblin / Doc Ock e gli Shocktobot",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "L'isola di Goblin / Doc Ock e gli Shocktobot",
+            "synopsis": "Quando la squadra viene intrappolata su un'isola con un faro che fa scherzi, la squadra deve risolvere la situazione! Quando Doc Ock ruba il Vibranium, Spidey e Black Panther collaborano per fermarla!",
+            "thumbnail": "https://image.tmdb.org/t/p/original/8dpe1otyE9ZYEF6atYgYx0ka61B.jpg"
+          }
+        },
+        "1:18": {
+          "season": 1,
+          "episodes": [
+            35,
+            36
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Spidey, fattorino superveloce",
+          "evidence": "User inspected actual video segments on 2026-11-11; TMDB season episode titles cross-checked.",
+          "replacement": {
+            "title": "Peter e il dilemma del ciondolo / TWIST-E",
+            "synopsis": "Gobby ruba il ciondolo di Peter. Spin costruisce un robot.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/fyObvR3EGaPiLQiqdQaTSHIvsTo.jpg"
+          }
+        },
+        "1:19": {
+          "season": 1,
+          "episodes": [
+            37,
+            38
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Gobby il buono",
+          "evidence": "User inspected actual video segments on 2026-11-11; TMDB season episode titles cross-checked.",
+          "replacement": {
+            "title": "Ragni piccini picciò / La caccia alle zucche marce di Gobby",
+            "synopsis": "Spidey e i suoi amici vengono rimpiccioliti! Gobby rovina la caccia al tesoro.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/9Cc3TNfJiWEtbVUWr3lfRmjRXLJ.jpg"
+          }
+        },
+        "1:20": {
+          "season": 1,
+          "episodes": [
+            39,
+            40
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Il Wozzlesnook / Scambio tra supereroi",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Il Wozzlesnook / Scambio tra supereroi",
+            "synopsis": "La creatura mitica preferita di Spin potrebbe davvero esistere! I poteri di Spidey e Hulk vengono scambiati da Doc Ock e dovranno imparare l’uno le tecniche dell’altro per sconfiggerla.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/qGmwwzkmycfGnRI6zt1DVV5muxC.jpg"
+          }
+        },
+        "1:21": {
+          "season": 1,
+          "episodes": [
+            41,
+            42
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Il caos provocato dalla Zia May / Schiuma dolce schiuma",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Il caos provocato dalla Zia May / Schiuma dolce schiuma",
+            "synopsis": "La zia May compra inconsapevolmente il dispositivo fluttuante di Doc Ock dall’antiquario. Spidey e la squadra devono recuperarlo prima che lo faccia Doc Ock! La nuova formula della ragnatela di Spidey è un fallimento.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/k66ObQzTosMNzZgPzyS8A2FnEMY.jpg"
+          }
+        },
+        "1:22": {
+          "season": 1,
+          "episodes": [
+            43,
+            44
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Fermo! Questa è la Squadra Spidey / Una faccenda appiccicosa",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Fermo! Questa è la Squadra Spidey / Una faccenda appiccicosa",
+            "synopsis": "Le ragnatele della Squadra Spidey non funzionano con il caldo e il tentativo di Peter di ripararle fallisce! Mentre Peter rimane incollato a Gwen con la nuova formula della regnatela, i due devono abituarsi rapidamente.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/46lqs6CjaY1m92uJr1BlCm1G7Gt.jpg"
+          }
+        },
+        "1:23": {
+          "season": 1,
+          "episodes": [
+            45,
+            46
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Rhinoctopus / Un problema di zucca",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Rhinoctopus / Un problema di zucca",
+            "synopsis": "Mentre la squadra impedisce il colpo di Ock, lei getta via i suoi tentacoli per frustrazione e Rhino prende il suo posto. Spidey è distratto quando il suo premio-zucca diventa una minaccia.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/9luM1vWc6ifVVxnRNa8Y96DO6Hb.jpg"
+          }
+        },
+        "1:24": {
+          "season": 1,
+          "episodes": [
+            47,
+            48
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Cattura e rilascia / Costruzione distruzione",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Cattura e rilascia / Costruzione distruzione",
+            "synopsis": "La battuta di pesca di Miles nel giorno della Festa del Papà viene interrotta dal piano di Doc Ock per conquistare il porto. Spidey, Hulk e Miss Marvel finiscono nei guai quando uno scoiattolo semina il terrore.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/mAmAAJSzkkcaZ2CaNzPEB5hsoVr.jpg"
+          }
+        },
+        "1:25": {
+          "season": 1,
+          "episodes": [
+            49,
+            50
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Panico alla parata / Il caso del ladro di libri",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Panico alla parata / Il caso del ladro di libri",
+            "synopsis": "La Squadra Spidey è l'ospite d'onore in una parata tenuta in città in suo onore. Quando tutti i libri gialli della biblioteca scompaiono, la Squadra Spidey indaga sul caso!",
+            "thumbnail": "https://image.tmdb.org/t/p/original/pjUVd9hwUtGr2nU8xBlILkviWwN.jpg"
+          }
+        },
+        "2:1": {
+          "season": 2,
+          "episodes": [
+            1,
+            2
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Electro deve brillare / Il caos di Black Cat",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Electro deve brillare / Il caos di Black Cat",
+            "synopsis": "Quando Electro ruba l'elettrcità della città, il Team Spidey usa la nuova tecnologia Glow per fermarla. Dopo che Black Cat ha rubato la tuta da Iron Man di Tony, Tony ha bisogno dell'aiuto di Spidey per recuperarla.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/vdD4ADrHJs6hxg8NbQwJvNIQrcR.jpg"
+          }
+        },
+        "2:2": {
+          "season": 2,
+          "episodes": [
+            3,
+            4
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Luci spente / Sandman non condivide!",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Luci spente / Sandman non condivide!",
+            "synopsis": "Il Team Spidey deve impedire che il faro luminoso di Green Goblin rovini il sonno a tutti. Una giornata al mare viene interrotta da Sandman, che deve dimostrare a tutti di essere il più bravo a costruire castelli di sabbia.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/gbt3NZjerjFLm5SFvpxc9eebUwM.jpg"
+          }
+        },
+        "2:3": {
+          "season": 2,
+          "episodes": [
+            5,
+            6
+          ],
+          "providerOnly": true,
+          "sourceTitle": "La giornata fuori di Bootsie / Problemi da Tony",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "La giornata fuori di Bootsie / Problemi da Tony",
+            "synopsis": "Il Team Spidey cerca Bootsie dopo che è stata catturata da Black Cat. Il Team Spidey protegge il quartier generale di Iron Man da Electro.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/quFhsxrGQdpAF5wkFfog0sgLwVO.jpg"
+          }
+        },
+        "2:4": {
+          "season": 2,
+          "episodes": [
+            7,
+            8
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Sonic Boom Boom / Il disastro del mini-golf",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Sonic Boom Boom / Il disastro del mini-golf",
+            "synopsis": "Il Team Spidey si immerge sott'acqua per impedire che Doc Ock arresti la vita marina. Ghost-Spider si unisce ad Ant-Man e The Wasp per impedire a Green Goblin di rovinare il campo di mini-golf.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/qQp8k6xyEmNSbHOc7FGdIgMqHrj.jpg"
+          }
+        },
+        "2:5": {
+          "season": 2,
+          "episodes": [
+            9,
+            10
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Piccolo Hulk / Festa a sorpresa con sorpresa",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Piccolo Hulk / Festa a sorpresa con sorpresa",
+            "synopsis": "Il Team Spidey ha il suo bel da fare quando il dispositivo di Gobby trasforma Hulk in un bambino! Spidey e Spin organizzano una sorpresa per il compleanno di Ghost-Spider, ma una lunga serie di malvagi li ostacola.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/e8p7A43sEk0js5kJqD0Dkp82Vde.jpg"
+          }
+        },
+        "2:6": {
+          "season": 2,
+          "episodes": [
+            11,
+            12
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Danza inarrestaile! / Il ladro formica",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Danza inarrestabile! / Il ladro formica",
+            "synopsis": "Spidey risolve la situazione dopo che il dispositivo di Green Goblin costringe la gente a ballare! Spin e Ghost-Spider intraprendono una piccola avventura con Ant-Man e The Wasp dopo che il museo è stato rapinato dalle formiche.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/zHEqPQUIULSCmw57rABEt3AYcx5.jpg"
+          }
+        },
+        "2:7": {
+          "season": 2,
+          "episodes": [
+            13,
+            14
+          ],
+          "providerOnly": true,
+          "sourceTitle": "La trappola di sabbia / Troppo divertimento",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "La trappola di sabbia / Troppo divertimento",
+            "synopsis": "Il Team Spidey viene intrappolato nel grande labirinto di sabbia di Sandman. Il Team entra in azione per far ripartire il divertimento dopo che Elettro ha sovraccaricato il parco divertimenti.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/ayGnMdYbYiPzg4MxkM58brtKcnM.jpg"
+          }
+        },
+        "2:8": {
+          "season": 2,
+          "episodes": [
+            15,
+            16
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Vacanza Interrotta / Uno Spidey Natale",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Vacanza Interrotta / Uno Spidey Natale",
+            "synopsis": "Tutte le strade della città sono bloccate e le famiglie non possono stare insieme il Giorno del Ringraziamento. Il Team Spidey utilizza le Glow Web per salvare il Natale quando i cattivi cercano di rovinarlo.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/7YaOrw2JOBOJ4wRRdlfo02vvhmY.jpg"
+          }
+        },
+        "2:9": {
+          "season": 2,
+          "episodes": [
+            17,
+            18
+          ],
+          "providerOnly": true,
+          "sourceTitle": "La uovo-avventura / Caos al quartier generale",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "La uovo-avventura / Caos al quartier generale",
+            "synopsis": "Quando Gatta Nera ruba un uovo dallo zoo, il Team Spidey deve salvarlo prima che si schiuda. Spidey permette a Hulk di rimanere al quartier generale WEB, ma la situazione diventa presto disastrosa.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/A0uKiznmzAqiyUObU0LIE6HrCGq.jpg"
+          }
+        },
+        "2:10": {
+          "season": 2,
+          "episodes": [
+            19,
+            20
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Prendete quel mostro marino / La melma melmosa",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Prendete quel mostro marino / La melma melmosa",
+            "synopsis": "Il Team Spidey e Reptil indagano sulle voci di un mostro marino. Il Team Spidey scopre che Green Goblin ha inquinato la diga che ora pompa una melma inquinante.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/3SUlJOPWHH4S2Tq6gZKYeL4IOG9.jpg"
+          }
+        },
+        "2:11": {
+          "season": 2,
+          "episodes": [
+            21,
+            22
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Il rapimento di Lady Liberty / Il dinosauro di Green Goblin",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Il rapimento di Lady Liberty / Il dinosauro di Green Goblin",
+            "synopsis": "Tocca a Miles, Ant-Man e Wasp salvare la Statua della Libertà dopo che Gatta Nera la rimpicciolisce e la ruba. Spidey e Reptil uniscono le loro forze contro il nuovo Dino Mech di Green Goblin.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/dkXxbN54Cq5qRJK2gxES8vWyUut.jpg"
+          }
+        },
+        "2:12": {
+          "season": 2,
+          "episodes": [
+            23,
+            24
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Spidey mette in ordine / Oh no, i pomodori!",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Spidey mette in ordine / Oh no, i pomodori!",
+            "synopsis": "Spidey e Iron Man deve riparare la loro nuova invenzione prima che Sandman trasformi Central Park in Sandman Park. Miles non può lasciare che Rhino rubi i pomodori che sua madre ha coltivato per la cena della comunità.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/qznFDpN5aQacNYQvzNVv2UQf9XL.jpg"
+          }
+        },
+        "2:13": {
+          "season": 2,
+          "episodes": [
+            25,
+            26
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Energia pulita / Doc Ock e i Rocktobots",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Energia pulita / Doc Ock e i Rocktobots",
+            "synopsis": "Electro e il suo guanto elettrico hanno drenato l'energia dalla nuova turbina eolica della città. Si scontra con i cattivi che cercano di impedire loro di esibirsi in un concerto.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/pqF2adTp5VZ1zAmeRBMKzRRxjWH.jpg"
+          }
+        },
+        "2:14": {
+          "season": 2,
+          "episodes": [
+            27,
+            28
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Il saccheggio dei pirati / Robot cattivo",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Il saccheggio dei pirati / Robot cattivo",
+            "synopsis": "La squadra di Spidey deve salvare zia May quando il dispositivo di Green Goblin fa credere alla gente che siano pirati. Doc ock crea una versione bot \"cattiva\" di trace e per ingannare la squadra di spidey",
+            "thumbnail": "https://image.tmdb.org/t/p/original/kuFNcg3RP5yer7It0os8e2RCqsx.jpg"
+          }
+        },
+        "2:15": {
+          "season": 2,
+          "episodes": [
+            29,
+            30
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Spin salva la situazione / Problemi idrici",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Spin salva la situazione / Problemi idrici",
+            "synopsis": "Spin si addormenta il braccio colpendosi accidentalmente da solo e dovrà trovare un modo nuovo per essere d’aiuto alla sua squadra. Qualcuno ha rubato tutta l’acqua in città!",
+            "thumbnail": "https://image.tmdb.org/t/p/original/xYFvRuicqEdLHWN3UdAnzS3wf3A.jpg"
+          }
+        },
+        "2:16": {
+          "season": 2,
+          "episodes": [
+            31,
+            32
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Problemi nel tunnel / Mistero sull'isola di Goblin",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Problemi nel tunnel / Mistero sull'isola di Goblin",
+            "synopsis": "Electro ruba l'elettricità della metropolitana e la Squadra cerca di fermarla. Spidey deve salvare il Signor von Carnegie da Gobby e Rhino, che cercano tesori.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/7MI3ycDPoBGt5nw9gya0V0SwgUD.jpg"
+          }
+        },
+        "2:17": {
+          "season": 2,
+          "episodes": [
+            33,
+            34
+          ],
+          "providerOnly": true,
+          "sourceTitle": "La gattina maltese / Una giornata insieme a Black Panther",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "La gattina maltese / Una giornata insieme a Black Panther",
+            "synopsis": "La Squadra Spidey e Black Cat uniscono le forze per impedire a Doc Ock di distruggere la preziosa gattina maltese. Electro rischia di rovinare la giornata speciale di Miles e Black Panther.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/dd3fJ1H5o2flRmDYCI0f9DTRutO.jpg"
+          }
+        },
+        "2:18": {
+          "season": 2,
+          "episodes": [
+            35,
+            36
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Il nuovo cattivo in città / La Gattina Ragno",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Il nuovo cattivo in città / La Gattina Ragno",
+            "synopsis": "La Squadra Spidey deve sistemare le cose tra Doc Ock e CAL dopo che Doc Ock ha ferito i sentimenti di CAL. Gobby ruba i poteri di Miles e Spidey, e per sbaglio li trasferisce su Bootsie.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/hdXATStqixrjAEYzrnqPhrhtjQ0.jpg"
+          }
+        },
+        "2:19": {
+          "season": 2,
+          "episodes": [
+            37,
+            38
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Una soluzione zuccherina / Piccola formica, grande problema",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Una soluzione zuccherina / Piccola formica, grande problema",
+            "synopsis": "Ghost-Spider si allea con suo padre per salvare la foresta da Doc Ock. Peter fa crescere accidentalmente la sua formica domestica fino alle dimensioni di un cane.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/8HIQDInhXSlM0zEpv7EZM5kGGhe.jpg"
+          }
+        },
+        "2:20": {
+          "season": 2,
+          "episodes": [
+            39,
+            40
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Alla Ock Tower / Sconfitto dall'arte",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Alla Ock Tower / Sconfitto dall'arte",
+            "synopsis": "Spidey e Iron Man devono riprendersi la Stark Tower da Doc Ock. Hulk e Miles devono trovare un altro modo per fermare Sandman dopo che lui scopre come evitare le loro famose mosse.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/Ruka5U72JAeXxnFpg8fVUB9xFA.jpg"
+          }
+        },
+        "2:21": {
+          "season": 2,
+          "episodes": [
+            41,
+            42
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Super scooter / Lo spara-ragnatele smarrito",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Super scooter / Lo spara-ragnatele smarrito",
+            "synopsis": "Ghost-Spider, Miss Marvel e il suo piccolo scooter allungabile risolvono la situazione. Spidey perde uno dei suoi spara-ragnatele, due ragazzi lo aiutano e i robot li recuperano da Doc Ock.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/qpQm8DXq0KjSHghYxFY5XMVaPzu.jpg"
+          }
+        },
+        "2:22": {
+          "season": 2,
+          "episodes": [
+            43,
+            44
+          ],
+          "providerOnly": true,
+          "sourceTitle": "L'ora del pisolino / Bunny Bonanza",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "L'ora del pisolino / Bunny Bonanza",
+            "synopsis": "Black Cat sta rubando peluche e solo la Squadra Spidey può fermarla. La Squadra Spidey cerca di salvare l'animaletto domestico di Hulk, Bun Buns, che Doc Ock ha moltiplicato.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/1GE43LaCENAj0XrTlRayxSlx67t.jpg"
+          }
+        },
+        "2:23": {
+          "season": 2,
+          "episodes": [
+            45,
+            46
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Dino-Rama / Il giorno di notte",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Dino-Rama / Il giorno di notte",
+            "synopsis": "Gli eroi impediscono a Gobby e Rhino di scatenare il caos, ma il gioiello di Reptil li trasforma tutti in dinosauri! La Squadra Spidey impedisce a Electro di disturbare gli animali notturni nella foresta.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/16TNIDwaHVjMe8Ym2xwcT3BkMyc.jpg"
+          }
+        },
+        "2:24": {
+          "season": 2,
+          "episodes": [
+            47,
+            48
+          ],
+          "providerOnly": true,
+          "sourceTitle": "WEB-Quarters / Spideys rubati nello spazio!",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "WEB-Quarters / Spideys rubati nello spazio!",
+            "synopsis": "Il criminale robot Zola prende il controllo dei quartieri della ragnatela e il Team Spidey deve decidere se distruggerlo per salvare la città. Il Team Spidey va sulla luna con le sue nuove tute da web-spinner!",
+            "thumbnail": "https://image.tmdb.org/t/p/original/5XJGwNfbPLF3oqShhxI9hfwRMKy.jpg"
+          }
+        },
+        "2:25": {
+          "season": 2,
+          "episodes": [
+            49,
+            50
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Giocare a nascondino / Divertimento in un baleno",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Giocare a nascondino / Divertimento in un baleno",
+            "synopsis": "La Squadra Spidey e La Cosa impediscono a Gobby di usare l'invisibilità per provocare danni in città. La Squadra Spidey deve impedire al sottomarino-balena di Doc Ock di infastidire le vere balene.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/lGUq1AtookoKZDeHuU1cTVIMuUn.jpg"
+          }
+        },
+        "2:26": {
+          "season": 2,
+          "episodes": [
+            51,
+            52
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Rhino a rotelle / La piovra e la gattina",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Rhino a rotelle / La piovra e la gattina",
+            "synopsis": "Rhino e Green Goblin tramano di sabotare una gara di pattinaggio per vincere il primo premio. Black Cat e Doc Ock sembrano inarrestabili mentre compiono furti.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/bfcaEgvTdoiko4sYiZlm7zjOR4f.jpg"
+          }
+        },
+        "2:27": {
+          "season": 2,
+          "episodes": [
+            53,
+            54
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Lasciati trasportare dalla lava  / Un ronzante Rosh Hashanah",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Lasciati trasportare dalla lava / Un ronzante Rosh Hashanah",
+            "synopsis": "La Squadra Spidey salva la fauna selvatica dopo che Doc Ock innesca un'eruzione vulcanica. Quando Gobby ruba tutte le api, la Squadra Spidey e la Cosa devono recuperarle e salvare il Rosh Hashanah.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/d2oXaZGsoK00WEsLSwC7goIT0fs.jpg"
+          }
+        },
+        "2:28": {
+          "season": 2,
+          "episodes": [
+            55,
+            56
+          ],
+          "providerOnly": true,
+          "sourceTitle": "L’avventura infestata di Bootsie / Troppi scherzetti, pochissimi dolcetti",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "L’avventura infestata di Bootsie / Troppi scherzetti, pochissimi dolcetti",
+            "synopsis": "Con l’aiuto di Bootsie, la Squadra Spidey impedisce a Sandman di rubare artefatti egizi di inestimabile valore. La Squadra Spidey salva Halloween da Green Goblin e i suoi spaventapasseri che rubano caramelle.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/bq70bSRstv1rhZJr9fCBjysBOTP.jpg"
+          }
+        },
+        "2:29": {
+          "season": 2,
+          "episodes": [
+            57,
+            58
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Come addestrare il tuo cane / Sotto la cupola",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Come addestrare il tuo cane / Sotto la cupola",
+            "synopsis": "Gobby e Rhino rubano il cane che si teletrasporta Lockjaw, nella speranza di trasformarlo in un complice. Quando Zola intrappola La Cosa, Spidey e Ghost-Spider sotto una cupola, Spin deve salvare la situazione!",
+            "thumbnail": "https://image.tmdb.org/t/p/original/2VWKYKBvJpeZjPSL7HlLBok1Jh7.jpg"
+          }
+        },
+        "3:1": {
+          "season": 3,
+          "episodes": [
+            1,
+            2
+          ],
+          "providerOnly": true,
+          "sourceTitle": "L'amichevole quartiere / Il volo delle farfalle",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "L'amichevole quartiere / Il volo delle farfalle",
+            "synopsis": "Dopo che Zola rovina la festa al centro ricreativo, la comunità collabora per sistemare le cose. La Squadra Spidey deve capire dove Sandman nasconde una migrazione di farfalle.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/2Ugw3jBnCtZgdOD8EKwWqrf92Ib.jpg"
+          }
+        },
+        "3:2": {
+          "season": 3,
+          "episodes": [
+            3,
+            4
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Il Raggio dell'Obbedienza di Ock. / Lemure in libertà.",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Il Raggio dell'Obbedienza di Ock. / Lemure in libertà.",
+            "synopsis": "Dopo che Hulk viene colpito dal Raggio dell'Obbedienza di Doc Ock, la Squadra Spidey deve impedirgli di aiutarla. Un lemure ruba la tecnologia di Ant-Man e Wasp per rimpicciolire e ingrandire, combinando guai in giro per la città.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/f8H29D7EHFvdBBoJ4VCeKkWAUHg.jpg"
+          }
+        },
+        "3:3": {
+          "season": 3,
+          "episodes": [
+            5,
+            6
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Problema albero / Bloccati nello spazio",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Problema albero / Bloccati nello spazio",
+            "synopsis": "La Squadra Spidey salva il Festival della fioritura dei meli dagli scherzi di Gobby. Zola ruba il Team-Transport durante una missione spaziale, lasciando Spidey e La Cosa sulla luna.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/ohr3MeMwoiXiijlKZVeSmPw2Tqk.jpg"
+          }
+        },
+        "3:4": {
+          "season": 3,
+          "episodes": [
+            7,
+            8
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Avventura in Antartide / Palle di neve, palle di neve, palle di neve",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Avventura in Antartide / Palle di neve, palle di neve, palle di neve",
+            "synopsis": "La Squadra Spidey impedisce a Doc Ock di sciogliere il ghiaccio mentre cerca tesori in Antartide. Quando Zola invade il parco innevato, Miles e suo padre fanno squadra per riprenderselo.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/6GPH5AszFKyseAxqZxpbDWVrOQA.jpg"
+          }
+        },
+        "3:5": {
+          "season": 3,
+          "episodes": [
+            9,
+            10
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Problemi di bolle / Il ruscello di pioggia",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Problemi di bolle / Il ruscello di pioggia",
+            "synopsis": "Spidey e Ghosty salvano il Festival delle bolle dalle bolle super forti di Gobby. Spidey e Ant-Man salvano la bambola di Zia May quando finisce in una caditoia.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/1026EUuStXlZ2ZQ4tAD7HySyRqQ.jpg"
+          }
+        },
+        "3:6": {
+          "season": 3,
+          "episodes": [
+            11,
+            12
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Rhino e l'oca / Cane contro gatto",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Rhino e l'oca / Cane contro gatto",
+            "synopsis": "Il Team Spidey aiuta una mamma oca a tornare dal suo piccolo. Quando Lockjaw insegue Gatta Nera attraverso la città combinando guai, il Team Spidey deve aiutarlo a sistemare le cose.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/m6xkavyYRIWPaHIwOLGsHJaV4p6.jpg"
+          }
+        },
+        "3:7": {
+          "season": 3,
+          "episodes": [
+            13,
+            14
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Viaggio attraverso Zola! / La Festa dei Cattivi!",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Viaggio attraverso Zola! / La Festa dei Cattivi!",
+            "synopsis": "La Squadra Spidey, Ant-Man e Wasp devono rimpicciolire un Zola gigante e farlo tornare alle sue dimensioni normali. Gobby e Rhino tentano di rovinare il giorno di San Valentino.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/hFqKs5moYDUWxGdIJUjmWBJggjz.jpg"
+          }
+        },
+        "3:8": {
+          "season": 3,
+          "episodes": [
+            15,
+            16
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Adesso mi vedi, adesso non mi vedi / Ecco la Ragazza degli Scoiattoli",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Adesso mi vedi, adesso non mi vedi / Ecco la Ragazza degli Scoiattoli",
+            "synopsis": "La Squadra Spidey blocca l'invisibile Rhino che compie crimini in tutta la città. La Squadra Spidey si allea con la Ragazza degli Scoiattoli per fermare Green Goblin.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/1LHYN2mz7zGd4miRKVZkDekFohH.jpg"
+          }
+        },
+        "3:9": {
+          "season": 3,
+          "episodes": [
+            17,
+            18
+          ],
+          "providerOnly": true,
+          "sourceTitle": "La catastrofe dei veicoli / Sandman e la tartaruga",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Catastrofe di veicoli / Sandman e la tartaruga",
+            "synopsis": "La Squadra Spidey cerca di impedire che Gobby prenda il controllo dei veicoli. La Squadra Spidey aiuta le tartarughe abbattendo il castello di sabbia gigante di Sandman.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/ucAn0IbDwWuGPXGg9iEwcrTom1C.jpg"
+          }
+        },
+        "3:10": {
+          "season": 3,
+          "episodes": [
+            19,
+            20
+          ],
+          "providerOnly": true,
+          "sourceTitle": "La trasformazione delle auto / I trucchi della Fatina dei denti",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Lo scherzetto delle piccole macchinine / Gli scherzetti della fatina dei denti",
+            "synopsis": "Zola rimpicciolisce le auto della città... e la Detective Stacy! Rhino scambia Wasp per la Fatina dei denti.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/gDza1euLv2D6MzSye2vliZ5GgQm.jpg"
+          }
+        },
+        "3:11": {
+          "season": 3,
+          "episodes": [
+            21,
+            22
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Pandemonio pittoresco / Tecnologia in fuga",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Ritratto del perfetto caos / Cattura la panther capsula",
+            "synopsis": "La Squadra Spidey deve salvare la mostra quando Zola ruba le opere del museo. Spidey e Black Panther devono acciuffare la nuova tecnologia che è fuggita per la città prima che la trovi Doc Ock.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/5EezKp75TaDxv8B9jumdYbuN1Vb.jpg"
+          }
+        },
+        "3:12": {
+          "season": 3,
+          "episodes": [
+            23,
+            24
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Iron Zola / La mongolfiera di zia May",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Iron Zola / Il compleanno esplosivo della zia May",
+            "synopsis": "Il Team Spidey aiuta la città quando Zota diventa un supereroe come Iron Man. La mongolfiera per il compleanno di zia May la fa naufragare su un'isola insieme a Spidey e Gobby.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/zkPqXCbpN8ZiBwiBW8DRPqmjjCS.jpg"
+          }
+        },
+        "3:13": {
+          "season": 3,
+          "episodes": [
+            25,
+            26
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Il raggio gelante di Doc Ock! / Forza, Jeff",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Fermi tutti c'è Doc Ock! / Vai vai Jeff",
+            "synopsis": "La nuova invenzione di Doc Ock trasforma le persone in statue congelate. La Squadra Spidey deve salvare Jeff che per sbaglio ha indossato i nuovi stivali spara-ragnatele di Spidey.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/xacsSOEFkP4NoVExuemvGkxIXkK.jpg"
+          }
+        },
+        "3:14": {
+          "season": 3,
+          "episodes": [
+            27,
+            28
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Un libro per Zola / Invenzioni memorabili",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "L'idea di romanzo di Zola / I grandi successi",
+            "synopsis": "Zola ruba la Bibliomobile e rapisce la scrittrice Millicent McKeen. I cattivi si uniscono per rubare le loro vecchie invenzioni dalla nuova mostra del museo.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/jepqkS6zxJBYqQ07KTdcUsiDkxO.jpg"
+          }
+        },
+        "3:15": {
+          "season": 3,
+          "episodes": [
+            29,
+            30
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Forza Dino-Ragni, forza / Un fantasma nel museo",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Forza Dino-Ragni, forza / Un fantasma nel museo",
+            "synopsis": "Con l'aiuto di Reptil, la Squadra Spidey ottiene nuovi poteri dinosauro per sconfiggere il Dino-robot di Gobby. La Squadra Spidey deve fermare un fantasma che ruba dal museo.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/gGSmMK0QU19M5RXXwDJHRvTDBXq.jpg"
+          }
+        },
+        "3:16": {
+          "season": 3,
+          "episodes": [
+            31,
+            32
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Cresci pianta, cresci / Rio nello spazio",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Cresci pianta, cresci / Rio nello spazio",
+            "synopsis": "La pianta mostruosa di Lizard prende il controllo della città. Doc Ock cattura il Team Transport durante una missione nello spazio, così Miles e sua madre Rio collaborano per liberare la loro nave.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/mn9hVNcSFbDKbLxTEpq0xfpnPfG.jpg"
+          }
+        },
+        "4:1": {
+          "season": 4,
+          "episodes": [
+            1,
+            2
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Viaggio a Spider Island / Supereroe spugna",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Viaggio a Spider Island / Supereroe spugna",
+            "synopsis": "Il Team Spidey trova una Spider Island pirata e un nuovo e tenero amico, Jeff lo Squalo di Terra. Conosci l'eroe, Capitan America, e il nuovo cattivo, Hydro-Man.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/tcE7PqosFf2nRKpzE1VYE3qe5ZL.jpg"
+          }
+        },
+        "4:2": {
+          "season": 4,
+          "episodes": [
+            3,
+            4
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Lucertolone gigante / Il mucchio selvaggio di Rhino",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Lucertolone gigante / Il mucchio selvaggio di Rhino",
+            "synopsis": "Quando le pozioni lo trasformano in un gigante, Lizard cerca di conquistare la Stark Tower e affronta uno Spidey gigante. Rhino si impossessa della gemma della Tigre Bianca e causa problemi agli animali in città.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/zFdqF4s7GlwyhnEYg8UTxVmFcVW.jpg"
+          }
+        },
+        "4:3": {
+          "season": 4,
+          "episodes": [
+            5,
+            6
+          ],
+          "providerOnly": true,
+          "sourceTitle": "I robot contro Doc Ock / La batteria potenziata",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "I robot contro Doc Ock / La batteria potenziata",
+            "synopsis": "Gli Spider-bot aiutano il Team Spidey ad annientare i piani di Doc Ock di lanciare un razzo. I cattivi rubano la super batteria di Pantera Nera e causano problemi in città.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/brbku4qsiDjmNR0eVGyGSm4H24T.jpg"
+          }
+        },
+        "4:4": {
+          "season": 4,
+          "episodes": [
+            7,
+            8
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Il Re Lucertola / Forza Rhino forza!",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Il Re Lucertola / Forza Rhino forza!",
+            "synopsis": "Lizard prende le iguane dall'isola di Lagarto e le trasforma nei suoi tirapiedi. Il Team Spidey deve riprendersi il suo Dino-Web Crawler dopo che Rhino lo ha rubato.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/yb86iGpjyH16c1g7do5W5XWHbME.jpg"
+          }
+        },
+        "4:5": {
+          "season": 4,
+          "episodes": [
+            9,
+            10
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Caos al campeggio / La Panther Capsula in soccorso",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Caos al campeggio / La Panther Capsula in soccorso",
+            "synopsis": "Green Goblin e Rhino rubano la gemma della casa sull'albero Dino-Web e si trasformano in dinosauri. Spin e la sua abuela intraprendono un'avventura inaspettata con Pantera Nera nella sua nuova Panther Capsula.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/8UM1VUtodLSQNX42q4y6K03EZ0m.jpg"
+          }
+        },
+        "4:6": {
+          "season": 4,
+          "episodes": [
+            11,
+            12
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Due teletrasportatori di troppo / I dinosauri sono per sempre",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Due teletrasportatori di troppo / I dinosauri sono per sempre",
+            "synopsis": "Green Goblin e Rhino copiano il potere di teletrasporto di Lockjaw per causare problemi. Gli eroi devono lavorare con Electro per salvare tutti dal robot dinosauro di Green Goblin.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/zmGzfGv6VFFF6mHGPFZkVGqtysA.jpg"
+          }
+        },
+        "4:7": {
+          "season": 4,
+          "episodes": [
+            13,
+            14
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Episodio 7",
+          "evidence": "User inspected actual video segments on 2026-11-11; TMDB season episode titles cross-checked.",
+          "replacement": {
+            "title": "La tana perduta di Barba-Ragno / Capitano Gobby",
+            "synopsis": "Gli Spidey trovano un tesoro. Gobby prende lo scudo di Capitan America.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/vFD8HoIkaeoaHX6o3cvEncy9shc.jpg"
+          }
+        },
+        "4:8": {
+          "season": 4,
+          "episodes": [
+            15,
+            16
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Episodio 8",
+          "evidence": "User inspected actual video segments on 2026-11-11; TMDB season episode titles cross-checked.",
+          "replacement": {
+            "title": "Guai su guai / Catturare un gatto",
+            "synopsis": "Lizard sputa fuoco. I cattivi si derubano a vicenda.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/pPRySkaMIJYXXxiDh1ha0W06WAu.jpg"
+          }
+        },
+        "4:9": {
+          "season": 4,
+          "episodes": [
+            17,
+            18
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Episodio 9",
+          "evidence": "User inspected actual video segments on 2026-11-11; TMDB season episode titles cross-checked.",
+          "replacement": {
+            "title": "Come catturare un bruco / Un racconto di meduse",
+            "synopsis": "Sono scomparse le farfalle. Doc Ock scava nell'oceano.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/yhtXL9SKRJur6mJGJbvQhvXM6Fr.jpg"
+          }
+        },
+        "4:10": {
+          "season": 4,
+          "episodes": [
+            19,
+            20
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Episodio 10",
+          "evidence": "User inspected actual video segments on 2026-11-11; TMDB season episode titles cross-checked.",
+          "replacement": {
+            "title": "La notte dei Goblin / Pipistrelli malandrini",
+            "synopsis": "I cloni di Gobby minacciano Halloween. Ock comanda i pipistrelli.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/9a42AHBaRDKYRoivtWaOqgPhI02.jpg"
+          }
+        },
+        "4:11": {
+          "season": 4,
+          "episodes": [
+            21,
+            22
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Salvare Spider Island / Un salvataggio gracidante",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Salvare Spider Island / Un salvataggio gracidante",
+            "synopsis": "Spidey e Jeff salvano la Spider Island dal pirata Green Goblin e da Doc Ock. Lo Spidey Team accorre in aiuto per soccorrere la piccola rana domestica di Miles che si è persa nella grande città.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/fEiBGUvPwPud7o6WkRWSyt1e4yu.jpg"
+          }
+        },
+        "4:12": {
+          "season": 4,
+          "episodes": [
+            23,
+            24
+          ],
+          "providerOnly": true,
+          "sourceTitle": "L' avventura piratesca di Squirrel Girl e di Tippy Toe / Un cavaliere al museo",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "L'avventura piratesca di Squirrel Girl e di Tippy Toe / Un cavaliere al museo",
+            "synopsis": "Lo Spidey Team deve ritrovare la nave pirata Webs Ahoy che gli è stata trafugata e soccorrere i loro amici. Il fantasma di un leggendario cavaliere perseguita la città."
+          }
+        },
+        "4:13": {
+          "season": 4,
+          "episodes": [
+            25,
+            26
+          ],
+          "providerOnly": true,
+          "sourceTitle": "L'oca golosa / Caos nell'area giochi per bambini",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "L'oca golosa / Caos nell'area giochi per bambini",
+            "synopsis": "Il Team Spidey entra in azione quando Green Goblin ruba il banchetto della comunità. Ant-Man e Spidey si trovano in un grosso guaio quando vengono rimpiccioliti nel giardino del centro ricreativo."
+          }
+        },
+        "4:14": {
+          "season": 4,
+          "episode": 27,
+          "sourceTitle": "Camminata natalizia a lume di candela",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Camminata natalizia a lume di candela",
+            "synopsis": "Hydro-Man, Green Goblin e Rhino si uniscono per cercare di rovinare la tradizione della passeggiata natalizia a lume di candela. Trapster cattura Babbo Natale e la squadra Spidey alla vigilia di Natale con la sua trappola natalizia."
+          }
+        }
+      }
+    }
+  },
+  "streamingunity:7656": {
+    "tmdb": {
+      "id": 127635,
+      "episodes": {
+        "1:1": {
+          "season": 0,
+          "episode": 1,
+          "sourceTitle": "Web-ster",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Web-ster",
+            "synopsis": "Peter presenta WEB-STER allo Spidey Team.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/dsZPBIxRjYcZnzq5mJj4wV1QSfT.jpg"
+          }
+        },
+        "1:2": {
+          "season": 0,
+          "episode": 2,
+          "sourceTitle": "S.O.S. gattino!",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "S.O.S. gattino!",
+            "synopsis": "Quanto il gattino di Peter e zia May, Bootsie, si perde, Spidey deve andare a salvarlo!",
+            "thumbnail": "https://image.tmdb.org/t/p/original/9d8q0Jd7azptCv5fjMapIiwj831.jpg"
+          }
+        },
+        "1:3": {
+          "season": 0,
+          "episode": 3,
+          "sourceTitle": "Il mistero di Spidey",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Il mistero di Spidey",
+            "synopsis": "Spidey chiama la sua amica Ghost-Spider per aiutarlo a trovare lo scooter smarrito di una bambina.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/uNGr2bTNA24gsUg0fwiGFYi1IOZ.jpg"
+          }
+        },
+        "1:4": {
+          "season": 0,
+          "episode": 4,
+          "sourceTitle": "Perduto e trovato",
+          "evidence": "User inspected actual video segments on 2026-11-11; TMDB season episode titles cross-checked.",
+          "replacement": {
+            "title": "Con l'aiuto di Hulk",
+            "synopsis": "Spidey e Hulk fanno squadra per una missione di forza!",
+            "thumbnail": "https://image.tmdb.org/t/p/original/cBhsQE0XcWXFxKrleXNPIX0kjme.jpg"
+          }
+        },
+        "1:5": {
+          "season": 0,
+          "episode": 5,
+          "sourceTitle": "Sorpresa!",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Sorpresa!",
+            "synopsis": "Spidey finisce le ragnatele mentre combatte il Goblin Verde e chiama il suo amico ragno robotico, TRACE-E.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/3s3DwauCFIQI4YIEX9mMvJQl6Fn.jpg"
+          }
+        },
+        "1:6": {
+          "season": 0,
+          "episode": 6,
+          "sourceTitle": "Fai la nanna Rhino",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Fai la nanna Rhino",
+            "synopsis": "Spidey e Spin si uniscono per fermare la furia notturna di Rhino!",
+            "thumbnail": "https://image.tmdb.org/t/p/original/fFOnpQNSHXv0KJ6FOpCF8STgKhN.jpg"
+          }
+        },
+        "1:7": {
+          "season": 0,
+          "episode": 7,
+          "sourceTitle": "Fermate il Doc Ock",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Fermate il Doc Ock",
+            "synopsis": "La squadra di Spidey si riunisce per impedire al Doc Ock di usare il Diamante Stellare super carico per potenziarsi.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/90UTSCPas8Lr5dL34tGiwEFRu5t.jpg"
+          }
+        },
+        "1:8": {
+          "season": 0,
+          "episode": 8,
+          "sourceTitle": "La squadra di Spidey",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "La squadra di Spidey",
+            "synopsis": "Peter, Gwen e Miles fanno squadra per fermare il Goblin Verde.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/sITZpPaz8CtDMXlzp3NVPCMzCbt.jpg"
+          }
+        },
+        "1:9": {
+          "season": 0,
+          "episode": 9,
+          "sourceTitle": "I piccioni radiocomandati",
+          "evidence": "User inspected actual video segments on 2026-11-11; TMDB season episode titles cross-checked.",
+          "replacement": {
+            "title": "Scimmiottando",
+            "synopsis": "Spidey e Ms. Marvel devono acciuffare tre scimmie dispettose!",
+            "thumbnail": "https://image.tmdb.org/t/p/original/8r3FHkYbQ81pIcWWObsm7E1jxpR.jpg"
+          }
+        },
+        "1:10": {
+          "season": 0,
+          "episode": 10,
+          "sourceTitle": "Allenamento",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Allenamento",
+            "synopsis": "Mentre Spidey e Miles sono di pattuglia, si imbattono in alcuni problemi che li aiutano ad affinare i loro poteri.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/lG1xrKLNZVOQHSDXuXtG78lJtau.jpg"
+          }
+        },
+        "1:11": {
+          "season": 0,
+          "episode": 11,
+          "sourceTitle": "Rhino al volante",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Rhino al volante",
+            "synopsis": "Mentre Spidey e Pantera Nera si stanno godendo una giornata rilassante al parco divertimenti, Rhino fa la sua comparsa per seminare il caos e rubare tutti i premi.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/yylsIe2xCLYababAMMpaV0pIZvX.jpg"
+          }
+        },
+        "2:1": {
+          "season": 0,
+          "episode": 13,
+          "sourceTitle": "Iron Man dà una mano",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Iron Man dà una mano",
+            "synopsis": "A volte, anche ai supereroi come Spidey serve una mano. Per fortuna Iron Man è pronto ad aiutarlo!",
+            "thumbnail": "https://image.tmdb.org/t/p/original/9yVAzUD6g6kzkCVCFGQJ89bYVxt.jpg"
+          }
+        },
+        "2:2": {
+          "season": 0,
+          "episode": 12,
+          "sourceTitle": "Mezzo di trasporto Squadra Spidey in soccorso",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Mezzo di trasporto Squadra Spidey in soccorso",
+            "synopsis": "Il Quartier Generale Mobile arriva in soccorso del Team Spidey, rimasto intrappolato nella melma appiccicosa di Green Goblin.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/brbUkQH26Big6VR85Ee8IDLbFbh.jpg"
+          }
+        },
+        "2:3": {
+          "season": 0,
+          "episode": 14,
+          "sourceTitle": "Una microscopica soluzione",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Una microscopica soluzione",
+            "synopsis": "Ghost-Spider chiede aiuto ad Ant-Man e Wasp per risolvere il mistero del giocattolo scomparso.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/q36ewDPaPtwGTqNSa4AfZDwxP5S.jpg"
+          }
+        },
+        "2:4": {
+          "season": 0,
+          "episode": 15,
+          "sourceTitle": "Un amico esplosivo",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Un amico esplosivo",
+            "synopsis": "La visita al museo di Spin e Reptil per ammirare la mostra sui dinosauri viene interrotta dagli scherzi di Green Goblin.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/jgQ6erTwFiHH8DP7YO2NWvZsiNR.jpg"
+          }
+        },
+        "2:5": {
+          "season": 0,
+          "episode": 16,
+          "sourceTitle": "Il luogo preferito di Hulk",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Il luogo preferito di Hulk",
+            "synopsis": "Mentre cercano un posto in cui Hulk possa distruggere le cose senza creare pericoli agli altri, Spidey e lo stesso Hulk si imbattono in qualcos'altro: Sandman!",
+            "thumbnail": "https://image.tmdb.org/t/p/original/Aa4IPQfX5U8VCyuv924QkRUZP4V.jpg"
+          }
+        },
+        "2:6": {
+          "season": 0,
+          "episode": 17,
+          "sourceTitle": "Semaforo rosso, semaforo verde",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Semaforo rosso, semaforo verde",
+            "synopsis": "Il traffico eccessivo rallenta il tragitto dei ragazzi verso il cinema, quando scoprono che dietro c'è lo zampino di Electro.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/wp4cQrC2dQCIZcVuOHepxCNtdpz.jpg"
+          }
+        },
+        "2:7": {
+          "season": 0,
+          "episode": 18,
+          "sourceTitle": "Ciao, Felicia!",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Ciao, Felicia!",
+            "synopsis": "Il Team Spidey incontra per la prima volta Felicia, alias Gatta Nera.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/34bwwwiE3O506FT3h8GpG7fH9n1.jpg"
+          }
+        },
+        "2:8": {
+          "season": 0,
+          "episode": 19,
+          "sourceTitle": "Quando Ghosty ha conosciuto TWIRL-E!",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Quando Ghosty ha conosciuto TWIRL-E!",
+            "synopsis": "Spidey regala a Ghost-Spider uno spider-bot tutto suo, TWIRL-E. Insieme, i tre risolvono la situazione e riescono a salvare Bootsie!",
+            "thumbnail": "https://image.tmdb.org/t/p/original/stfzFRYTl2apucej99aO18tjasU.jpg"
+          }
+        },
+        "2:9": {
+          "season": 0,
+          "episode": 20,
+          "sourceTitle": "Si Migliora Esercitandosi",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "Si Migliora Esercitandosi",
+            "synopsis": "Gwen insegna a Miles e Peter come suonare i vari strumenti per poter mettere su una band: gli Web Spinners.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/rsJJijNUcWvXI1Jpyuwkxe6jrrl.jpg"
+          }
+        },
+        "2:10": {
+          "season": 0,
+          "episode": 21,
+          "sourceTitle": "L'unione fa la ragnatela",
+          "evidence": "Provider segment titles and plots compared with TMDB season episode pages on 2026-11-11.",
+          "replacement": {
+            "title": "L'unione fa la ragnatela",
+            "synopsis": "Il Team Spidey pattuglia la città utilizzando le abilità dei suoi componenti per fermare i cattivi.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/rwfWyz3p1UyDC7vAJzmeMlTUeAz.jpg"
+          }
+        },
+        "2:16": {
+          "season": 2,
+          "episodes": [
+            31,
+            32
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Episodio 16",
+          "evidence": "User inspected actual video segments on 2026-11-11; TMDB season episode titles cross-checked.",
+          "replacement": {
+            "title": "Problemi nel tunnel / Mistero sull'isola di Goblin",
+            "synopsis": "Electro sabota la metropolitana. Il tesoro di Barba-Ragno.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/7MI3ycDPoBGt5nw9gya0V0SwgUD.jpg"
+          },
+          "streamObservation": {
+            "audioLanguages": [
+              "en"
+            ],
+            "verifiedBy": "user",
+            "verifiedOn": "2026-11-11",
+            "scope": "observed-stream",
+            "recheckOnPlayback": true
+          }
+        },
+        "2:21": {
+          "season": 2,
+          "episodes": [
+            41,
+            42
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Episodio 21",
+          "evidence": "User inspected actual video segments on 2026-11-11; TMDB season episode titles cross-checked.",
+          "replacement": {
+            "title": "Super scooter / Lo spara-ragnatele smarrito",
+            "synopsis": "Avventura sullo scooter allungabile. Spidey perde uno spara-ragnatele.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/qpQm8DXq0KjSHghYxFY5XMVaPzu.jpg"
+          },
+          "streamObservation": {
+            "audioLanguages": [
+              "en"
+            ],
+            "verifiedBy": "user",
+            "verifiedOn": "2026-11-11",
+            "scope": "observed-stream",
+            "recheckOnPlayback": true
+          }
+        },
+        "2:26": {
+          "season": 2,
+          "episodes": [
+            51,
+            52
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Episodio 26",
+          "evidence": "User inspected actual video segments on 2026-11-11; TMDB season episode titles cross-checked.",
+          "replacement": {
+            "title": "Rhino a rotelle / La piovra e la gattina",
+            "synopsis": "Rhino sui pattini a rotelle. Black Cat e Doc Ock fanno squadra.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/bfcaEgvTdoiko4sYiZlm7zjOR4f.jpg"
+          },
+          "streamObservation": {
+            "audioLanguages": [
+              "en"
+            ],
+            "verifiedBy": "user",
+            "verifiedOn": "2026-11-11",
+            "scope": "observed-stream",
+            "recheckOnPlayback": true
+          }
+        },
+        "2:27": {
+          "season": 2,
+          "episodes": [
+            53,
+            54
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Episodio 27",
+          "evidence": "User inspected actual video segments on 2026-11-11; TMDB season episode titles cross-checked.",
+          "replacement": {
+            "title": "Lasciati trasportare dalla lava / Un ronzante Rosh Hashanah",
+            "synopsis": "Gli eroi affrontano un vulcano. Gobby ruba tutte le api.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/d2oXaZGsoK00WEsLSwC7goIT0fs.jpg"
+          },
+          "streamObservation": {
+            "audioLanguages": [
+              "en"
+            ],
+            "verifiedBy": "user",
+            "verifiedOn": "2026-11-11",
+            "scope": "observed-stream",
+            "recheckOnPlayback": true
+          }
+        },
+        "2:28": {
+          "season": 2,
+          "episodes": [
+            55,
+            56
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Episodio 28",
+          "evidence": "User inspected actual video segments on 2026-11-11; TMDB season episode titles cross-checked.",
+          "replacement": {
+            "title": "L’avventura infestata di Bootsie / Troppi scherzetti, pochissimi dolcetti",
+            "synopsis": "Bootsie spaventa Sandman. La Squadra Spidey salva Halloween.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/bq70bSRstv1rhZJr9fCBjysBOTP.jpg"
+          },
+          "streamObservation": {
+            "audioLanguages": [
+              "en"
+            ],
+            "verifiedBy": "user",
+            "verifiedOn": "2026-11-11",
+            "scope": "observed-stream",
+            "recheckOnPlayback": true
+          }
+        },
+        "2:29": {
+          "season": 2,
+          "episodes": [
+            57,
+            58
+          ],
+          "providerOnly": true,
+          "sourceTitle": "Episodio 29",
+          "evidence": "User inspected actual video segments on 2026-11-11; TMDB season episode titles cross-checked.",
+          "replacement": {
+            "title": "Come addestrare il tuo cane / Sotto la cupola",
+            "synopsis": "I cattivi prendono Lockjaw. Zola intrappola Spidey e Ghosty.",
+            "thumbnail": "https://image.tmdb.org/t/p/original/2VWKYKBvJpeZjPSL7HlLBok1Jh7.jpg"
+          },
+          "streamObservation": {
+            "audioLanguages": [
+              "en"
+            ],
+            "verifiedBy": "user",
+            "verifiedOn": "2026-11-11",
+            "scope": "observed-stream",
+            "recheckOnPlayback": true
+          }
+        }
+      }
+    }
   }
 }

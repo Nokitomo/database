@@ -23,7 +23,7 @@ async function runBatch({roots,output,providerRoot,enrich=defaultEnrich,stage='a
   const g=group(source.entries,read(path.join(output,'registry.json'))||undefined,policy),state=read(path.join(output,'state.json'),{}),records=[];
   elapsed('groupingMs');
   let processed=0,pendingCount=identity.pending,hasImmediateWork=stage==='all'&&identity.immediate;
-  for(const group of g.groups){let phaseStart=clock();const base=mergeGroup(group),id=group.id;
+  for(const group of g.groups){let phaseStart=clock();const base=require('./metadata-corrections').applyMetadataCorrections(mergeGroup(group)),id=group.id;
     timings.mergeMs=(timings.mergeMs||0)+clock()-phaseStart;phaseStart=clock();
     const fingerprint=hash({version:2,...(base.metadataPolicy?{metadataPolicy:base.metadataPolicy}:{}),episodeOverrides:Object.fromEntries(group.entries.map(e=>[e.key,episodeOverrides[e.key]||null])),ids:base.sourceIds,info:base.info,seasons:base.seasons,warnings:base.warnings});
     timings.fingerprintMs=(timings.fingerprintMs||0)+clock()-phaseStart;phaseStart=clock();

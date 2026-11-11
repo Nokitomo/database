@@ -142,7 +142,7 @@ test('legacy pair and triple split once, discard merged enrichment, preserve unr
 
 test('all confirmed corrections preserve source records and typed playback identities',async()=>{
  const policy=require('../identity-overrides.json'),{applyCorrections}=require('../scripts/identity-policy');
- assert.equal(Object.keys(policy.idCorrections).length,35);
+ assert.equal(Object.keys(policy.idCorrections).length,39);
  for(const key of Object.keys(policy.idCorrections)){
   const id=Number(key.split(':')[1]),source=entry('streamingunity',id,999,'tt123', [11560,6914,5508,55440,7356,10323,4838].includes(id)?'tv':'movie');
   const before=structuredClone(source),corrected=applyCorrections([source],policy)[0];

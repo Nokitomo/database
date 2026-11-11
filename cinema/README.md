@@ -144,3 +144,11 @@ The migration is idempotent and runs in both `merge` and `all` modes.
 - Previously published work IDs are retained as inactive `replacedBy` records after merging. Consumers should follow the replacement for bookmarks rather than showing a duplicate card.
 
 These policies are applied by the normal cinema workflow, on top of unmodified source databases. `verify:cinema` and the publication verifier cover season composition, preserved playback references, stable aliases and incremental cache reuse. The database contract does not itself implement playback aggregation in Vega.
+
+## Verified metadata replacements
+
+Episode overrides can include a `replacement` with `title`, `synopsis`, and an optional `thumbnail`. These replace known incorrect display metadata before fingerprinting and enrichment, preserving the raw source record. Guards check the original provider title, not the corrected display title. A missing thumbnail field retains the provider image; null explicitly clears it.
+
+Composite targets use `{season, episodes: [...], providerOnly: true}`: one playable provider episode stays one item, with all confirmed TMDB segments recorded. Text can describe both segments; ordinary gap filling must never substitute just one segment or infer a TVDB mapping.
+
+Identity metadata may set `displayTitle` for a verified edition. Variant compositions may set `excludedMetadataSources` for a mislabeled movie copy: its original data and playback ID remain available, but cannot fill canonical text or artwork. These exceptions and their evidence participate in incremental fingerprints.

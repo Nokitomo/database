@@ -9,10 +9,10 @@ function explicitTarget(record,season,episode,service){
     const ref=episode.playbackSources?.find(r=>r.provider===provider&&String(r.titleId)===String(variant.id));
     if(episode.playbackSources&&!ref)continue;
     const sourceSeason=ref?.season??season.number,sourceNumber=ref?.episode??episode.number;
-    const sourceEpisode=ref?variant.seasons?.find(s=>s.number===sourceSeason)?.episodes.find(e=>String(e.number)===String(sourceNumber)):null;
-    const sourceTitle=sourceEpisode?.name||sourceEpisode?.title||episode.title;
+    const sourceEpisode=variant.seasons?.find(s=>s.number===sourceSeason)?.episodes.find(e=>String(e.number)===String(sourceNumber));
     const target=rule.episodes?.[`${sourceSeason}:${sourceNumber}`];
     if(!target)continue;
+    const sourceTitle=(ref||target.replacement)?(sourceEpisode?.name||sourceEpisode?.title||episode.title):episode.title;
     if(!target.evidence||!target.sourceTitle||normalize(target.sourceTitle)!==normalize(sourceTitle)||!Number.isInteger(target.season)||target.season<0||(target.episodes?(!Array.isArray(target.episodes)||!target.episodes.length||target.episodes.some(n=>!Number.isInteger(n)||n<0)||!target.providerOnly):(!Number.isInteger(target.episode)||target.episode<0)))throw Error('Invalid or stale cinema episode override');
     return {...target,method:'verified-override'};
   }

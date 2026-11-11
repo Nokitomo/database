@@ -50,3 +50,44 @@ test('publication verification rejects a playback reference pointing at the wron
 test('an unavailable preferred copy does not deactivate another available variant',()=>{
  const a=entry(14220,1178532,'movie'),b=entry(36022,1178532,'movie');b.record.active=false;const r=mergeGroup(group([a,b]).groups[0]);assert(r.active);assert.equal(r.providers.streamingunity.find(v=>v.id===36022).availability,'unavailable');assert.equal(r.providers.streamingunity.find(v=>v.id===14220).availability,'present');
 });
+
+const {applyCorrections}=require('../scripts/identity-policy');
+const {applyMetadataCorrections}=require('../scripts/metadata-corrections');
+test('all nine newly confirmed pairs merge without losing source IDs; editions stay separate',()=>{
+ for(const [a,b,primary]of [[34060,34152,34060],[4754,7214,7214],[23151,5952,23151],[40870,6463,6463],[5644,8753,8753],[35283,48455,35283],[3027,30544,3027],[7084,7213,7213],[10066,11425,11425]]){
+  const g=group([entry(a,123,'movie'),entry(b,123,'movie')]);assert.equal(g.groups.length,1);const r=mergeGroup(g.groups[0]);assert.equal(r.providers.streamingunity.length,2);assert.equal(r.providers.streamingunity[0].id,primary);
+ }
+ for(const [a,b]of [[7431,9452],[7245,9451],[47768,65813],[7656,8110]])assert.equal(group([entry(a),entry(b)]).groups.length,2);
+});
+test('edition labels survive canonical assembly and source-only D amore clears every external ID',async()=>{
+ for(const id of [9452,9451,47768]){const r=applyMetadataCorrections(mergeGroup(group(applyCorrections([entry(id,123,'movie')],policy)).groups[0]));assert.match(r.info.title,id===47768?/estesa/:/Director/);}
+ const r=applyMetadataCorrections(mergeGroup(group(applyCorrections([entry(3466,119279,'tv',[1])],policy)).groups[0]));assert.deepEqual(r.sourceIds,{tmdb:null,imdb:null,tvdb:null});
+ const out=await enrich(r,{services:{context:{},'tmdb/index.js':{},'tvdb/index.js':{}}});assert.equal(out.enrichment.resolution,'provider-only-confirmed');
+});
+test('Souvenir mislabeled source remains playable but never contaminates canonical fields or artwork',()=>{
+ const a=entry(34060,473019,'movie'),b=entry(34152,473019,'movie');a.record.info.extra=null;b.record.info.extra='WRONG';b.record.images=[{type:'poster',reference:{base:'images',path:'/wrong.jpg'}}];const r=mergeGroup(group([a,b]).groups[0]);assert.equal(r.info.extra,null);assert.equal(r.images.length,0);assert.equal(r.providers.streamingunity[1].info.extra,'WRONG');assert.equal(r.providers.streamingunity[1].id,34152);
+});
+test('Golden Hour retains both copies of all six S1 episodes, only the complete source for S2',()=>{
+ const r=mergeGroup(group([entry(7084,212408,'tv',[6]),entry(7213,212408,'tv',[6,6])]).groups[0]);assert.deepEqual(r.seasons.map(s=>s.episodes.length),[6,6]);for(const e of r.seasons[0].episodes)assert.equal(e.playbackSources.length,2);for(const e of r.seasons[1].episodes){assert.equal(e.playbackSources.length,1);assert.equal(e.playbackSources[0].titleId,7213);}
+});
+function spidey(id){const rules=require('../episode-overrides.json')['streamingunity:'+id].tmdb.episodes,e=entry(id,127635,'tv',[]),seasons=new Map();for(const [key,target]of Object.entries(rules)){const [s,n]=key.split(':').map(Number);if(!seasons.has(s))seasons.set(s,{id:s,number:s,episodes:[]});seasons.get(s).episodes.push({id:id*10000+s*100+n,number:n,name:target.sourceTitle,plot:'Wrong source plot',thumbnail:'source.jpg'});}e.record.seasons=[...seasons.values()];return e;}
+test('all 110 Spidey overrides preserve playback inventory and persist single/composite TMDB mapping',async()=>{
+ for(const id of [8110,7656]){const src=spidey(id),before=structuredClone(src),r=applyMetadataCorrections(mergeGroup(group([src]).groups[0]));assert.deepEqual(src,before);
+ const out=await enrich(r,{services:{context:{},'tmdb/index.js':{resolveTmdbMediaMetadata:async()=>({}),resolveTmdbEpisodeSeasonMetadata:async()=>{throw Error('Unexpected episode request');}},'tvdb/index.js':{},'tmdb/artworkLibrary.js':{resolveTmdbArtworkLibrary:async()=>({})}}});
+ assert.equal(out.enrichment.status,'ready');assert.deepEqual(out.providers.streamingunity[0].seasons,before.record.seasons);
+ const rules=require('../episode-overrides.json')['streamingunity:'+id].tmdb.episodes;for(const s of out.seasons)for(const e of s.episodes){const target=rules[s.number+':'+e.number];assert.equal(e.title,target.replacement.title);assert.equal(e.synopsis,target.replacement.synopsis);assert.equal(e.externalMappings.tmdb.season,target.season);assert.deepEqual(e.externalMappings.tmdb.episodes,target.episodes);assert.equal(e.externalMappings.tmdb.episode,target.episode);}
+ const corrupted=mergeGroup(group([spidey(id)]).groups[0]);corrupted.providers.streamingunity[0].seasons[0].episodes[0].name='Changed provider content';assert.throws(()=>applyMetadataCorrections(corrupted),/stale/);
+ }
+});
+test('verified Spidey playback observations map the actual stories, not the wrong source synopsis',()=>{
+ const o=require('../episode-overrides.json');for(const [id,key,s,nums]of [[7656,'1:4',0,[4]],[7656,'1:9',0,[9]],[7656,'2:16',2,[31,32]],[7656,'2:21',2,[41,42]],[7656,'2:26',2,[51,52]],[7656,'2:27',2,[53,54]],[7656,'2:28',2,[55,56]],[7656,'2:29',2,[57,58]],[8110,'1:18',1,[35,36]],[8110,'1:19',1,[37,38]],[8110,'4:7',4,[13,14]],[8110,'4:8',4,[15,16]],[8110,'4:9',4,[17,18]],[8110,'4:10',4,[19,20]]]){const t=o['streamingunity:'+id].tmdb.episodes[key];assert.equal(t.season,s);assert.deepEqual(t.episodes||[t.episode],nums);}
+});
+
+test('Spidey corrections survive publication and resume without regenerating unchanged episodes',async t=>{
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'cinema-spidey-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));const source=path.join(root,'source'),output=path.join(root,'out'),store=require('../../providers/streamingunity/scripts/store'),state=store.initialState();
+ for(const id of [7656,8110]){const r=spidey(id).record;r.seasonIndex=r.seasons.map(s=>({id:s.id,number:s.number}));state.known[id]={id,active:true};write(store.itemFile(source,id),r);}state.origins={site:'https://example.invalid'};state.archive={completedAt:1,total:2};store.publish(source,state,{complete:true});
+ let calls=0;const options={roots:{streamingunity:source},selectedProviders:['streamingunity'],output,enrich:async r=>{calls++;return {...r,enrichment:{status:'ready'}};}};
+ await require('../scripts/pipeline').run({...options,now:1});const m=read(path.join(output,'manifest.json'));assert.equal(calls,2);assert.equal(m.pendingReviewCount,0);assert.equal(m.pendingCount,0);require('../scripts/verify').verify(output);
+ const registry=read(path.join(output,'registry.json')),record=read(path.join(output,'items',registry.members['streamingunity:7656']+'.json'));assert.equal(record.seasons[0].episodes.find(e=>e.number===4).title,'Con l’aiuto di Hulk'.replace('’',"'"));assert.equal(record.providers.streamingunity[0].seasons[0].episodes.find(e=>e.number===4).name,'Perduto e trovato');
+ calls=0;await require('../scripts/pipeline').run({...options,now:2});assert.equal(calls,0);assert.deepEqual(read(path.join(output,'manifest.json')).itemHashes,m.itemHashes);
+});
