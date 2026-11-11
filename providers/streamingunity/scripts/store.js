@@ -1,6 +1,6 @@
 'use strict';
 const path=require('node:path');
-const {cardFingerprint,activityCounters}=require('./card-fingerprint');
+const {cardFingerprint,legacyCardFingerprint,activityCounters}=require('./card-fingerprint');
 const {read,write,hash}=require('../../../shared/storage/json');
 const DEFAULT_DATA=path.resolve(__dirname,'../data');
 function itemFile(root,id){if(!/^\d+$/.test(String(id))||Number(id)<=0)throw new Error('Invalid ID');return path.join(root,'items',id+'.json');}
@@ -8,9 +8,9 @@ function initialState(){return {schemaVersion:1,provider:'streamingunity',known:
 function observe(state,card,now){const old=state.known[card.id];const fingerprint=cardFingerprint(card);
   // Old state stores only an opaque hash: migrate exact matches without work;
   // otherwise refresh once rather than discard a potentially real change.
-  const changed=old&&(old.fingerprintVersion===2?old.fingerprint!==fingerprint:old.fingerprint!==hash(card));
+  const changed=old&&old.fingerprint!==(old.fingerprintVersion===3?fingerprint:old.fingerprintVersion===2?legacyCardFingerprint(card):hash(card));
   state.known[card.id]={...old,id:card.id,path:require('./urls').titlePath(card.id,card.slug),active:true,missingScans:0,
-    lastSeenAt:now,fingerprint,fingerprintVersion:2,activityCounters:activityCounters(card),refresh:!!(old?.refresh||old&&(!old.active||changed))};
+    lastSeenAt:now,fingerprint,fingerprintVersion:3,activityCounters:activityCounters(card),refresh:!!(old?.refresh||old&&(!old.active||changed))};
   delete state.known[card.id].notFound;
   if(old&&!old.active&&old.retirement)state.known[card.id].reactivatedAt=now;
 }

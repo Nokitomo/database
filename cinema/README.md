@@ -160,3 +160,23 @@ verified complete Cinema snapshots. It creates `cinema-sqlite` as a publication
 pointer and stores full snapshots/deltas in GitHub Releases. It preserves raw
 artwork separately from eligible app choices and does not alter the source JSON
 format or the Vega app.
+
+## Enrichment cache comparisons
+
+Version 3 enrichment fingerprints exclude activity counters (including localized
+fields such as `views_it`) and technical `created_at`/`updated_at` fields from
+provider info. The same main-actor entries in a different order compare equally;
+actual cast membership/credit changes remain relevant. Release/air dates, scores,
+episode metadata, artwork order, mappings, policies and overrides remain relevant.
+Raw provider values and their ordering are retained. Reusing enrichment refreshes
+ignored info fields without replacing external fallbacks or verified corrections.
+This avoids external requests, not publication of changed provider statistics:
+SQLite snapshots and deltas can still contain updated counters.
+
+Legacy caches migrate only after reconstructing provider inputs from the cached
+record and proving its exact old fingerprint, then proving semantic equivalence.
+If reconstruction is incomplete or policy/mapping/content changed, normal enrichment
+runs. Migration preserves expiry, errors, retry backoff and compatible draft phases;
+it never marks failed enrichment successful or renews periodic checks. Both cached
+records and durable state adopt the new fingerprint. Unknown legacy inputs fail
+closed and refresh only affected records, rather than resetting the whole catalog.

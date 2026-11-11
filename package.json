@@ -27,7 +27,7 @@
     "verify:altadefinizione:data": "node providers/altadefinizione/scripts/verify.js",
     "verify:altadefinizione:live": "node providers/altadefinizione/scripts/smoke.js",
     "cinema": "node cinema/scripts/pipeline.js",
-    "verify:cinema": "node --test cinema/tests/catalog.test.js cinema/tests/eurostreaming.test.js cinema/tests/workflow.test.js cinema/tests/performance.test.js cinema/tests/tmdb-adapter.test.js cinema/tests/schedule-update.test.js cinema/tests/composition.test.js",
+    "verify:cinema": "node --test cinema/tests/enrichment-input.test.js cinema/tests/catalog.test.js cinema/tests/eurostreaming.test.js cinema/tests/workflow.test.js cinema/tests/performance.test.js cinema/tests/tmdb-adapter.test.js cinema/tests/schedule-update.test.js cinema/tests/composition.test.js",
     "verify:cinema:data": "node cinema/scripts/verify.js",
     "verify:cinema:live": "node cinema/scripts/smoke.js",
     "eurostreaming": "node providers/eurostreaming/scripts/pipeline.js",

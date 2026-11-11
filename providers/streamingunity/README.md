@@ -147,3 +147,14 @@ A full refresh bypasses reuse for seasons checked before its cutoff. Legacy
 records without these timestamps receive one complete validation. Removed
 seasons are excluded from the new record. This optimizes season requests, not
 individual episode requests within a fetched season.
+
+## Localized counter comparison (version 3)
+
+Direct localized counter fields such as `views_it` and `daily_views_en` now follow
+the same rule as translated counter entries: retain them in activity state without
+scheduling a detail refresh. Version 2 fingerprints migrate by checking their exact
+legacy comparison; ambiguous legacy changes receive a conservative refresh.
+Archive `updated_at` remains significant because it can be the only signal of a
+changed detail page. This differs intentionally from Cinema, which already has the
+full collected details and can compare their actual metadata. Release dates,
+season inventories, errors, periodic checks and retirement safeguards are unchanged.

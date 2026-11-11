@@ -143,7 +143,7 @@ test('activity counters including translated views do not schedule detail refres
   observe(state,changed,2);assert.equal(state.known[1].refresh,false);
   assert.equal(state.known[1].activityCounters['/translations/it/views'],'101');
   assert.equal(state.known[1].activityCounters['/favorites'],4);
-  assert.equal(value.translations[0].value,'100');assert.equal(state.known[1].fingerprintVersion,2);
+  assert.equal(value.translations[0].value,'100');assert.equal(state.known[1].fingerprintVersion,3);
 });
 test('real catalog metadata changes and reactivation still schedule refresh',()=>{
   for(const mutate of [c=>c.name='Other',c=>c.slug='other',c=>c.score=8,c=>c.last_air_date='2026-11-01',
@@ -158,7 +158,7 @@ test('real catalog metadata changes and reactivation still schedule refresh',()=
 test('legacy fingerprints migrate unchanged cards without scheduling a full refresh',()=>{
   const state=initialState(),value=card(1),{hash}=require('../scripts/store');
   state.known[1]={id:1,active:true,fingerprint:hash(value),refresh:false};
-  observe(state,value,2);assert.equal(state.known[1].refresh,false);assert.equal(state.known[1].fingerprintVersion,2);
+  observe(state,value,2);assert.equal(state.known[1].refresh,false);assert.equal(state.known[1].fingerprintVersion,3);
   const other=initialState();other.known[1]={id:1,active:true,fingerprint:hash(value),refresh:false};
   observe(other,{...value,name:'New title'},2);assert.equal(other.known[1].refresh,true);
   observe(other,{...value,name:'New title',views:10},3);assert.equal(other.known[1].refresh,true);
@@ -215,4 +215,14 @@ test('older season episode-count changes and unknown counts are never treated as
   assert.equal(calls.length,3);assert.equal(read(itemFile(root,1)).seasons[0].episodes.length,2);
   delete seasons[0].episodes_count;calls=[];await collect(client,state,root,1,{now:start+2,save(){}});
   assert.equal(calls.length,3);
+});
+
+test('localized direct counters are retained without refresh and v2 cards migrate safely',()=>{
+ const {cardFingerprint,legacyCardFingerprint}=require('../scripts/card-fingerprint');
+ const value={...card(1),views_it:10,daily_views_en:2,updated_at:'old'};
+ const state=initialState();state.known[1]={id:1,active:true,fingerprint:legacyCardFingerprint(value),fingerprintVersion:2,refresh:false};
+ observe(state,value,1);assert.equal(state.known[1].refresh,false);assert.equal(state.known[1].fingerprintVersion,3);
+ observe(state,{...value,views_it:11,daily_views_en:3},2);assert.equal(state.known[1].refresh,false);assert.equal(state.known[1].activityCounters['/views_it'],11);
+ assert.notEqual(cardFingerprint(value),cardFingerprint({...value,updated_at:'new'}));
+ observe(state,{...value,name:'Changed'},3);assert.equal(state.known[1].refresh,true);
 });
