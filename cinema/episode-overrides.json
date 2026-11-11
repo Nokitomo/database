@@ -10,7 +10,8 @@
           "evidence": "Provider episode title/plot and TMDB season page compared individually on 2026-11-10."
         }
       }
-    }
+    },
+    "mappingRevision": 2
   },
   "streamingunity:5508": {
     "tmdb": {
@@ -127,7 +128,8 @@
           "evidence": "Provider episode title/plot and TMDB season page compared individually on 2026-11-10."
         }
       }
-    }
+    },
+    "mappingRevision": 2
   },
   "streamingunity:3235": {
     "tmdb": {

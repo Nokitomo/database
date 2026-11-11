@@ -132,3 +132,15 @@ source-to-work assignments. Reassigned variants are removed from the former work
 not retained as ghost memberships. Membership-sensitive fingerprints invalidate
 merged metadata/drafts only for affected groups; unrelated enrichment is reused.
 The migration is idempotent and runs in both `merge` and `all` modes.
+
+## Confirmed variants and season composition
+
+`identity-overrides.json` merge decisions may include a `catalog` policy:
+
+- `kind: variants` keeps one catalog work and all original provider records. `primary` selects the metadata source; each provider variant retains its original ID, path, seasons and availability. Dated `streamObservation` values are user observations, not guarantees about future streams. `timelineCompatibility: unverified` means subtitles and playback timestamps must not be transferred between copies automatically.
+- `kind: seasons` maps source season numbers to TMDB container seasons before assembling episodes. Unmapped future seasons stay in the source inventory and raise a warning. The container receives TMDB work metadata/artwork; only mapped seasons enter the playable catalog. `name` retains the TMDB season name and `displayName` adds the year when names repeat.
+- Composed episodes expose `playbackSources` with the original provider title ID, relative path, season number/ID and episode number/ID. Clients must resolve these original coordinates, never send the displayed TMDB season number to the provider.
+- `providers[].info` retains declared catalog metadata separately from stream observations. Resolve actual audio/subtitle tracks at playback where possible.
+- Previously published work IDs are retained as inactive `replacedBy` records after merging. Consumers should follow the replacement for bookmarks rather than showing a duplicate card.
+
+These policies are applied by the normal cinema workflow, on top of unmodified source databases. `verify:cinema` and the publication verifier cover season composition, preserved playback references, stable aliases and incremental cache reuse. The database contract does not itself implement playback aggregation in Vega.

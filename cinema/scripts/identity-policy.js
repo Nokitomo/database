@@ -5,6 +5,17 @@ function validate(policy){
   const pairs=new Map();
   for(const rule of policy.decisions){
     if(!['merge','separate'].includes(rule.decision)||!rule.reason||!Array.isArray(rule.sources)||rule.sources.length<2||rule.sources.some(k=>typeof k!=='string'||!k.includes(':'))||new Set(rule.sources).size!==rule.sources.length)throw Error('Invalid cinema review decision');
+    if(rule.catalog){
+      const c=rule.catalog;
+      if(rule.decision!=='merge'||!['variants','seasons'].includes(c.kind)||!rule.sources.includes(c.primary))throw Error('Invalid catalog composition');
+      if(c.kind==='seasons'){
+        if(!Number.isSafeInteger(c.tmdbId)||c.tmdbId<=0||!c.title||!c.evidence||!c.seasonMaps||!c.seasonMetadata)throw Error('Invalid season composition');
+        const targets=[];
+        for(const source of rule.sources){const map=c.seasonMaps[source];if(!map||!Object.keys(map).length)throw Error('Missing source season mapping');
+          for(const [from,to]of Object.entries(map)){if(!/^\d+$/.test(from)||!Number.isSafeInteger(to)||to<0||!c.seasonMetadata[to]?.name)throw Error('Invalid season target');targets.push(to);}}
+        if(new Set(targets).size!==targets.length)throw Error('Overlapping composed seasons');
+      }
+    }
     for(const a of rule.sources)for(const b of rule.sources)if(a<b){const key=a+'|'+b;if(pairs.has(key)&&pairs.get(key)!==rule.decision)throw Error('Conflicting cinema review decisions');pairs.set(key,rule.decision);}
   }
   return policy;

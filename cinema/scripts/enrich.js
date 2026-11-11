@@ -42,6 +42,7 @@ async function enrich(record,{providerRoot,cacheRoot,signal,progress={},save=()=
   if(policy.providerArtworkOnly)out.artworkLibrary={};
   const type=target?.type||(out.info.type==='movie'?'movie':'tv'),tmdbId=policy.sourceOnly?0:Number(target?.id??out.sourceIds.tmdb);
   const scoped=target&&target.scope!=='work',differentType=type!==out.info.type;
+  const composition=policy.catalog?.kind==='seasons',mappedSeasons=composition?out.seasons.map(s=>s.number):scoped?[target.season]:undefined;
   let tvdbId=Number(out.sourceIds.tvdb);
   if(policy.sourceOnly||scoped||differentType)tvdbId=0;
   if(tmdbId&&!scoped&&!differentType&&(!out.sourceIds.imdb||!tvdbId)&&(providerRoot||services['wikidata/index.js'])){
@@ -51,13 +52,15 @@ async function enrich(record,{providerRoot,cacheRoot,signal,progress={},save=()=
     else if(conflict)out.warnings.push({reason:'wikidata-external-id-conflict'});
   }
   const conflicts=new Set(out.warnings.filter(w=>w.season!==undefined).map(w=>w.season));
-  if(tmdbId){const media=scoped?null:await checkpoint('tmdb:media',()=>adapter?adapter.media(tmdbId,type,out.info):tmdb.resolveTmdbMediaMetadata({providerContext:context,id:tmdbId,type}));
+  if(tmdbId){const media=scoped?null:await checkpoint('tmdb:media',()=>adapter?(composition?adapter.container(tmdbId):adapter.media(tmdbId,type,out.info)):tmdb.resolveTmdbMediaMetadata({providerContext:context,id:tmdbId,type}));
     out.info.synopsis ||= media?.overview?.value;out.externalMedia||={};if(media)out.externalMedia.tmdb=media;
+    if(composition)require('./composition').applyContainer(out,media);
     const values=mediaFields(media);
     for(const field of ['year','runtime','rating','genres','cast'])if(out.info[field]==null||out.info[field]===''||Array.isArray(out.info[field])&&!out.info[field].length)out.info[field]=values?.[field]?.value??values?.[field];
-    const artwork=policy.providerArtworkOnly?null:await checkpoint('tmdb:artwork',()=>adapter?adapter.artwork(tmdbId,type,scoped?[target.season]:undefined):load('tmdb/artworkLibrary.js').resolveTmdbArtworkLibrary({providerContext:context,id:tmdbId,type,mappedSeasons:scoped?[target.season]:undefined}));
-    if(artwork&&scoped)artwork.seasons=Object.fromEntries(Object.entries(artwork.seasons||{}).filter(([number])=>Number(number)===target.season));
+    const artwork=policy.providerArtworkOnly?null:await checkpoint('tmdb:artwork',()=>adapter?adapter.artwork(tmdbId,type,mappedSeasons):load('tmdb/artworkLibrary.js').resolveTmdbArtworkLibrary({providerContext:context,id:tmdbId,type,mappedSeasons:mappedSeasons}));
+    if(artwork&&mappedSeasons)artwork.seasons=Object.fromEntries(Object.entries(artwork.seasons||{}).filter(([number])=>mappedSeasons.includes(Number(number))));
     out.artworkLibrary||={};if(artwork)out.artworkLibrary.tmdb=retainAvailable(out.artworkLibrary.tmdb,artwork);
+    if(composition)require('./composition').applyContainerArtwork(out);
     if(target?.scope==='episode'){
       const data=await checkpoint('tmdb:scoped-episode',()=>tmdb.resolveTmdbEpisodeSeasonMetadata({providerContext:context,mediaId:tmdbId,seasonNumber:target.season,episodeNumbers:[target.episode]}));
       const episode=data?.episodes?.find(e=>Number(e.episodeNumber)===target.episode);

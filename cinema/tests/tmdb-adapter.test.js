@@ -63,3 +63,13 @@ test('independent phases continue after an error and only failed components retr
 test('scoped artwork collects only the verified season while preserving series image slots',async()=>{
  const f=setup(),out=await f.adapter.artwork(1,'tv',[1]);assert.deepEqual(f.calls,['series',1]);assert.deepEqual(Object.keys(out.seasons),['1']);assert(out.series.poster.it.selected);
 });
+
+test('container adapter fetches series metadata and falls back to web season layout without credentials',async()=>{
+ const f=setup();f.modules['tmdb/api.js'].resolveApiMedia=async()=>({title:{value:'Container'},overview:{value:'Plot'},seasons:[{seasonNumber:24}]});
+ assert.equal((await f.adapter.container(2328)).title.value,'Container');assert.equal(f.web,0);
+ f.modules['tmdb/api.js'].readTmdbApiKey=async()=>null;let layoutCalls=0;
+ f.modules['tmdb/index.js'].resolveTmdbInfoFields=async()=>({title:{value:'Web container'},overview:{value:'Web plot'},seasons:[]});
+ f.modules['tmdb/index.js'].resolveTmdbSeasonLayout=async()=>{layoutCalls++;return [{seasonNumber:24,name:{value:'Ninja Steel'}}];};
+ const result=await f.adapter.container(2328);assert.equal(result.title.value,'Web container');assert.equal(result.seasons[0].seasonNumber,24);assert.equal(layoutCalls,1);
+ f.modules['tmdb/index.js'].resolveTmdbInfoFields=async()=>null;await assert.rejects(f.adapter.container(2328),/unavailable/);
+});

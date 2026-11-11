@@ -20,6 +20,14 @@ function createTmdbAdapter(load, context, checkpoint) {
   const argsFor=(id,type)=>({providerContext:checkedContext,id,type});
   const isMissing=v=>v==null||v===''||Array.isArray(v)&&!v.length;
   return {
+    async container(id){
+      const args=argsFor(id,'tv'),apiKey=await api.readTmdbApiKey(checkedContext);
+      let media=apiKey?await api.resolveApiMedia({...args,apiKey,includeImages:false,includeCredits:true}):null;
+      if(!media?.title?.value||!media?.overview?.value){const fallback=await tmdb.resolveTmdbInfoFields({...args,fields:['title','overview','year','genres','cast']});if(fallback)media=fallback;}
+      if(!media?.title?.value)throw Error('TMDB container metadata unavailable');
+      if(!media.seasons?.length){const seasons=await tmdb.resolveTmdbSeasonLayout({providerContext:checkedContext,id});if(!seasons?.length)throw Error('TMDB container seasons unavailable');media={...media,seasons};}
+      return media;
+    },
     async media(id,type,info){
       const fields=['synopsis','year','runtime','rating','genres','cast'].filter(field=>isMissing(info[field]));
       if(!fields.length)return null;

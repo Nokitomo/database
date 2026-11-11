@@ -343,6 +343,209 @@
       ],
       "decision": "separate",
       "reason": "Confirmed distinct seasons/editions sharing a parent identifier; preserve separate provider works."
+    },
+    {
+      "sources": [
+        "streamingunity:14220",
+        "streamingunity:36022"
+      ],
+      "decision": "merge",
+      "reason": "User verified the same work with distinct playable copies on 2026-11-11.",
+      "catalog": {
+        "kind": "variants",
+        "primary": "streamingunity:36022",
+        "observations": {
+          "streamingunity:14220": {
+            "audioLanguages": [
+              "en"
+            ],
+            "subtitles": {
+              "present": false
+            },
+            "verifiedBy": "user",
+            "verifiedOn": "2026-11-11",
+            "scope": "observed-stream",
+            "recheckOnPlayback": true
+          },
+          "streamingunity:36022": {
+            "audioLanguages": [
+              "it",
+              "en"
+            ],
+            "subtitles": {
+              "present": true
+            },
+            "verifiedBy": "user",
+            "verifiedOn": "2026-11-11",
+            "scope": "observed-stream",
+            "recheckOnPlayback": true
+          }
+        },
+        "timelineCompatibility": "unverified"
+      }
+    },
+    {
+      "sources": [
+        "streamingunity:8639",
+        "streamingunity:8774"
+      ],
+      "decision": "merge",
+      "reason": "User verified the same work with distinct playable copies on 2026-11-11.",
+      "catalog": {
+        "kind": "variants",
+        "primary": "streamingunity:8639",
+        "observations": {
+          "streamingunity:8639": {
+            "audioLanguages": null,
+            "subtitles": {
+              "present": true
+            },
+            "verifiedBy": "user",
+            "verifiedOn": "2026-11-11",
+            "scope": "observed-stream",
+            "recheckOnPlayback": true
+          },
+          "streamingunity:8774": {
+            "audioLanguages": null,
+            "subtitles": {
+              "present": false
+            },
+            "verifiedBy": "user",
+            "verifiedOn": "2026-11-11",
+            "scope": "observed-stream",
+            "recheckOnPlayback": true
+          }
+        },
+        "timelineCompatibility": "unverified"
+      }
+    },
+    {
+      "sources": [
+        "streamingunity:27167",
+        "streamingunity:3875"
+      ],
+      "decision": "merge",
+      "reason": "User verified the same work with distinct playable copies on 2026-11-11.",
+      "catalog": {
+        "kind": "variants",
+        "primary": "streamingunity:3875",
+        "observations": {
+          "streamingunity:27167": {
+            "audioLanguages": null,
+            "subtitles": {
+              "present": true
+            },
+            "verifiedBy": "user",
+            "verifiedOn": "2026-11-11",
+            "scope": "observed-stream",
+            "recheckOnPlayback": true
+          },
+          "streamingunity:3875": {
+            "audioLanguages": [
+              "it"
+            ],
+            "subtitles": {
+              "present": true
+            },
+            "verifiedBy": "user",
+            "verifiedOn": "2026-11-11",
+            "scope": "observed-stream",
+            "recheckOnPlayback": true
+          }
+        },
+        "timelineCompatibility": "unverified"
+      }
+    },
+    {
+      "sources": [
+        "streamingunity:5649",
+        "streamingunity:8811"
+      ],
+      "decision": "merge",
+      "reason": "User verified the same work with distinct playable copies on 2026-11-11.",
+      "catalog": {
+        "kind": "variants",
+        "primary": "streamingunity:8811",
+        "observations": {
+          "streamingunity:5649": {
+            "audioLanguages": [
+              "it"
+            ],
+            "subtitles": {
+              "present": true
+            },
+            "verifiedBy": "user",
+            "verifiedOn": "2026-11-11",
+            "scope": "observed-stream",
+            "recheckOnPlayback": true
+          },
+          "streamingunity:8811": {
+            "audioLanguages": [
+              "it",
+              "en"
+            ],
+            "subtitles": {
+              "present": true
+            },
+            "verifiedBy": "user",
+            "verifiedOn": "2026-11-11",
+            "scope": "observed-stream",
+            "recheckOnPlayback": true
+          }
+        },
+        "timelineCompatibility": "unverified"
+      }
+    },
+    {
+      "sources": [
+        "streamingunity:9099",
+        "streamingunity:9144",
+        "streamingunity:9145"
+      ],
+      "decision": "merge",
+      "reason": "User confirmed TMDB 2328 season composition on 2026-11-11; source numbering must remain available for playback.",
+      "catalog": {
+        "kind": "seasons",
+        "primary": "streamingunity:9099",
+        "tmdbId": 2328,
+        "title": "Power Rangers",
+        "seasonMaps": {
+          "streamingunity:9099": {
+            "1": 24,
+            "2": 25
+          },
+          "streamingunity:9144": {
+            "1": 28,
+            "2": 29
+          },
+          "streamingunity:9145": {
+            "1": 30
+          }
+        },
+        "seasonMetadata": {
+          "24": {
+            "name": "Power Rangers Ninja Steel",
+            "year": 2017
+          },
+          "25": {
+            "name": "Power Rangers Super Ninja Steel",
+            "year": 2018
+          },
+          "28": {
+            "name": "Power Rangers Dino Fury",
+            "year": 2021
+          },
+          "29": {
+            "name": "Power Rangers Dino Fury",
+            "year": 2022
+          },
+          "30": {
+            "name": "Power Rangers Cosmic Fury",
+            "year": 2023
+          }
+        },
+        "evidence": "Names and years checked on TMDB season pages; user confirmed source season mapping."
+      }
     }
   ]
 }
