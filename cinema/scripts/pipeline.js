@@ -35,11 +35,13 @@ async function runBatch({roots,output,providerRoot,enrich=defaultEnrich,stage='a
       if(prior&&hash(inputs.semantic(prior))===fingerprint){
         legacyHashes.add(old.fingerprint);
         old.fingerprint=fingerprint;old.fingerprintVersion=3;write(file,old);
-        if(state[id]&&legacyHashes.has(state[id].fingerprint))state[id].fingerprint=fingerprint;
-        const draftFile=path.join(output,'drafts',id+'.json'),draft=read(draftFile);
-        if(draft&&legacyHashes.has(draft.fingerprint))write(draftFile,{...draft,fingerprint});
       }
     }
+    // A failed first enrichment may have state/drafts but no cached record yet.
+    // Exact legacy input equality is sufficient to retain its retry deadline.
+    if(state[id]&&legacyHashes.has(state[id].fingerprint))state[id].fingerprint=fingerprint;
+    const legacyDraftFile=path.join(output,'drafts',id+'.json'),legacyDraft=read(legacyDraftFile);
+    if(legacyDraft&&legacyHashes.has(legacyDraft.fingerprint))write(legacyDraftFile,{...legacyDraft,fingerprint});
     const due=!state[id]||state[id].fingerprint!==fingerprint||state[id].nextCheckAt<=now;
     timings.enrichedReadMs=(timings.enrichedReadMs||0)+clock()-phaseStart;
     let enriched=old?.fingerprint===fingerprint?old.record:null;

@@ -61,3 +61,11 @@ test('semantic comparison preserves artwork rank, episode data and policy change
  const equal=structuredClone(raw);equal.info.main_actors.reverse();equal.info.updated_at='new';assert.equal(hash(inputs.semantic(raw)),hash(inputs.semantic(equal)));
  for(const mutate of [r=>r.seasons[0].images.reverse(),r=>r.seasons[0].episodes[0].thumbnail='wrong',r=>r.episodeOverrides.a.title='New override',r=>r.metadataPolicy.providerArtworkOnly=false]){const changed=structuredClone(raw);mutate(changed);assert.notEqual(hash(inputs.semantic(raw)),hash(inputs.semantic(changed)));}
 });
+
+test('failed legacy first enrichment without a cached record keeps backoff and draft progress',async t=>{
+ const {options}=fixture(t),raw=baselineInput(options);
+ write(path.join(options.output,'state.json'),{'work-1':{fingerprint:hash(raw),nextCheckAt:100,error:'Timeout'}});
+ write(path.join(options.output,'drafts/work-1.json'),{fingerprint:hash(raw),startedAt:1,progress:{saved:'keep'}});
+ let result=await run({...options,now:2});assert.equal(result.processed,0);assert.equal(result.pendingCount,1);
+ result=await run({...options,now:101,enrich:async(r,{progress})=>{assert.equal(progress.saved,'keep');return {...r,enrichment:{status:'ready'}};}});assert.equal(result.processed,1);assert.equal(result.pendingCount,0);
+});
