@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":"tvdb","kind":"episodes","input":{"tvdbShowId":471128,"seasonNumber":1},"checkedAt":1794389424496,"status":"error","retryCount":1,"value":[],"failure":{"httpStatus":403,"code":"BLOCKED"},"fields":{},"episodes":{"1":{"checkedAt":1794389424496,"status":"error","retryCount":1},"2":{"checkedAt":1794389424496,"status":"error","retryCount":1}}}
