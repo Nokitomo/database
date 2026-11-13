@@ -1,0 +1,30 @@
+name: Publish Cinema SQLite Lite
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '47 */2 * * *'
+permissions:
+  contents: write
+concurrency:
+  group: cinema-sqlite-lite-publication
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci
+      - run: npm run verify:cinema:sqlite
+      - name: Verify source, build Lite and activate release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: python -B cinema/sqlite/publish.py --lite

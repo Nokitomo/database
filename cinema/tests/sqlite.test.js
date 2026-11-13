@@ -101,3 +101,42 @@ test('a provider origin change creates a new revision even when every stored rec
   const next=build(path.join(root,'b'),source,path.join(root,'a/cinema.sqlite'));
   assert.notEqual(first.revision,next.revision);assert.equal(next.origins['streamingunity:site'],'https://streamingunity.example');
 });
+
+test('Lite keeps full search and artwork choices, with byte-exact remote details', t => {
+  const root = tmp(t);
+  const source = path.join(root, 'source');
+  const out = path.join(root, 'lite');
+  const rows = path.join(root, 'lite.ndjson');
+  const r = record();
+  r.info.original_name = 'Original title';
+  r.info.synopsis = 'Metadati ricercabili';
+  r.info.original_language = 'en';
+  r.info.cast = ['Excluded from SQLite'];
+  snapshot(source, r);
+  require('../sqlite/export-lite').exportLite(source, rows);
+  const detail = fs.readFileSync(path.join(source, 'items', 'work-1.json'));
+  const hash = require('node:crypto').createHash('sha256').update(detail).digest('hex');
+  const input = fs.readFileSync(rows, 'utf8').trim().split('\n').map(JSON.parse);
+  assert.deepEqual(input[0], ['work', 'work-1', 1, null, {
+    title: 'Città di prova', original_name: 'Original title', original_language: 'en',
+    synopsis: 'Metadati ricercabili', type: 'tv',
+  }, hash, detail.length]);
+  const full = normalize(r, origins);
+  const artwork = input.filter(row => row[0] === 'artwork');
+  assert.deepEqual(artwork.map(row => row[1]), full.filter(row =>
+    row.kind === 'artwork_assignment' && row.payload.eligible &&
+    row.payload.scope === 'work' && row.payload.field === 'poster').map(row => row.id));
+  assert(input.some(row => row[0] === 'rule' && row[1] === 'episode' && row[2] === 'thumbnail'));
+  assert(input.some(row => row[0] === 'rule' && row[1] === 'season' && row[2] === 'poster'));
+  const lite = path.resolve(__dirname, '../sqlite/lite_database.py');
+  py([lite, rows, out, 'a'.repeat(40), 'b'.repeat(40)]);
+  const db = path.join(out, 'cinema.sqlite');
+  assert.equal(JSON.parse(py([lite, 'verify', db])).counts.artwork, artwork.length);
+  const result = py(['-c', "import sqlite3,sys,json; d=sqlite3.connect(sys.argv[1]); print(json.dumps(d.execute(\"SELECT id FROM search WHERE search MATCH 'citta original ricercabili'\").fetchall()))", db]);
+  assert.deepEqual(JSON.parse(result), [['work-1']]);
+
+  const manifest = read(path.join(source, 'manifest.json'));
+  manifest.complete = false;
+  write(path.join(source, 'manifest.json'), manifest);
+  assert.throws(() => require('../sqlite/export-lite').exportLite(source, path.join(root, 'invalid')), /complete/);
+});

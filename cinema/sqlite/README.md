@@ -174,3 +174,39 @@ Measured snapshot size: 4,628,811,776 bytes uncompressed and 1,273,739,739 bytes
 gzip-compressed. These are metadata and URL records, not downloaded image files.
 The app installer must budget storage for its installed catalog and a staged
 replacement; retaining 100 delta edges avoids a full download for every missed run.
+
+## Cinema SQLite Lite
+
+The independently published Lite snapshot is built by
+`publish-cinema-sqlite-lite.yml` and activated by the manifest on
+`cinema-sqlite-lite`. Its release tags start with `cinema-sqlite-lite-v1-`.
+It uses full gzip snapshots. The Lite schema is identified by
+`format: vega-cinema-lite-v1` and requires a dedicated app reader.
+
+- `works` stores the Cinema work ID (for example `work-7436`), active state,
+  replacement, Home and search metadata, and the SHA-256 and byte length of
+  the original item JSON. The app can derive the namespaced identity by
+  prepending `cinema:`.
+- `search` indexes active titles, original titles, and synopses using the
+  same FTS5 tokenizer as the full catalog.
+- `artwork` preserves eligible poster, background and logo candidates with
+  their existing assignment IDs, source, language, forced flag, rank,
+  dimensions and resolved URL.
+- `image_rules` lists eligible scope, role, source and language combinations
+  across the source catalog, including season posters and episode thumbnails.
+
+Read the original detail document at `detailPath` in the database repository
+at the manifest's immutable `sourceCommit`. Substitute the work ID in
+`{workId}` and check the decoded response bytes against the work's size and
+hash. The hash also lets the app reuse cached documents across revisions.
+Relative references inside the original document use the manifest's
+`origins`. The document contains all seasons and provider variants. The
+app reader must preserve canonical episodes, playback mappings and artwork
+override semantics when it hydrates details.
+
+The workflow can be dispatched manually or runs every two hours. If the
+current `cinema-data` snapshot is incomplete during the first publication,
+it tries the source revision of the active full SQLite release and verifies
+its completeness before export. Subsequent incomplete updates leave the
+active Lite release in place. The publisher verifies the uploaded release
+assets before switching the branch manifest.

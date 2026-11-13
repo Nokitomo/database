@@ -60,7 +60,14 @@ def delta_history(prior, latest, repo, limit=100):
     return list(reversed(suffix))+[latest]
 
 
-def main():
+def complete_source(manifest):
+    return manifest['complete'] is True and manifest['pendingCount'] == 0
+
+
+def main(*, lite=False):
+    publication_branch = 'cinema-sqlite-lite' if lite else 'cinema-sqlite'
+    tag_prefix = publication_branch + '-v1-'
+    title = 'Cinema SQLite Lite' if lite else 'Cinema SQLite'
     repo = os.environ['GH_REPO']
     if not re.fullmatch(r'[\w.-]+/[\w.-]+',repo):
         raise ValueError('Invalid repository')
@@ -77,15 +84,24 @@ def main():
         command('git','fetch','--depth=1','origin','cinema-data',cwd=code)
         source = command('git','rev-parse','FETCH_HEAD',cwd=code)
         raw_manifest = json.loads(command('git','show',source+':cinema/data/manifest.json',cwd=code))
-        if raw_manifest['complete'] is not True or raw_manifest['pendingCount']!=0:
+        if lite and not complete_source(raw_manifest) and not branch_exists(remote, publication_branch):
+            command('git','fetch','--depth=1','origin','cinema-sqlite',cwd=code)
+            full = json.loads(command('git','show','FETCH_HEAD:manifest.json',cwd=code))
+            source = full['sourceCommit']
+            if full.get('validationOnly') is not False or not re.fullmatch(r'[a-f0-9]{40}',source):
+                raise ValueError('Invalid full Cinema publication')
+            command('git','fetch','--depth=1','origin',source,cwd=code)
+            raw_manifest = json.loads(command('git','show',source+':cinema/data/manifest.json',cwd=code))
+            print('CINEMA_SQLITE_LITE_BOOTSTRAP '+source, flush=True)
+        if not complete_source(raw_manifest):
             print('CINEMA_SQLITE_SKIP incomplete source; previous release remains active')
             return
         branch = root/'publication'
-        command('git','init','-b','cinema-sqlite',str(branch))
+        command('git','init','-b',publication_branch,str(branch))
         command('git','remote','add','origin',remote,cwd=branch)
-        if branch_exists(remote,'cinema-sqlite'):
-            command('git','fetch','--depth=1','origin','cinema-sqlite',cwd=branch)
-            command('git','checkout','-B','cinema-sqlite','FETCH_HEAD',cwd=branch)
+        if branch_exists(remote,publication_branch):
+            command('git','fetch','--depth=1','origin',publication_branch,cwd=branch)
+            command('git','checkout','-B',publication_branch,'FETCH_HEAD',cwd=branch)
         prior = json.loads((branch/'manifest.json').read_text()) if (branch/'manifest.json').exists() else None
         if prior and prior['sourceCommit']==source and prior['exporterCommit']==exporter:
             print('CINEMA_SQLITE_SKIP identical source and exporter')
@@ -97,7 +113,7 @@ def main():
             tar.extractall(root/'source',filter='data')
         archive.unlink()
         previous = None
-        if prior and prior['schemaVersion']==1:
+        if not lite and prior and prior['schemaVersion']==1:
             if prior.get('validationOnly') or not re.fullmatch(r'cinema-sqlite-v1-[a-f0-9]{64}',prior['releaseTag']):
                 raise ValueError('Invalid previous publication')
             zipped = download_asset(repo,prior['releaseTag'],prior['snapshot'],root/'previous')
@@ -111,32 +127,43 @@ def main():
                 if verify(db)['revision']!=prior['revision']:
                     raise ValueError('Previous revision mismatch')
         out = root/'output'
-        subprocess.run(['node',str(code/'cinema/sqlite/export.js'),str(root/'source/cinema/data'),str(out),source,exporter],cwd=code,check=True,env={**os.environ,'CINEMA_SQLITE_ROWS_ONLY':'1'})
-        shutil.rmtree(root/'source')
-        subprocess.run([sys.executable,'-B',str(code/'cinema/sqlite/database.py'),'build',str(out)]+([str(previous)] if previous else []),cwd=code,check=True,env={**os.environ,'CINEMA_SQLITE_DISPOSABLE_BASE':'1'})
+        if lite:
+            rows = root/'lite.ndjson'
+            subprocess.run(['node',str(code/'cinema/sqlite/export-lite.js'),str(root/'source/cinema/data'),str(rows)],cwd=code,check=True)
+            shutil.rmtree(root/'source')
+            subprocess.run([sys.executable,'-B',str(code/'cinema/sqlite/lite_database.py'),str(rows),str(out),source,exporter],cwd=code,check=True)
+        else:
+            subprocess.run(['node',str(code/'cinema/sqlite/export.js'),str(root/'source/cinema/data'),str(out),source,exporter],cwd=code,check=True,env={**os.environ,'CINEMA_SQLITE_ROWS_ONLY':'1'})
+            shutil.rmtree(root/'source')
+            subprocess.run([sys.executable,'-B',str(code/'cinema/sqlite/database.py'),'build',str(out)]+([str(previous)] if previous else []),cwd=code,check=True,env={**os.environ,'CINEMA_SQLITE_DISPOSABLE_BASE':'1'})
         manifest = json.loads((out/'manifest.json').read_text())
-        if manifest['validationOnly']:
+        if not lite and manifest['validationOnly']:
             raise ValueError('Refusing validation artifact')
         if prior and prior['revision']==manifest['revision']:
             print('CINEMA_SQLITE_SKIP no logical changes')
             return
-        specs=[manifest['snapshot'],*manifest['deltas']]
-        latest=manifest['deltas'][0] if manifest['deltas'] else None
-        manifest['deltas']=delta_history(prior,latest,repo)
-        tag = 'cinema-sqlite-v1-'+digest(compact(manifest))
+        specs = [manifest['snapshot']]
+        if lite:
+            manifest['updatePolicy'] = {'snapshot':'full'}
+        else:
+            specs.extend(manifest['deltas'])
+            latest = manifest['deltas'][0] if manifest['deltas'] else None
+            manifest['deltas'] = delta_history(prior,latest,repo)
+        tag = tag_prefix+digest(compact(manifest))
+        if not lite:
+            manifest['updatePolicy'] = {'delta':'contiguous-chain','maxDeltas':100,'fallback':'full-snapshot'}
         manifest['releaseTag']=tag
         for spec in specs:
             if spec['bytes'] >= 2*1024**3:
                 raise ValueError('Release asset exceeds GitHub size limit')
             spec['url']=f'https://github.com/{repo}/releases/download/{tag}/{spec["name"]}'
         # Old edges keep their immutable original URLs; upload only this release's assets.
-        manifest['updatePolicy']={'delta':'contiguous-chain','maxDeltas':100,'fallback':'full-snapshot'}
         manifest_text=json.dumps(manifest,ensure_ascii=False,sort_keys=True,separators=(',',':'))+'\n'
         (out/'manifest.json').write_text(manifest_text,encoding='utf-8')
         # Read the releases inventory to distinguish a genuine missing tag from API errors.
         result=command('gh','api','--paginate',f'repos/{repo}/releases','--jq',f'.[] | select(.tag_name == "{tag}") | .draft')
         if not result:
-            retry(lambda:command('gh','release','create',tag,'--repo',repo,'--target',exporter,'--draft','--title','Cinema '+manifest['revision'][:12],'--notes','Verified Cinema SQLite snapshot. Activation is controlled by the cinema-sqlite branch manifest.'))
+            retry(lambda:command('gh','release','create',tag,'--repo',repo,'--target',exporter,'--draft','--title',('Cinema SQLite Lite ' if lite else 'Cinema ')+manifest['revision'][:12],'--notes',f'Verified {title} snapshot. Activation is controlled by the {publication_branch} branch manifest.'))
             result='true'
         if result=='true':
             for name in [*[spec['name'] for spec in specs],'manifest.json']:
@@ -149,14 +176,17 @@ def main():
         if result=='true':
             retry(lambda:command('gh','release','edit',tag,'--repo',repo,'--draft=false','--latest=false'))
         (branch/'manifest.json').write_text(manifest_text,encoding='utf-8')
-        (branch/'README.md').write_text('# Cinema SQLite\n\nGenerated publication pointer. SQLite and deltas are immutable GitHub Release assets.\n',encoding='utf-8')
+        assets = 'SQLite' if lite else 'SQLite and deltas'
+        (branch/'README.md').write_text(f'# {title}\n\nGenerated publication pointer. {assets} are immutable GitHub Release assets.\n',encoding='utf-8')
         command('git','config','user.name','github-actions[bot]',cwd=branch)
         command('git','config','user.email','41898282+github-actions[bot]@users.noreply.github.com',cwd=branch)
         command('git','add','manifest.json','README.md',cwd=branch)
-        command('git','commit','-m','Publish Cinema SQLite '+manifest['revision'][:12],cwd=branch)
-        retry(lambda:command('git','push','origin','HEAD:refs/heads/cinema-sqlite',cwd=branch))
+        command('git','commit','-m','Publish '+title+' '+manifest['revision'][:12],cwd=branch)
+        retry(lambda:command('git','push','origin','HEAD:refs/heads/'+publication_branch,cwd=branch))
         print('CINEMA_SQLITE_PUBLISHED '+manifest['revision'])
 
 
 if __name__=='__main__':
-    main()
+    if sys.argv[1:] not in ([], ['--lite']):
+        raise SystemExit('Usage: publish.py [--lite]')
+    main(lite=sys.argv[1:] == ['--lite'])
