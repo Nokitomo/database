@@ -189,11 +189,22 @@ It uses full gzip snapshots. The Lite schema is identified by
   prepending `cinema:`.
 - `search` indexes active titles, original titles, and synopses using the
   same FTS5 tokenizer as the full catalog.
-- `artwork` preserves eligible poster, background and logo candidates with
+- `artwork` preserves eligible poster, background, logo and mobile cover candidates with
   their existing assignment IDs, source, language, forced flag, rank,
   dimensions and resolved URL.
 - `image_rules` lists eligible scope, role, source and language combinations
   across the source catalog, including season posters and episode thumbnails.
+- Lite schema version 2 (`PRAGMA user_version=2`) adds `episodes` and
+  `episode_search`. The table contains one row per canonical episode of an
+  active work, including season zero and fractional episode numbers. Join
+  `episode_search.rowid` to `episodes.id` and `episodes.work_id` to `works.id`.
+  Title search uses Unicode tokenization and ignores accents.
+- `episodes.thumbnail` holds the eligible thumbnail, preferring a verified
+  override, then the canonical thumbnail. An explicit null override leaves
+  the thumbnail empty. Values starting with `/` use the manifest's
+  `streamingunity:images` origin; other values are absolute URLs.
+  `duration_minutes` is nullable. Source durations require an episode
+  association and are omitted when the associated sources disagree.
 
 Read the original detail document at `detailPath` in the database repository
 at the manifest's immutable `sourceCommit`. Substitute the work ID in

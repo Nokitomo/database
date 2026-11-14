@@ -112,6 +112,15 @@ test('Lite keeps full search and artwork choices, with byte-exact remote details
   r.info.synopsis = 'Metadati ricercabili';
   r.info.original_language = 'en';
   r.info.cast = ['Excluded from SQLite'];
+  r.seasons[0].episodes[0].title = 'La città invisibile';
+  r.providers.streamingunity[0].seasons[0].episodes[0].duration = 23;
+  r.seasons[0].episodes.push({
+    number: 1.5, title: 'Speciale', thumbnail: {base: 'streamingunity:images', path: '/special.webp'},
+    metadataSources: {verifiedOverride: {thumbnail: null}},
+  }, {
+    number: 2, title: 'Secondo', thumbnail: {base: 'streamingunity:images', path: '/second.webp'},
+    metadataSources: {'streamingunity:1': {}},
+  });
   snapshot(source, r);
   require('../sqlite/export-lite').exportLite(source, rows);
   const detail = fs.readFileSync(path.join(source, 'items', 'work-1.json'));
@@ -125,15 +134,28 @@ test('Lite keeps full search and artwork choices, with byte-exact remote details
   const artwork = input.filter(row => row[0] === 'artwork');
   assert.deepEqual(artwork.map(row => row[1]), full.filter(row =>
     row.kind === 'artwork_assignment' && row.payload.eligible &&
-    row.payload.scope === 'work' && row.payload.field === 'poster').map(row => row.id));
+    row.payload.scope === 'work' && ['poster', 'cover_mobile'].includes(row.payload.field)).map(row => row.id));
+  assert(artwork.some(row => row[3] === 'cover_mobile' && row[5] === null &&
+    row[10] === 'https://cdn.example.invalid/cover.webp'));
+  assert.deepEqual(input.filter(row => row[0] === 'episode'), [
+    ['episode', 'work-1', 0, 1, 'La città invisibile', 'https://image.tmdb.org/t/p/original/correct.jpg', 23],
+    ['episode', 'work-1', 0, 1.5, 'Speciale', null, null],
+    ['episode', 'work-1', 0, 2, 'Secondo', '/second.webp', null],
+  ]);
   assert(input.some(row => row[0] === 'rule' && row[1] === 'episode' && row[2] === 'thumbnail'));
   assert(input.some(row => row[0] === 'rule' && row[1] === 'season' && row[2] === 'poster'));
   const lite = path.resolve(__dirname, '../sqlite/lite_database.py');
   py([lite, rows, out, 'a'.repeat(40), 'b'.repeat(40)]);
   const db = path.join(out, 'cinema.sqlite');
-  assert.equal(JSON.parse(py([lite, 'verify', db])).counts.artwork, artwork.length);
+  const verified = JSON.parse(py([lite, 'verify', db]));
+  assert.equal(verified.counts.artwork, artwork.length);
+  assert.equal(verified.counts.episodes, 3);
+  assert.equal(verified.schemaVersion, 2);
   const result = py(['-c', "import sqlite3,sys,json; d=sqlite3.connect(sys.argv[1]); print(json.dumps(d.execute(\"SELECT id FROM search WHERE search MATCH 'citta original ricercabili'\").fetchall()))", db]);
   assert.deepEqual(JSON.parse(result), [['work-1']]);
+  const episodes = py(['-c', "import sqlite3,sys,json; d=sqlite3.connect(sys.argv[1]); print(json.dumps(d.execute(\"SELECT work_id,season,episode,episodes.title,thumbnail,duration_minutes FROM episode_search JOIN episodes ON episodes.id=episode_search.rowid WHERE episode_search MATCH 'citta invis*'\").fetchall()))", db]);
+  assert.deepEqual(JSON.parse(episodes), [['work-1', 0, 1, 'La città invisibile',
+    'https://image.tmdb.org/t/p/original/correct.jpg', 23]]);
 
   const manifest = read(path.join(source, 'manifest.json'));
   manifest.complete = false;
