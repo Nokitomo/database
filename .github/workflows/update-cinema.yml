@@ -81,8 +81,8 @@ jobs:
           done
           echo 'CINEMA_RECOVERY_DISPATCH_FAILED' >&2
           exit 1
-      - name: Dispatch SQLite publication after a successful checkpoint
+      - name: Dispatch SQLite Lite publication after a successful checkpoint
         if: ${{ success() }}
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run publish-cinema-sqlite.yml --ref main
+        run: gh workflow run publish-cinema-sqlite-lite.yml --ref main

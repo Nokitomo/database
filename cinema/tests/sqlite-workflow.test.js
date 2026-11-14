@@ -8,7 +8,6 @@ test('workflow has explicit trigger, serialization and no scraper dependency',()
   const source=fs.readFileSync(path.join(__dirname,'../../.github/workflows/publish-cinema-sqlite.yml'),'utf8');
   assert.match(source,/workflow_dispatch:/);assert.match(source,/cancel-in-progress: false/);assert.match(source,/contents: write/);
   assert.match(source,/python-version: '3.12'/);assert(!source.includes('WARP'));assert(!source.includes('pull_request'));
-  assert.match(fs.readFileSync(path.join(__dirname,'../../.github/workflows/update-cinema.yml'),'utf8'),/gh workflow run publish-cinema-sqlite.yml --ref main/);
 });
 
 test('Lite publication runs separately on dispatch and schedule', () => {
@@ -20,4 +19,11 @@ test('Lite publication runs separately on dispatch and schedule', () => {
   assert.match(workflow, /contents: write/);
   assert.match(workflow, /publish\.py --lite/);
   assert.doesNotMatch(workflow, /WARP|pull_request/);
+});
+
+test('a successful Cinema checkpoint dispatches the Lite publisher', () => {
+  const workflow = fs.readFileSync(path.join(__dirname,
+    '../../.github/workflows/update-cinema.yml'), 'utf8');
+  assert.match(workflow, /gh workflow run publish-cinema-sqlite-lite\.yml --ref main/);
+  assert.doesNotMatch(workflow, /gh workflow run publish-cinema-sqlite\.yml/);
 });
