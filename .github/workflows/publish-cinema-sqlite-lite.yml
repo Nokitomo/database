@@ -1,6 +1,11 @@
 name: Publish Cinema SQLite Lite
 on:
   workflow_dispatch:
+    inputs:
+      rebuild_active:
+        description: Rebuild the active Lite source if the latest source is incomplete
+        type: boolean
+        default: false
   schedule:
     - cron: '47 */2 * * *'
 permissions:
@@ -27,4 +32,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          CINEMA_SQLITE_REBUILD_ACTIVE: ${{ inputs.rebuild_active }}
         run: python -B cinema/sqlite/publish.py --lite

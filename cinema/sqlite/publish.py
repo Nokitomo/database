@@ -84,6 +84,15 @@ def main(*, lite=False):
         command('git','fetch','--depth=1','origin','cinema-data',cwd=code)
         source = command('git','rev-parse','FETCH_HEAD',cwd=code)
         raw_manifest = json.loads(command('git','show',source+':cinema/data/manifest.json',cwd=code))
+        if lite and not complete_source(raw_manifest) and os.environ.get('CINEMA_SQLITE_REBUILD_ACTIVE') == 'true':
+            command('git','fetch','--depth=1','origin',publication_branch,cwd=code)
+            active = json.loads(command('git','show','FETCH_HEAD:manifest.json',cwd=code))
+            source = active.get('sourceCommit', '')
+            if active.get('format') != 'vega-cinema-lite-v1' or not re.fullmatch(r'[a-f0-9]{40}',source):
+                raise ValueError('Invalid active Lite publication')
+            command('git','fetch','--depth=1','origin',source,cwd=code)
+            raw_manifest = json.loads(command('git','show',source+':cinema/data/manifest.json',cwd=code))
+            print('CINEMA_SQLITE_LITE_REBUILD_ACTIVE '+source, flush=True)
         if lite and not complete_source(raw_manifest) and not branch_exists(remote, publication_branch):
             command('git','fetch','--depth=1','origin','cinema-sqlite',cwd=code)
             full = json.loads(command('git','show','FETCH_HEAD:manifest.json',cwd=code))
